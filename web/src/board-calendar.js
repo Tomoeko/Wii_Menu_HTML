@@ -127,6 +127,7 @@ export function createBoardCalendar(
   {
     onBack = () => {},
     onSelectDate = () => {},
+    onSound = () => {},
     display = standardDisplay,
     messages = {},
     today = () => new Date(),
@@ -153,6 +154,11 @@ export function createBoardCalendar(
       dateMessage: ['Info_a'],
     },
   };
+  // Cal_Ac's visible texture ends at frame 75. Date::SELECT continues to
+  // frame 80 so Calendar can wait for the authored body animation before
+  // starting its exit; keep the texture itself from lingering for those last
+  // five bookkeeping frames.
+  const selectionVisibleFrames = 25;
   const clip = (source, group, frame) => ({
     animation: source.animations[source.name],
     group,
@@ -278,7 +284,7 @@ export function createBoardCalendar(
     const focusFrame = focus ? (focus.entering ? 0 : 10) + focus.frame : 0;
     const selectionFrame =
       !offset && selected?.index === cell.index
-        ? 50 + clamp(phase === 'select' ? frame : 30, 30)
+        ? 50 + clamp(phase === 'select' ? frame : selectionVisibleFrames, selectionVisibleFrames)
         : 50;
     const position = transform3D(anchor, (cell.index % 7) * 70, -Math.floor(cell.index / 7) * 48);
     const hasMessages = messageDates.has(`${cell.year}-${cell.month}-${cell.day}`);
@@ -435,6 +441,7 @@ export function createBoardCalendar(
         phase = 'select';
         frame = 0;
         onSelectDate(localDate(selected));
+        onSound('WIPL_SE_DATE_SELECT');
       }
       return true;
     },

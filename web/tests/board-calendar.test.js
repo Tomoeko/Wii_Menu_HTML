@@ -153,9 +153,11 @@ test(
 
 test('date hover queues departure and selection binds the actual flash pane', sourceTest, () => {
   const events = [],
+    sounds = [],
     calendar = createBoardCalendar(layouts, {
       onSelectDate: (value) => events.push(value),
       onBack: () => events.push('back'),
+      onSound: (value) => sounds.push(value),
     });
   calendar.open(date(2026, 9));
   calendar.advance(50);
@@ -175,10 +177,14 @@ test('date hover queues departure and selection binds the actual flash pane', so
   assert.equal(calendar.activate('date-3'), true);
   assert.equal(events[0].getDate(), 2);
   assert.equal(events[0].getMonth(), 8);
+  assert.deepEqual(sounds, ['WIPL_SE_DATE_SELECT']);
   calendar.advance(3);
   const flash = dayLayout(calendar.presentation(), 3);
   assert.equal(flash.materials[pane(flash, 'Cal_Ac').material].colors[1][3], 240);
-  calendar.advance(26);
+  calendar.advance(22);
+  const endedFlash = dayLayout(calendar.presentation(), 3);
+  assert.equal(endedFlash.materials[pane(endedFlash, 'Cal_Ac').material].colors[1][3], 0);
+  calendar.advance(4);
   assert.equal(calendar.snapshot().phase, 'select');
   calendar.advance(1);
   assert.equal(calendar.snapshot().phase, 'exit');

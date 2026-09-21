@@ -628,6 +628,7 @@ of the browser's prepared waveform.
 | SD Card Menu page | `WSD_SELECT` | `0x813E03AC` in `0x813E0398` |
 | Channel preview left / right | `WSD_SELECT` | `0x813BB018`, `0x813BB074` |
 | Message Board previous / next date | `WSD_SELECT` | `0x81393954`, `0x813938B0` |
+| Message Board calendar date selection | `WIPL_SE_DATE_SELECT` | `Calendar::onTrigDate` after `Date::ON_TRIG` |
 | Message Board → Wii Menu, Calendar, or Create | `WIPL_SE_DECIDE` | shared transition call `0x81392F08` |
 
 Message Board now emits these cues from its scene controller after accepting

@@ -68,6 +68,7 @@ import {
 import {
   commonArrowDefinitions,
   createArrowInteraction,
+  isArrowId,
   isPersistentArrowControl,
   pointerRemainsInPersistentControl,
   resolveDragArrowHover,
@@ -1095,13 +1096,12 @@ function setHover(value) {
   if (scenes) scenes.hover(value?.startsWith('scene-') ? value.slice(6) : null);
   if (sdMenu) sdMenu.hover(value?.startsWith('sd-menu-') ? value.slice(8) : null);
   previewArrows?.hover(menu.getState().screen === 'preview' ? value : null);
-  const footerOwnsSound = routeFooterHover(
-    footer,
-    value,
-    menu.getState(),
-    scenes?.snapshot(),
-    sceneFader.active,
-  );
+  const state = menu.getState();
+  const draggingChannel = state.screen === 'grid' &&
+    ['grab', 'drag'].includes(drag?.getState()?.phase);
+  const footerOwnsSound = draggingChannel && isArrowId(value)
+    ? (footer.hover(value), true)
+    : routeFooterHover(footer, value, state, scenes?.snapshot(), sceneFader.active);
   if (hover === value) return;
   hover = value;
   hoverAt = now;
@@ -1296,7 +1296,13 @@ function render(timestamp) {
       focus.clear();
       void audio.play(events.sound);
     }
-    if (events.page && menu.changePage(events.page)) void audio.play('page');
+    if (events.page && menu.changePage(events.page)) {
+      // Pointer capture keeps the transparent button from receiving a DOM
+      // click. The drag page event is the native arrow activation, so pose its
+      // authored pressed bubble at the same instant as the page transition.
+      footer.press(events.page < 0 ? 'prev' : 'next');
+      void audio.play('page');
+    }
     if (events.move && menu.moveChannel(...events.move) && config.channels.persistLayout) {
       const arrangement = menu.getState().channels;
       saveQueue = saveQueue

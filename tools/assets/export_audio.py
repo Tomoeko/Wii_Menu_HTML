@@ -42,6 +42,7 @@ SOUNDS = {
     "invalidDrop": "WIPL_SE_CH_NOT_MOVE",
     "drag": "WIPL_SE_CH_DRAG",
     "discPreview": "WIPL_ME_NO_DISC_BANNER",
+    "dateSelect": "WIPL_SE_DATE_SELECT",
 }
 
 

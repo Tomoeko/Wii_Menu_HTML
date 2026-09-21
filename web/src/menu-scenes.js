@@ -635,6 +635,7 @@ export function createMenuScenes(
             onSelectDate: (date) => {
               boardDate = date;
             },
+            onSound,
           });
           boardChild.open(boardDate || currentDate);
         } else {
