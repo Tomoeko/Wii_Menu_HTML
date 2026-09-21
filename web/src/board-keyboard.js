@@ -254,11 +254,15 @@ export function createBoardKeyboard(
     const prefix = predictionPrefix();
     const cacheKey = predictionKey(prefix);
     if (candidateCache?.key === cacheKey) return candidateCache;
+    // Keep the active text selectable while the local original-Zi8 request is
+    // in flight. A successful result replaces this optimistic literal with
+    // dictionary words; an unavailable result leaves the literal selectable.
+    const initialValues = prefix ? [prefix] : [];
     const request = {
       key: cacheKey,
       prefix,
-      values: [],
-      strip: candidateStrip([]),
+      values: initialValues,
+      strip: candidateStrip(initialValues),
       state: 'ready',
       selectedIndex: 0,
       engine: predict ? 'provider' : 'local-fallback',
@@ -279,7 +283,7 @@ export function createBoardKeyboard(
       const words = Array.isArray(result) ? result : result.candidates;
       if (!Array.isArray(words)) throw new TypeError('Invalid dictionary candidates');
       request.values = words
-        .filter((word) => typeof word === 'string')
+        .filter((word) => typeof word === 'string' && word.length > 0)
         .slice(0, 40)
         .map((word) => {
           if (phonePrediction?.uppercase) return word[0]?.toLocaleUpperCase() + word.slice(1);
@@ -289,6 +293,10 @@ export function createBoardKeyboard(
             return word[0]?.toLocaleUpperCase() + word.slice(1);
           return word;
         });
+      // Zi8 keeps the text being composed visible as a selectable candidate
+      // when the dictionary has no match. This also lets an unknown word use
+      // the same acceptance path as an ordinary suggestion.
+      if (request.values.length === 0 && prefix) request.values = [prefix];
       request.strip = candidateStrip(request.values);
       request.engine = result.engine || (predict ? 'custom' : 'local-fallback');
       request.state = 'ready';
@@ -739,13 +747,13 @@ export function createBoardKeyboard(
     ];
   }
 
-  function update(next) {
+  function update(next, { notify = true } = {}) {
     text = next;
     localPredictor.learn(text.replace(/[\p{L}\p{M}]+$/u, ''));
     candidateCache = null;
     age = 0;
     caretColumn = null;
-    onChange(text);
+    if (notify) onChange(text);
   }
 
   function insert(value, inputSound = value === ' ' ? 'CHAR_DECIDE' : 'CHAR_INPUT') {
@@ -779,11 +787,27 @@ export function createBoardKeyboard(
   }
 
   function enter() {
+    if (multiline) {
+      // Return completes the current Memo line even while dictionary
+      // composition is active. Advance the caret first; the dictionary reset
+      // must follow the line feed so the next query starts on the new line.
+      const activeComposition = compositionStart !== null || phonePrediction !== null;
+      const next = text.slice(0, caret) + '\n' + text.slice(caret);
+      if (next.length > maxLength || (textField && !textField.accepts(next))) {
+        sound('CHAR_DELETE_ERROR');
+        return false;
+      }
+      update(next, { notify: false });
+      caret += 1;
+      if (activeComposition) finishComposition();
+      onChange(text);
+      sound('CHAR_DECIDE');
+      return true;
+    }
     if (finishComposition()) {
       sound('CHAR_DECIDE');
       return true;
     }
-    if (multiline) return insert('\n', 'CHAR_DECIDE');
     close('ok');
     return true;
   }

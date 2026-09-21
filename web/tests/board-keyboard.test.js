@@ -1047,7 +1047,7 @@ test(
 );
 
 test(
-  'asynchronous original prediction discards stale results and never substitutes fallback words',
+  'asynchronous original prediction discards stale results and keeps literal text available',
   { skip: !available },
   async () => {
     const requests = [];
@@ -1059,6 +1059,10 @@ test(
     keyboard.advance(12);
     keyboard.keyInput('h');
     assert.equal(keyboard.snapshot().dictionary.state, 'loading');
+    assert.deepEqual(
+      keyboard.snapshot().candidateStrip.entries.map(({ value }) => value),
+      ['h'],
+    );
     keyboard.keyInput('e');
     keyboard.snapshot();
     assert.equal(requests.length, 2);
@@ -1079,8 +1083,8 @@ test(
     await Promise.resolve();
     assert.equal(keyboard.snapshot().dictionary.state, 'unavailable');
     assert.equal(
-      keyboard.controls().some((item) => item.id.startsWith('key-candidate-')),
-      false,
+      keyboard.controls().find((item) => item.id === 'key-candidate-0').label,
+      'hel',
     );
     assert.equal(keyboard.snapshot().text, 'hel');
   },
@@ -1234,7 +1238,7 @@ test(
 );
 
 test(
-  'dictionary composition starts with enabled typing, previews gray, and commits without a newline',
+  'dictionary composition previews gray and completes a Memo line with Enter',
   { skip: !available },
   () => {
     const requests = [];
@@ -1268,7 +1272,8 @@ test(
     ]);
     keyboard.keyInput('Enter');
     state = keyboard.snapshot();
-    assert.equal(state.text, 'old far');
+    assert.equal(state.text, 'old far\n');
+    assert.equal(state.caret, state.text.length);
     assert.equal(state.composition, null);
     assert.equal(state.candidateStrip.entries.length, 0);
     assert.deepEqual(state.textColorRanges, []);
@@ -1276,7 +1281,7 @@ test(
     keyboard.keyInput('Backspace');
     assert.equal(keyboard.snapshot().candidateStrip.entries.length, 0);
     keyboard.activate('key-return');
-    assert.equal(keyboard.snapshot().text, 'old fa\n');
+    assert.equal(keyboard.snapshot().text, 'old far\n');
     assert.equal(sounds.at(-1), 'WIPL_SE_CHAR_DECIDE');
     keyboard.activate('key-prediction');
     assert.deepEqual(preferences, [
@@ -1287,6 +1292,67 @@ test(
         schemaVersion: 2, predictionEnabled: false, dictionaryLanguage: 'es',
       }),
     ]);
+  },
+);
+
+test(
+  'dictionary exposes an unmatched composition literally, clears it on Space, and restarts after Enter',
+  { skip: !available },
+  () => {
+    const sounds = [];
+    const resets = [];
+    let keyboard;
+    const predict = () => [];
+    predict.createSession = () => {
+      const session = (prefix) => predict(prefix);
+      session.reset = () => {
+        const state = keyboard.snapshot();
+        resets.push({ text: state.text, caret: state.caret });
+      };
+      return session;
+    };
+    keyboard = createBoardKeyboard(layouts, {
+      initialPredictionEnabled: true,
+      predict,
+      onSound: (id) => sounds.push(id),
+    });
+
+    for (const character of 'zxq') keyboard.keyInput(character);
+    let state = keyboard.snapshot();
+    assert.deepEqual(state.candidateStrip.entries.map(({ value }) => value), ['zxq']);
+    assert.equal(keyboard.controls().find((item) => item.id === 'key-candidate-0').label, 'zxq');
+
+    keyboard.activate('key-candidate-0');
+    state = keyboard.snapshot();
+    assert.equal(state.text, 'zxq');
+    assert.equal(state.composition, null);
+    assert.equal(state.candidateStrip.entries.length, 0);
+
+    keyboard.keyInput(' ');
+    for (const character of 'mystery') keyboard.keyInput(character);
+    assert.deepEqual(keyboard.snapshot().candidateStrip.entries.map(({ value }) => value), ['mystery']);
+    keyboard.keyInput(' ');
+    state = keyboard.snapshot();
+    assert.equal(state.text, 'zxq mystery ');
+    assert.equal(state.composition, null);
+    assert.equal(state.candidateStrip.entries.length, 0);
+
+    for (const character of 'next') keyboard.keyInput(character);
+    const resetCount = resets.length;
+    keyboard.keyInput('Enter');
+    state = keyboard.snapshot();
+    assert.equal(state.text, 'zxq mystery next\n');
+    assert.equal(state.caret, state.text.length);
+    assert.equal(resets.length, resetCount + 1);
+    assert.deepEqual(resets.at(-1), { text: state.text, caret: state.caret });
+    assert.equal(state.composition, null);
+    assert.equal(state.candidateStrip.entries.length, 0);
+    assert.equal(sounds.at(-1), 'WIPL_SE_CHAR_DECIDE');
+
+    keyboard.keyInput('a');
+    state = keyboard.snapshot();
+    assert.deepEqual(state.candidateStrip.entries.map(({ value }) => value), ['a']);
+    assert.deepEqual(state.composition, { start: state.text.length - 1, end: state.text.length });
   },
 );
 
@@ -1590,11 +1656,12 @@ test('both Enter paths expose newline markers only after an actual line feed',
     });
     for (const character of 'far') keyboard.keyInput(character);
     keyboard.activate('key-return');
-    assert.equal(keyboard.snapshot().text, 'far');
+    assert.equal(keyboard.snapshot().text, 'far\n');
+    assert.equal(keyboard.snapshot().caret, 4);
     assert.equal(keyboard.snapshot().composition, null);
     assert.equal(keyboard.snapshot().candidateStrip.entries.length, 0);
     keyboard.keyInput('Enter');
-    assert.equal(keyboard.snapshot().text, 'far\n');
+    assert.equal(keyboard.snapshot().text, 'far\n\n');
   });
 
 
