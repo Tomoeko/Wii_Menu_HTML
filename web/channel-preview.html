@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Channel preview</title>
+    <script src="/src/tool-theme.js"></script>
+    <link rel="stylesheet" href="/src/tool-theme.css" />
+    <link rel="stylesheet" href="/src/channel-preview.css" />
+  </head>
+  <body>
+    <main>
+      <nav aria-label="Navigation" data-tool-toolbar>
+        <a href="/channels.html">← Channel Manager</a>
+        <a href="/">Open Wii Menu</a>
+      </nav>
+      <header>
+        <p class="eyebrow">Channel preview</p>
+        <h1 id="title">Loading channel…</h1>
+        <p>See the channel's menu icon and opening animation before returning to the menu.</p>
+      </header>
+      <div class="previews">
+        <section class="icon-panel" aria-labelledby="icon-heading">
+          <h2 id="icon-heading">Menu icon</h2>
+          <div class="icon-frame">
+            <canvas id="icon" role="img" aria-label="Animated channel icon"
+              >Your browser needs canvas support to display this icon.</canvas
+            >
+          </div>
+          <p id="icon-note">The icon uses the same artwork and animation as the Wii Menu.</p>
+        </section>
+        <section aria-labelledby="banner-heading">
+          <h2 id="banner-heading">Inside the channel</h2>
+          <canvas id="banner" role="img" aria-label="Animated channel preview"
+            >Your browser needs canvas support to display this preview.</canvas
+          >
+        </section>
+      </div>
+      <div class="actions" aria-label="Preview controls">
+        <button id="replay" disabled>Replay opening and sound</button>
+        <button id="pause" disabled>Pause animation</button>
+        <button id="stop-sound" disabled>Stop sound</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Loading prepared channel resources…</p>
+      <p class="note">
+        Sound starts when you choose Replay. The menu's Start button remains a local placeholder.
+      </p>
+    </main>
+    <script type="module" src="/src/channel-preview.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wii Menu sequence inspector</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/menu-inspect.css" />
+  </head>
+  <body class="menu-inspector">
+    <header id="inspection-tools">
+      <h1>Menu sequence inspector</h1>
+      <p>Original resources and application controllers. Captures are candidates for comparison.</p>
+      <div class="inspection-actions">
+        <button id="inspection-pause">Pause</button>
+        <button id="inspection-step">Advance one update</button>
+        <label>Updates <input id="inspection-length" type="number" value="60" min="1" max="600" /></label>
+        <label>Trigger
+          <select id="inspection-trigger">
+            <option value="click">Click</option>
+            <option value="pointerdown">Pointer press (drag)</option>
+          </select>
+        </label>
+        <button id="inspection-record">Record next pointer action</button>
+        <button id="inspection-save">Save current frame</button>
+      </div>
+      <div class="inspection-sounds">
+        <button id="inspection-sounds-reset">Reset sound trace</button>
+        <output id="inspection-sounds" aria-live="off"></output>
+      </div>
+      <div class="inspection-sounds">
+        <button id="inspection-measure">Measure 300 frames</button>
+        <output id="inspection-performance" aria-live="polite">Timing is off until requested.</output>
+      </div>
+      <output id="inspection-result">Complete startup, then select an inspection action.</output>
+    </header>
+    <main id="screen" aria-label="Wii Menu">
+      <canvas id="menu" width="608" height="456" aria-hidden="true"></canvas>
+      <div id="controls"></div>
+      <div id="status" role="status">Loading Wii Menu…</div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

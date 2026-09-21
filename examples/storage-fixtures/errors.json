@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "sd": {
+    "status": "read-error",
+    "channels": []
+  },
+  "wiiSaves": {
+    "status": "ready",
+    "records": [
+      {
+        "id": "dummy-save",
+        "title": "Dummy Save",
+        "blocks": 1
+      }
+    ]
+  },
+  "sdSaves": {
+    "status": "read-error",
+    "records": []
+  },
+  "gamecube": {
+    "a": {
+      "status": "read-error",
+      "records": []
+    },
+    "b": {
+      "status": "unsupported",
+      "records": []
+    }
+  }
+}

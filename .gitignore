@@ -1,0 +1,41 @@
+# User-provided title contents, keys, import state, and local arrangement.
+/.local/
+/private/
+*.wad
+*.app
+*.key
+*.keys
+common-key*
+*.bin
+*.nand
+*.img
+*.iso
+*.gcm
+*.dol
+*.elf
+*.rso
+*.tik
+*.tmd
+*.cert
+
+# Original/generated Nintendo resources and local captures are not source.
+/web/public/assets/
+/artifacts/
+
+# Local planning notes are intentionally excluded from public source exports.
+/ROADMAP.md
+
+# Local tooling and caches.
+/node_modules/
+/.venv/
+/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage*
+/coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example

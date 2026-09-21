@@ -1,0 +1,31 @@
+{
+  "name": "wii-home-menu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Resource-driven browser reconstruction of the Wii System Menu",
+  "scripts": {
+    "assets": "python3 tools/assets/export.py",
+    "assets:channels": "python3 tools/assets/channels_export.py",
+    "assets:audio": "python3 tools/assets/export_audio.py --background",
+    "assets:channel-audio": "python3 tools/assets/export_channel_audio.py",
+    "assets:shared-fonts": "python3 tools/assets/export_shared_fonts.py",
+    "assets:all": "python3 tools/assets/prepare.py --rebuild",
+    "trace:channels": "node tools/trace-channels.mjs",
+    "init-state": "node tools/init-state.mjs",
+    "prestart": "node tools/init-state.mjs",
+    "predev": "node tools/init-state.mjs",
+    "dev": "node tools/serve.mjs",
+    "start": "node tools/serve.mjs",
+    "test": "node --test web/tests/*.test.js",
+    "check": "node --check web/src/main.js && node --check web/src/renderer.js && node --check web/src/animation.js",
+    "test:assets": "python3 -m unittest discover -s tools/assets -p 'test_*.py'",
+    "prepare": "python3 tools/assets/prepare.py",
+    "channels": "node tools/channels.mjs",
+    "channels:custom": "node tools/custom-channels.mjs",
+    "audit:privacy": "node tools/audit-privacy.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

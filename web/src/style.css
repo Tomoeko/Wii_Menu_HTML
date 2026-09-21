@@ -1,0 +1,112 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+body {
+  display: grid;
+  place-items: center;
+  font-family: Arial, sans-serif;
+}
+#screen {
+  position: relative;
+  width: min(100vw, 133.333333vh);
+  height: min(100vh, 75vw);
+  overflow: hidden;
+  background: #e8e8e8;
+  /* The menu is a rendered surface. Browser text selection must never turn
+     labels, hit regions, or animated artwork into a highlighted document. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+canvas,
+#controls {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* Hide the host cursor continuously, including disabled intro controls.
+   P1 rendering and its hotspot are owned by the menu input controller. Keep
+   this declaration authoritative while the pointer crosses transparent DOM
+   hit regions; otherwise a browser's native button cursor can flash between
+   two canvas frames. The inspector header remains an ordinary host surface. */
+body:not(.menu-inspector),
+#screen,
+#screen * {
+  cursor: none !important;
+}
+#menu {
+  z-index: 2;
+  pointer-events: none;
+}
+#controls {
+  z-index: 3;
+  pointer-events: none;
+}
+#controls button {
+  position: absolute;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+/* Disabled overlays must not intercept pointer tracking in browser engines
+   that suppress events over native disabled buttons during Health/handoff. */
+#controls button:disabled {
+  pointer-events: none;
+}
+#system-settings {
+  position: absolute;
+  inset: 0;
+  width: 608px;
+  height: 456px;
+  border: 0;
+  transform-origin: top left;
+  z-index: 1;
+}
+#system-settings[hidden] {
+  display: none;
+}
+#controls button:focus-visible {
+  /* Focus is represented by the source arrow/bubble animation. A browser
+     outline would expose the transparent DOM hit rectangle over the artwork. */
+  outline: none;
+}
+#status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 20px;
+  padding: 36px;
+  text-align: center;
+  white-space: pre-line;
+  font-size: 18px;
+  color: #555;
+  background: #eee;
+  z-index: 4;
+}
+#status[hidden] {
+  display: none;
+}
+#status button {
+  font: inherit;
+  padding: 16px 32px;
+  border: 2px solid #b5c8d0;
+  border-radius: 40px;
+  color: #555;
+  background: linear-gradient(#fff, #e8eef0);
+}

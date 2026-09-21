@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create / Address Book sequence inspector</title>
+    <script src="/src/tool-theme.js"></script>
+    <link rel="stylesheet" href="/src/tool-theme.css" />
+    <link rel="stylesheet" href="/src/inspect.css" />
+  </head>
+  <body>
+    <main>
+      <header data-tool-toolbar>
+        <h1>Create / Address Book sequence inspector</h1>
+        <a href="/address-inspect.html">Inspect individual book poses</a>
+      </header>
+      <p>
+        Candidate frames from the live scene controllers, original layouts, animations, textures,
+        and fonts. The original Message Board and mask remain behind the selector, book, and footer.
+        No native screenshots are used in these renders.
+      </p>
+      <section class="controls" aria-label="Sequence controls">
+        <label
+          >Sequence
+          <select id="flow">
+            <option value="enter">Create selector → Address Book</option>
+            <option value="exit-cover">Address Book cover → Create selector</option>
+            <option value="exit-page">Address Book after one page turn → Create selector</option>
+          </select>
+        </label>
+        <label
+          >Aspect<select id="aspect">
+            <option>16:9</option>
+            <option>4:3</option>
+          </select></label
+        >
+        <label>Board date<input id="date" type="date" value="2026-09-17" /></label>
+        <label
+          >Focus before each click (updates)
+          <input id="focus" type="number" min="0" max="60" value="15" />
+        </label>
+        <label
+          >Output width<input id="width" type="number" min="304" max="1920" value="836"
+        /></label>
+        <label
+          >Output height<input id="height" type="number" min="228" max="1080" value="456"
+        /></label>
+        <button id="render" disabled>Apply setup</button>
+      </section>
+      <p class="hint">
+        Every frame is one controller update. Frame 0 is immediately after the click; the final
+        frame is the settled boundary. Entry exports 0–28 (29 images); either exit exports 0–48 (49
+        images). Native capture frame numbers are aligned separately, not assumed to be updates.
+        Rendering always uses the original 640×456 framebuffer before output resizing.
+      </p>
+      <section class="controls" aria-label="Frame controls">
+        <button id="previous" disabled>Previous frame</button>
+        <label>Update<input id="frame" type="number" min="0" max="28" value="0" /></label>
+        <button id="next" disabled>Next frame</button>
+        <button id="save-frame" disabled>Save this frame</button>
+        <button id="save-sequence" disabled>Save sequence</button>
+        <button id="cancel" disabled>Cancel export</button>
+        <input id="scrubber" type="range" min="0" max="28" value="0" aria-label="Sequence update" />
+      </section>
+      <p id="status" role="status">Loading prepared original resources…</p>
+      <div class="canvas-scroll">
+        <canvas
+          id="inspection"
+          width="836"
+          height="456"
+          aria-label="Create sequence candidate frame"
+        ></canvas>
+      </div>
+      <details>
+        <summary>Frame and source metadata</summary>
+        <pre id="pose"></pre>
+      </details>
+      <details>
+        <summary>Saved sequence index</summary>
+        <pre id="saved"></pre>
+      </details>
+    </main>
+    <script type="module" src="/src/create-inspect.js"></script>
+  </body>
+</html>

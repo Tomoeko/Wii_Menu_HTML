@@ -1,0 +1,73 @@
+.menu-inspector {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  color: #edf5f8;
+}
+
+#inspection-tools {
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 160px;
+  padding: 12px 20px;
+  background: #172631;
+}
+
+#inspection-tools h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+#inspection-tools p {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.inspection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.inspection-actions button,
+.inspection-sounds button,
+.inspection-actions select,
+.inspection-actions input {
+  padding: 5px 8px;
+  font: inherit;
+}
+
+.inspection-sounds {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+#inspection-sounds {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspection-sounds button {
+  flex-shrink: 0;
+}
+
+.inspection-actions input {
+  width: 70px;
+}
+
+#inspection-result {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.menu-inspector #screen {
+  flex-shrink: 0;
+}

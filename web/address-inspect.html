@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Address Book frame inspector</title>
+    <script src="/src/tool-theme.js"></script>
+    <link rel="stylesheet" href="/src/tool-theme.css" />
+    <link rel="stylesheet" href="/src/inspect.css" />
+  </head>
+  <body>
+    <main>
+      <header data-tool-toolbar>
+        <h1>Address Book frame inspector</h1>
+        <a href="/">Open Wii Menu</a>
+      </header>
+      <p>
+        Original Address Book resources in the browser. This is a candidate render, not a native
+        capture.
+      </p>
+      <p>
+        <a href="/create-inspect.html"
+          >Inspect and save complete Create / Address Book transitions</a
+        >
+      </p>
+      <section class="controls" aria-label="Book pose controls">
+        <label
+          >Aspect<select id="aspect">
+            <option>16:9</option>
+            <option>4:3</option>
+          </select></label
+        >
+        <label>Page (0 is cover)<input id="page" type="number" min="0" max="20" value="0" /></label>
+        <label
+          >Turn<select id="turn">
+            <option value="">None</option>
+            <option value="next">Next</option>
+            <option value="prev">Previous</option>
+          </select></label
+        >
+        <label>Turn update<input id="frame" type="number" min="0" max="30" value="0" /></label>
+        <label
+          >Output width<input id="width" type="number" min="304" max="1920" value="836"
+        /></label>
+        <label
+          >Output height<input id="height" type="number" min="228" max="1080" value="456"
+        /></label>
+        <label
+          ><input id="native-raster" type="checkbox" checked /> Original 640×456 framebuffer</label
+        >
+        <label><input id="stack-only" type="checkbox" /> Show sheets without face/cover</label>
+        <button id="render">Render pose</button
+        ><button id="save" disabled>Save comparison frame</button>
+      </section>
+      <p id="status" role="status">Loading prepared original resources…</p>
+      <div class="canvas-scroll">
+        <canvas
+          id="inspection"
+          width="836"
+          height="456"
+          aria-label="Address Book candidate frame"
+        ></canvas>
+      </div>
+      <pre id="pose"></pre>
+    </main>
+    <script type="module" src="/src/address-inspect.js"></script>
+  </body>
+</html>

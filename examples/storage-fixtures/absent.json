@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "sd": {
+    "status": "absent",
+    "channels": []
+  },
+  "wiiSaves": {
+    "status": "ready",
+    "records": [
+      {
+        "id": "dummy-save",
+        "title": "Dummy Save",
+        "blocks": 1
+      }
+    ]
+  },
+  "sdSaves": {
+    "status": "absent",
+    "records": []
+  },
+  "gamecube": {
+    "a": {
+      "status": "absent",
+      "records": []
+    },
+    "b": {
+      "status": "absent",
+      "records": []
+    }
+  }
+}

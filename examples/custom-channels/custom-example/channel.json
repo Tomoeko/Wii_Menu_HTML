@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "custom-example",
+  "title": "Example Channel",
+  "iconLayout": "icon.json",
+  "bannerLayout": "banner.json",
+  "audio": {
+    "src": "sound.wav",
+    "loop": false
+  }
+}

@@ -1,0 +1,290 @@
+{
+  "width": 608,
+  "height": 456,
+  "originType": 1,
+  "name": "banner",
+  "textures": [],
+  "fonts": ["wbf1.brfna"],
+  "materials": [
+    {
+      "name": "VertexColor",
+      "colors": [
+        [0, 0, 0, 0],
+        [255, 255, 255, 255],
+        [255, 255, 255, 255]
+      ],
+      "textureMaps": []
+    }
+  ],
+  "groups": {},
+  "root": {
+    "name": "RootPane",
+    "type": "pan1",
+    "flags": 1,
+    "origin": 4,
+    "alpha": 255,
+    "translation": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1],
+    "size": [608, 456],
+    "children": [
+      {
+        "name": "Background",
+        "type": "pic1",
+        "flags": 5,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [832, 456],
+        "children": [],
+        "material": 0,
+        "vertexColors": [
+          [240, 249, 253, 255],
+          [240, 249, 253, 255],
+          [240, 249, 253, 255],
+          [240, 249, 253, 255]
+        ],
+        "texCoords": []
+      },
+      {
+        "name": "Content",
+        "type": "pan1",
+        "flags": 7,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [608, 456],
+        "children": [
+          {
+            "name": "Mark",
+            "type": "pan1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [0, 42, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [60, 60],
+            "children": [
+              {
+                "name": "Tile1",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [-24, 24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [0, 169, 220, 255],
+                  [0, 169, 220, 255],
+                  [0, 169, 220, 255],
+                  [0, 169, 220, 255]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile2",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [24, 24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [40, 191, 225, 255],
+                  [40, 191, 225, 255],
+                  [40, 191, 225, 255],
+                  [40, 191, 225, 255]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile3",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [-24, -24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [10, 137, 191, 255],
+                  [10, 137, 191, 255],
+                  [10, 137, 191, 255],
+                  [10, 137, 191, 255]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile4",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [24, -24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [72, 205, 231, 255],
+                  [72, 205, 231, 255],
+                  [72, 205, 231, 255],
+                  [72, 205, 231, 255]
+                ],
+                "texCoords": []
+              }
+            ]
+          },
+          {
+            "name": "Title",
+            "type": "txt1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [0, -38, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [500, 70],
+            "children": [],
+            "material": 0,
+            "text": "My Channel",
+            "font": 0,
+            "fontSize": [34, 40],
+            "textPosition": 4,
+            "textColors": [
+              [32, 71, 92, 255],
+              [32, 71, 92, 255]
+            ],
+            "charSpace": 0,
+            "lineSpace": 0
+          },
+          {
+            "name": "Subtitle",
+            "type": "txt1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [0, -84, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [500, 34],
+            "children": [],
+            "material": 0,
+            "text": "Your own artwork and animation",
+            "font": 0,
+            "fontSize": [16, 20],
+            "textPosition": 4,
+            "textColors": [
+              [32, 71, 92, 255],
+              [32, 71, 92, 255]
+            ],
+            "charSpace": 0,
+            "lineSpace": 0
+          }
+        ]
+      }
+    ]
+  },
+  "animations": {
+    "banner_Start": {
+      "frames": 31,
+      "loop": false,
+      "targets": [
+        {
+          "name": "Content",
+          "type": 0,
+          "tracks": [
+            {
+              "kind": "RLVC",
+              "id": 0,
+              "target": 16,
+              "curveType": 2,
+              "keys": [
+                {
+                  "frame": 0,
+                  "value": 0,
+                  "slope": 0
+                },
+                {
+                  "frame": 30,
+                  "value": 255,
+                  "slope": 0
+                }
+              ]
+            },
+            {
+              "kind": "RLPA",
+              "id": 0,
+              "target": 1,
+              "curveType": 2,
+              "keys": [
+                {
+                  "frame": 0,
+                  "value": -18,
+                  "slope": 0
+                },
+                {
+                  "frame": 30,
+                  "value": 0,
+                  "slope": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "banner_Loop": {
+      "frames": 180,
+      "loop": true,
+      "targets": [
+        {
+          "name": "Mark",
+          "type": 0,
+          "tracks": [
+            {
+              "kind": "RLPA",
+              "id": 0,
+              "target": 5,
+              "curveType": 2,
+              "keys": [
+                {
+                  "frame": 0,
+                  "value": -6,
+                  "slope": 0
+                },
+                {
+                  "frame": 90,
+                  "value": 6,
+                  "slope": 0
+                },
+                {
+                  "frame": 180,
+                  "value": -6,
+                  "slope": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

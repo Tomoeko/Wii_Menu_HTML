@@ -1,0 +1,149 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: var(--tool-ink);
+  background: var(--tool-background);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+nav,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+nav {
+  justify-content: space-between;
+}
+
+a {
+  color: var(--tool-link);
+  text-underline-offset: 4px;
+}
+
+header {
+  margin: 42px 0 28px;
+}
+
+h1 {
+  margin: 8px 0;
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  overflow-wrap: anywhere;
+}
+
+h2 {
+  margin: 0 0 20px;
+  font-size: 1.05rem;
+}
+
+p {
+  line-height: 1.6;
+}
+
+.eyebrow {
+  color: var(--tool-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.previews {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2.4fr);
+  gap: 24px;
+}
+
+section {
+  min-width: 0;
+  padding: 24px;
+  background: var(--tool-surface);
+  border: 1px solid var(--tool-border);
+  border-radius: 18px;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--tool-surface);
+}
+
+#banner {
+  aspect-ratio: 16 / 9;
+}
+
+.icon-frame {
+  margin-top: 32px;
+  padding: 12px;
+  border: 1px solid var(--tool-border);
+  border-radius: 12px;
+}
+
+.icon-panel p,
+.note {
+  color: var(--tool-muted);
+  font-size: 0.9rem;
+}
+
+.actions {
+  margin-top: 28px;
+}
+
+button {
+  padding: 12px 18px;
+  border: 1px solid var(--tool-border);
+  border-radius: 10px;
+  color: var(--tool-ink);
+  background: var(--tool-surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:first-child {
+  color: var(--tool-primary-ink);
+  background: var(--tool-accent);
+  border-color: var(--tool-accent);
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 3px solid #e69426;
+  outline-offset: 4px;
+}
+
+#status[data-error='true'] {
+  color: var(--tool-error);
+}
+
+@media (max-width: 720px) {
+  .previews {
+    grid-template-columns: 1fr;
+  }
+
+  .icon-panel {
+    max-width: 340px;
+  }
+}

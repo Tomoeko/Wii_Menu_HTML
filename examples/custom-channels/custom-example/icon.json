@@ -1,0 +1,475 @@
+{
+  "width": 608,
+  "height": 456,
+  "originType": 1,
+  "name": "icon",
+  "textures": [],
+  "fonts": [
+    "wbf1.brfna"
+  ],
+  "materials": [
+    {
+      "name": "VertexColor",
+      "colors": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          255,
+          255,
+          255,
+          255
+        ],
+        [
+          255,
+          255,
+          255,
+          255
+        ]
+      ],
+      "textureMaps": []
+    }
+  ],
+  "groups": {},
+  "root": {
+    "name": "RootPane",
+    "type": "pan1",
+    "flags": 1,
+    "origin": 4,
+    "alpha": 255,
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1
+    ],
+    "size": [
+      608,
+      456
+    ],
+    "children": [
+      {
+        "name": "Background",
+        "type": "pic1",
+        "flags": 5,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "size": [
+          170,
+          96
+        ],
+        "children": [],
+        "material": 0,
+        "vertexColors": [
+          [
+            240,
+            249,
+            253,
+            255
+          ],
+          [
+            240,
+            249,
+            253,
+            255
+          ],
+          [
+            240,
+            249,
+            253,
+            255
+          ],
+          [
+            240,
+            249,
+            253,
+            255
+          ]
+        ],
+        "texCoords": []
+      },
+      {
+        "name": "Content",
+        "type": "pan1",
+        "flags": 7,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "size": [
+          608,
+          456
+        ],
+        "children": [
+          {
+            "name": "Mark",
+            "type": "pan1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [
+              0,
+              12,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "size": [
+              60,
+              60
+            ],
+            "children": [
+              {
+                "name": "Tile1",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  -9,
+                  9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    0,
+                    169,
+                    220,
+                    255
+                  ],
+                  [
+                    0,
+                    169,
+                    220,
+                    255
+                  ],
+                  [
+                    0,
+                    169,
+                    220,
+                    255
+                  ],
+                  [
+                    0,
+                    169,
+                    220,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile2",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  9,
+                  9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    40,
+                    191,
+                    225,
+                    255
+                  ],
+                  [
+                    40,
+                    191,
+                    225,
+                    255
+                  ],
+                  [
+                    40,
+                    191,
+                    225,
+                    255
+                  ],
+                  [
+                    40,
+                    191,
+                    225,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile3",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  -9,
+                  -9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    10,
+                    137,
+                    191,
+                    255
+                  ],
+                  [
+                    10,
+                    137,
+                    191,
+                    255
+                  ],
+                  [
+                    10,
+                    137,
+                    191,
+                    255
+                  ],
+                  [
+                    10,
+                    137,
+                    191,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile4",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  9,
+                  -9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    72,
+                    205,
+                    231,
+                    255
+                  ],
+                  [
+                    72,
+                    205,
+                    231,
+                    255
+                  ],
+                  [
+                    72,
+                    205,
+                    231,
+                    255
+                  ],
+                  [
+                    72,
+                    205,
+                    231,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              }
+            ]
+          },
+          {
+            "name": "Title",
+            "type": "txt1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [
+              0,
+              -28,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "size": [
+              120,
+              22
+            ],
+            "children": [],
+            "material": 0,
+            "text": "Example Channel",
+            "font": 0,
+            "fontSize": [
+              10,
+              12
+            ],
+            "textPosition": 4,
+            "textColors": [
+              [
+                32,
+                71,
+                92,
+                255
+              ],
+              [
+                32,
+                71,
+                92,
+                255
+              ]
+            ],
+            "charSpace": 0,
+            "lineSpace": 0
+          }
+        ]
+      }
+    ]
+  },
+  "animations": {
+    "icon": {
+      "frames": 180,
+      "loop": true,
+      "targets": [
+        {
+          "name": "Mark",
+          "type": 0,
+          "tracks": [
+            {
+              "kind": "RLPA",
+              "id": 0,
+              "target": 5,
+              "curveType": 2,
+              "keys": [
+                {
+                  "frame": 0,
+                  "value": -6,
+                  "slope": 0
+                },
+                {
+                  "frame": 90,
+                  "value": 6,
+                  "slope": 0
+                },
+                {
+                  "frame": 180,
+                  "value": -6,
+                  "slope": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

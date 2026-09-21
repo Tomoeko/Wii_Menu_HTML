@@ -1,0 +1,52 @@
+{
+  "display": {
+    "aspectRatio": "16:9"
+  },
+  "graphics": {
+    "resolutionScale": 1,
+    "antiAliasing": "ssaa-4x",
+    "colorCorrection": "gamma",
+    "sourceGamma": 2.35
+  },
+  "startup": {
+    "healthSafety": true,
+    "restartServiceReadyFrames": 94,
+    "restartBlackFrames": 43
+  },
+  "audio": {
+    "volume": 0.7,
+    "muted": false,
+    "backgroundMode": "prepared"
+  },
+  "sdCard": {
+    "enabled": true
+  },
+  "wiiRemote": {
+    "volume": 0.7,
+    "rumble": true,
+    "reconnectDelayMs": 3000,
+    "reconnect": {
+      "mode": "automatic",
+      "players": [
+        1
+      ],
+      "intervalMs": 400,
+      "startFailures": 0,
+      "stopFailures": 0
+    }
+  },
+  "input": {
+    "homeKeys": [
+      "Home",
+      "h"
+    ],
+    "grabButtons": [
+      1,
+      2
+    ]
+  },
+  "channels": {
+    "persistLayout": true,
+    "enabled": {}
+  }
+}

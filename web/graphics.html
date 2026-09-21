@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f8fb" />
+    <title>Graphics · Wii Menu</title>
+    <script src="/src/tool-theme.js"></script>
+    <link rel="stylesheet" href="/src/tool-theme.css" />
+    <link rel="stylesheet" href="/src/channel-manager.css" />
+    <link rel="stylesheet" href="/src/graphics-settings.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#graphics-heading">Skip to graphics settings</a>
+    <div class="page-shell graphics-shell">
+      <header class="page-header" data-tool-toolbar>
+        <div>
+          <p class="eyebrow">Wii Menu · Local tools</p>
+          <h1>Graphics</h1>
+          <p class="intro">Choose sharper rendering, smoother edges and optional color correction.</p>
+        </div>
+        <nav class="graphics-navigation" aria-label="Local tools">
+          <a href="/channels.html">Channel Manager</a>
+          <a href="/">Open Wii Menu ↗</a>
+        </nav>
+      </header>
+      <div id="graphics-status" class="feedback" role="status" aria-live="polite">Loading settings…</div>
+      <div id="graphics-error" class="feedback feedback-error" role="alert" hidden></div>
+      <aside id="graphics-saved" class="saved-notice" hidden>
+        <div>
+          <strong>Graphics settings saved</strong>
+          <p>Reload open Wii Menu tabs to apply these settings.</p>
+        </div>
+        <a href="/">Open Wii Menu →</a>
+      </aside>
+      <main>
+        <form id="graphics-form" class="panel">
+          <h2 id="graphics-heading" tabindex="-1">Rendering quality</h2>
+          <p class="section-description">Start with a preset, then adjust any setting below.</p>
+          <fieldset id="graphics-fields" disabled>
+            <legend class="visually-hidden">Graphics settings</legend>
+            <div class="graphics-presets" role="group" aria-label="Quality presets">
+              <button type="button" data-preset="native" class="quality-preset" aria-pressed="false">
+                <strong>Native</strong><span>Original raster · lowest cost</span>
+              </button>
+              <button type="button" data-preset="balanced" class="quality-preset" aria-pressed="false">
+                <strong>Balanced</strong><span>Native raster · 2 × 2 SSAA</span>
+              </button>
+              <button type="button" data-preset="high" class="quality-preset" aria-pressed="false">
+                <strong>High</strong><span>2× resolution · 2 × 2 SSAA</span>
+              </button>
+            </div>
+            <div class="graphics-options">
+              <div>
+                <label for="resolution-scale">Resolution</label>
+                <select id="resolution-scale" aria-describedby="resolution-help">
+                  <option value="1">1× · 640 × 456</option>
+                  <option value="2">2× · 1280 × 912</option>
+                  <option value="3">3× · 1920 × 1368</option>
+                  <option value="4">4× · 2560 × 1824</option>
+                </select>
+                <p id="resolution-help" class="field-help">The selected TV aspect ratio is applied when displayed.</p>
+              </div>
+              <div>
+                <label for="anti-aliasing">Anti-aliasing</label>
+                <select id="anti-aliasing" aria-describedby="aliasing-help">
+                  <option value="none">Off</option>
+                  <option value="post-process">Legacy post-process · 1× raster</option>
+                  <option value="ssaa-4x">4× SSAA · 2 × 2 samples</option>
+                  <option value="ssaa-9x">9× SSAA · 3 × 3 samples</option>
+                </select>
+                <p id="aliasing-help" class="field-help">SSAA resolves coverage from the full scene, including text and texture edges. The legacy post-process mode remains for old configurations but can soften finished pixels.</p>
+              </div>
+              <div>
+                <label for="color-correction">Color correction</label>
+                <select id="color-correction" aria-describedby="color-help">
+                  <option value="none">Off · original renderer output</option>
+                  <option value="gamma">Gamma → sRGB</option>
+                  <option value="ntsc-m">NTSC-M primaries + gamma → sRGB</option>
+                </select>
+                <p id="color-help" class="field-help">Optional display conversion. Choose Off to keep existing colors.</p>
+              </div>
+              <div>
+                <label for="source-gamma">Source gamma</label>
+                <input id="source-gamma" type="number" min="1" max="3" step="0.01" value="2.35"
+                  aria-describedby="gamma-help" />
+                <p id="gamma-help" class="field-help">Default 2.35 follows Dolphin's display convention; it is not a calibration of your screen.</p>
+              </div>
+            </div>
+            <p id="graphics-cost" class="inline-notice" aria-live="polite"></p>
+            <p class="section-description graphics-limit">Higher settings use more GPU memory and processing time. They smooth existing artwork; they cannot add missing detail to original bitmap textures or fonts.</p>
+            <div class="graphics-actions">
+              <button class="button button-primary" type="submit">Save graphics settings</button>
+              <button id="graphics-reload" class="button button-secondary" type="button">Reload saved settings</button>
+            </div>
+          </fieldset>
+        </form>
+      </main>
+      <footer class="page-footer"><p>These settings stay in your local menu configuration.</p></footer>
+    </div>
+    <script type="module" src="/src/graphics-settings.js"></script>
+  </body>
+</html>

@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "sd": {
+    "status": "ready",
+    "channels": [
+      {
+        "id": "custom-example",
+        "slot": 13
+      }
+    ]
+  },
+  "wiiSaves": {
+    "status": "ready",
+    "records": [
+      {
+        "id": "dummy-save",
+        "title": "Dummy Save",
+        "blocks": 1
+      }
+    ]
+  },
+  "sdSaves": {
+    "status": "ready",
+    "records": [
+      {
+        "id": "sd-save",
+        "title": "Synthetic SD Save",
+        "blocks": 4
+      }
+    ]
+  },
+  "gamecube": {
+    "a": {
+      "status": "ready",
+      "records": []
+    },
+    "b": {
+      "status": "ready",
+      "records": [
+        {
+          "id": "cube-save-1",
+          "title": "Synthetic Cube Save 1",
+          "blocks": 1
+        },
+        {
+          "id": "cube-save-2",
+          "title": "Synthetic Cube Save 2",
+          "blocks": 2
+        },
+        {
+          "id": "cube-save-3",
+          "title": "Synthetic Cube Save 3",
+          "blocks": 3
+        },
+        {
+          "id": "cube-save-4",
+          "title": "Synthetic Cube Save 4",
+          "blocks": 4
+        },
+        {
+          "id": "cube-save-5",
+          "title": "Synthetic Cube Save 5",
+          "blocks": 5
+        },
+        {
+          "id": "cube-save-6",
+          "title": "Synthetic Cube Save 6",
+          "blocks": 6
+        },
+        {
+          "id": "cube-save-7",
+          "title": "Synthetic Cube Save 7",
+          "blocks": 7
+        },
+        {
+          "id": "cube-save-8",
+          "title": "Synthetic Cube Save 8",
+          "blocks": 8
+        },
+        {
+          "id": "cube-save-9",
+          "title": "Synthetic Cube Save 9",
+          "blocks": 9
+        },
+        {
+          "id": "cube-save-10",
+          "title": "Synthetic Cube Save 10",
+          "blocks": 10
+        },
+        {
+          "id": "cube-save-11",
+          "title": "Synthetic Cube Save 11",
+          "blocks": 11
+        },
+        {
+          "id": "cube-save-12",
+          "title": "Synthetic Cube Save 12",
+          "blocks": 12
+        },
+        {
+          "id": "cube-save-13",
+          "title": "Synthetic Cube Save 13",
+          "blocks": 13
+        },
+        {
+          "id": "cube-save-14",
+          "title": "Synthetic Cube Save 14",
+          "blocks": 14
+        },
+        {
+          "id": "cube-save-15",
+          "title": "Synthetic Cube Save 15",
+          "blocks": 15
+        },
+        {
+          "id": "cube-save-16",
+          "title": "Synthetic Cube Save 16",
+          "blocks": 16
+        }
+      ]
+    }
+  }
+}

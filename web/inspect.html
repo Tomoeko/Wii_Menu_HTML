@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wii channel frame inspector</title>
+    <script src="/src/tool-theme.js"></script>
+    <link rel="stylesheet" href="/src/tool-theme.css" />
+    <link rel="stylesheet" href="/src/inspect.css" />
+  </head>
+  <body>
+    <main>
+      <header data-tool-toolbar>
+        <h1>Channel frame inspector</h1>
+        <a href="/">Open Wii Menu</a>
+      </header>
+      <p>
+        Original resources rendered by the browser. This is a candidate frame, not a native
+        reference capture.
+      </p>
+      <section class="controls" aria-label="Channel and timeline controls">
+        <label>Channel<select id="channel" disabled></select></label>
+        <label
+          >Resource<select id="kind" disabled>
+            <option value="icon">Icon · 128 × 96</option>
+            <option value="banner">Banner · 608 × 456</option>
+          </select></label
+        >
+        <label
+          >Aspect<select id="aspect" disabled>
+            <option value="16:9">16:9</option>
+            <option value="4:3">4:3</option>
+          </select></label
+        >
+        <label
+          >Frame<input id="frame" type="number" min="0" max="36000" step="1" value="0" disabled
+        /></label>
+        <label
+          >Timeline end<input
+            id="end"
+            type="number"
+            min="1"
+            max="36000"
+            step="1"
+            value="3600"
+            disabled
+        /></label>
+        <div class="buttons">
+          <button id="previous" disabled aria-label="Previous frame">−1 frame</button
+          ><button id="play" disabled>Play</button
+          ><button id="next" disabled aria-label="Next frame">+1 frame</button
+          ><button id="download" disabled>Export PNG</button
+          ><button id="save" disabled>Save comparison frame</button>
+        </div>
+        <input
+          id="scrubber"
+          type="range"
+          min="0"
+          max="3600"
+          step="1"
+          value="0"
+          aria-label="Timeline frame"
+          disabled
+        />
+        <output id="time">Frame 0 · 0.000 seconds · 60 Hz</output>
+      </section>
+      <p id="status" role="status">Loading local resources…</p>
+      <div class="canvas-scroll">
+        <canvas
+          id="inspection"
+          width="608"
+          height="456"
+          aria-label="Selected original channel frame"
+        ></canvas>
+      </div>
+      <p class="hint" id="hint">
+        Space plays or pauses. Left and Right step one frame when a text field is not focused.
+      </p>
+      <section aria-labelledby="controller-heading">
+        <h2 id="controller-heading">Active source controllers</h2>
+        <p id="source"></p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Animation</th>
+                <th>Group</th>
+                <th>Source frame</th>
+                <th>Minimum</th>
+                <th>Maximum</th>
+                <th>Initial</th>
+                <th>Speed</th>
+                <th>Mode</th>
+              </tr>
+            </thead>
+            <tbody id="controllers"></tbody>
+          </table>
+        </div>
+      </section>
+      <details>
+        <summary>Original BRLAN timelines</summary>
+        <pre id="timelines"></pre>
+      </details>
+      <details open>
+        <summary>Visible authored text and font aliases</summary>
+        <pre id="texts"></pre>
+      </details>
+      <details>
+        <summary>Selected frame numeric trace</summary>
+        <pre id="trace"></pre>
+      </details>
+    </main>
+    <script type="module" src="/src/inspect.js"></script>
+  </body>
+</html>

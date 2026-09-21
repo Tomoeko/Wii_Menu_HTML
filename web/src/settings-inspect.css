@@ -1,0 +1,54 @@
+body {
+  margin: 0;
+  background: var(--tool-background);
+  color: var(--tool-ink);
+  font:
+    14px system-ui,
+    sans-serif;
+}
+
+header {
+  max-width: 1067px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+a {
+  color: var(--tool-link);
+}
+
+#preview {
+  position: relative;
+  width: min(100vw, 1067px);
+  aspect-ratio: 16 / 9;
+  margin: auto;
+}
+
+#events {
+  padding: 8px;
+}
+
+button {
+  margin: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--tool-border);
+  border-radius: 8px;
+  color: var(--tool-ink);
+  background: var(--tool-surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--tool-hover);
+}
+
+:focus-visible {
+  outline: 3px solid var(--tool-accent);
+  outline-offset: 3px;
+}
