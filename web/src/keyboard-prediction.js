@@ -26,6 +26,10 @@ const WORDS = {
   ].join(' '),
 };
 
+export const DEFAULT_DICTIONARIES = Object.freeze(
+  Object.fromEntries(Object.entries(WORDS).map(([language, words]) => [language, words.split(' ')])),
+);
+
 export function createLocalPredictor(initialText = '', dictionaries = {}) {
   const learned = new Map();
   function learn(value) {

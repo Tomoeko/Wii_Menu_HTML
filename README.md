@@ -54,14 +54,18 @@ Prepared audio is the default. To rebuild it from the imported WAD:
 npm run prepare -- --rebuild --background-source builtin
 ```
 
-## Optional dictionary runtime
+## Dictionary
+
+The prepared WAD exports local word lists. They provide dictionary suggestions
+without third-party packages. An optional Unicorn runtime can execute the
+original Zi8 code for closer ordering:
 
 ```sh
 python3 -m venv .local/dictionary-runtime
 .local/dictionary-runtime/bin/python -m pip install -r tools/dictionary/requirements.txt
 ```
 
-The dictionary runs locally and requires a prepared WAD. Text entry still works without it.
+The runtime is local and optional. Text entry and word suggestions still work without it.
 
 ## Checks
 

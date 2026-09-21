@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createNativeDictionaryProvider } from '../src/native-dictionary.js';
+import {
+  createNativeDictionaryProvider,
+  loadEmbeddedDictionaries,
+} from '../src/native-dictionary.js';
 import { createDictionaryService } from '../../tools/dictionary-service.mjs';
 
 test('browser dictionary provider sends bounded data to its local endpoint and rejects unavailability', async () => {
@@ -28,6 +31,62 @@ test('browser dictionary provider sends bounded data to its local endpoint and r
     fetcher: async () => ({ ok: false, json: async () => ({ error: 'Dependency unavailable' }) }),
   });
   await assert.rejects(missing('wo'), /Dependency unavailable/);
+});
+
+test('browser dictionary provider uses prepared word lists when native Zi8 is unavailable', async () => {
+  let requests = 0;
+  const provider = createNativeDictionaryProvider({
+    fallbackDictionaries: { en: ['hello', 'help', 'world'] },
+    fetcher: async () => {
+      requests++;
+      return {
+        ok: false,
+        json: async () => ({ error: 'Native runtime unavailable' }),
+      };
+    },
+  });
+  const session = provider.createSession();
+  assert.deepEqual(await session('hel'), {
+    engine: 'embedded-word-list',
+    candidates: ['hello', 'help'],
+  });
+  assert.deepEqual(await session('wor'), {
+    engine: 'embedded-word-list',
+    candidates: ['work', 'world'],
+  });
+  assert.equal(requests, 1, 'a failed native worker should not be restarted per keystroke');
+  await session.close();
+});
+
+test('embedded dictionary loader reads generated OEM word lists', async () => {
+  const requests = [];
+  const dictionaries = await loadEmbeddedDictionaries({
+    manifestUrl: '/assets/keyboard-dictionary.json',
+    fetcher: async (url) => {
+      requests.push(url);
+      if (url.endsWith('keyboard-dictionary.json')) {
+        return {
+          ok: true,
+          json: async () => ({
+            languages: {
+              en: { oem: { wordsUrl: 'keyboard-dictionary/en-oem.json' } },
+              fr: { oem: { wordsUrl: '/assets/keyboard-dictionary/fr-oem.json' } },
+            },
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ words: [url.includes('/fr-') ? 'bonjour' : 'hello'] }),
+      };
+    },
+  });
+  assert.deepEqual(dictionaries, { en: ['hello'], fr: ['bonjour'] });
+  assert.equal(requests[0], '/assets/keyboard-dictionary.json');
+  assert.deepEqual(requests.slice(1).sort(), [
+    '/assets/keyboard-dictionary/en-oem.json',
+    '/assets/keyboard-dictionary/fr-oem.json',
+  ]);
 });
 
 test('dictionary service validates requests before starting its worker', async () => {

@@ -61,7 +61,10 @@ import { preloadIncomingLetterAssets } from './incoming-letter-assets.js';
 import { mergeChannelCatalog, readCustomChannelCatalog } from './channel-catalog.js';
 import { selectChannelCatalog } from './channel-selection.js';
 import { readDeletedChannelIds } from './channel-recovery.js';
-import { createNativeDictionaryProvider } from './native-dictionary.js';
+import {
+  createNativeDictionaryProvider,
+  loadEmbeddedDictionaries,
+} from './native-dictionary.js';
 import {
   commonArrowDefinitions,
   createArrowInteraction,
@@ -1441,6 +1444,12 @@ async function init() {
   pointer.y = display.halfHeight;
   pointerInput.refresh();
   const manifest = await json(assets + 'manifest.json');
+  const dictionaries = await loadEmbeddedDictionaries({
+    manifestUrl: assets + 'keyboard-dictionary.json',
+  });
+  const dictionaryProvider = createNativeDictionaryProvider({
+    fallbackDictionaries: dictionaries,
+  });
   inspection?.setSource({
     preparation: manifest.preparation,
     resourceContent: manifest.source,
@@ -1637,7 +1646,7 @@ async function init() {
     onKeyboardPreferencesChange,
     messages,
     display,
-    predict: createNativeDictionaryProvider(),
+    predict: dictionaryProvider,
     measureTextLayout: (value, pane, layout) =>
       (fonts.get(layout?.fonts?.[pane.font]) || font).layoutPaneText(value, pane),
     measureText: (value, pane, layout) =>
@@ -1774,7 +1783,7 @@ async function init() {
     },
     display,
     messages,
-    predict: createNativeDictionaryProvider(),
+    predict: dictionaryProvider,
     draft: String(readLocalValue('wii-menu.memo-draft', '')),
     onDraft: (value) => writeLocalValue('wii-menu.memo-draft', value),
     contacts,

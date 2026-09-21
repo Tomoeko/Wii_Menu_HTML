@@ -368,7 +368,11 @@ table-specific; the exporter does not mistake format flags for byte lengths.
 Preparation validates these containers and exports user-owned raw dictionaries,
 metadata and decoded OEM words into ignored assets.
 
-The optional local worker executes the original PowerPC instructions using
+The browser uses the exported OEM word lists by default. This data-only path
+requires no third-party package and keeps typing and suggestions available in
+static builds. It does not claim the original compressed-table ranking order.
+
+An optional local worker executes the original PowerPC instructions using
 Unicorn. It loads the user's validated DOL, installs the original dictionaries,
 and calls initialization `0x8147C7C4`, search order `0x8147A5F8`, OEM attachment
 `0x81484D2C`, and the original `WithZi` wrapper described below. The wrapper
@@ -392,28 +396,24 @@ python3 -m venv .local/dictionary-runtime
 .local/dictionary-runtime/bin/python -m pip install -r tools/dictionary/requirements.txt
 ```
 
-`createDictionaryService()` in `tools/dictionary-service.mjs` owns the persistent
-worker. Its `query({text, language, digits, session, action, index, case})`
-returns `{engine, candidates}` plus `accepted` for selection commands.
-Session, action and case are optional; a query without a session starts clean.
-`close()` releases the worker. The browser uses the same-origin local endpoint through
-`createNativeDictionaryProvider()`. Asynchronous results are generation-checked
-so stale responses cannot replace newer input. The worker restarts after a
-failure or timeout, keeps at most 32 outstanding requests, and rejects all
-pending work when closed. Old process callbacks cannot stop a replacement.
-Unavailability leaves typing
-working, returns an explicit error state, and does not silently supply authored
-words. Direct controller users can still explicitly select the separate local
-fallback provider; it is identified as `local-fallback` in the snapshot.
+`createDictionaryService()` in `tools/dictionary-service.mjs` owns the optional
+persistent worker. Its `query({text, language, digits, session, action, index,
+case})` returns `{engine, candidates}` plus `accepted` for selection commands.
+The browser tries the same-origin endpoint through
+`createNativeDictionaryProvider()` and falls back to the exported word lists if
+the worker is unavailable. Asynchronous results are generation-checked so stale
+responses cannot replace newer input. The worker restarts after a failure or
+timeout, keeps at most 32 outstanding requests, and rejects all pending work
+when closed. Old process callbacks cannot stop a replacement.
 
 ## Remaining limits
 
 The [coverage inventory](keyboard-coverage.md) maps identified menu fields and
 reachable commands to their implemented owners and bounded remaining work.
 
-The native engine path requires the local server and Unicorn; standalone static
-HTML does not yet execute the dictionary. The verified executable profile is USA
-4.3. Remaining menu-wrapper command variants, held candidate-arrow capture acceptance,
+The optional native engine path requires the local server and Unicorn; the
+data-only word-list path also works without it. The verified executable profile
+is USA 4.3. Remaining menu-wrapper command variants, held candidate-arrow capture acceptance,
 telephone preview acceptance, Mii attachment and non-US key layouts remain
 incomplete or unmeasured. Editor sessions retain native engine RAM, but do not
 claim to reproduce a native learned-word store. The traced USA Latin lifecycle
