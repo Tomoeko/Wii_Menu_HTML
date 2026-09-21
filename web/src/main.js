@@ -432,7 +432,10 @@ function drawFooter(state, matrix = identity) {
     );
 }
 
-function drawGrid(state, { layoutFrame, footer = true, input = true, background = true } = {}) {
+function drawGrid(
+  state,
+  { layoutFrame, footer = true, input = true, background = true, memoLayers = [] } = {},
+) {
   const transition = state.transition;
   const scrolling = transition?.kind === 'page';
   const zooming = transition && ['select', 'back'].includes(transition.kind);
@@ -480,6 +483,18 @@ function drawGrid(state, { layoutFrame, footer = true, input = true, background 
     }
   }
   if (background) drawBackground(matrix);
+  // Board cards remain in their stored world position underneath the settled
+  // Home Menu. The ChannelSelect layout naturally covers its overlapping
+  // pixels, leaving only the portion parked outside the grid visible.
+  for (const layer of memoLayers) {
+    renderer.clip(layer.clip ?? null);
+    renderer.draw(layer.layout, {
+      prefix: layer.prefix,
+      onPane: (pane, paneMatrix, alpha) =>
+        textPane(pane, paneMatrix, alpha, {}, layer.layout),
+    });
+  }
+  renderer.clip(null);
   const layout = pose('my_IplTop_a', 'my_IplTop_a', sourceFrame);
   const layoutPanes = indexLayout(layout).panes;
   for (let relative = -2; relative <= 2; relative++) {
@@ -1351,9 +1366,16 @@ function render(timestamp) {
     renderer.clear();
   }
   if (!systemSettingsVisible) {
+    const memoLayers =
+      viewState.screen === 'grid' && !viewState.transition
+        ? scenes.memoReturnLayers?.() ?? []
+        : [];
     const drawUnderlay = () => {
       if (viewState.screen === 'grid' || ['select', 'back'].includes(viewState.transition?.kind))
-        drawGrid({ ...viewState, locked: viewState.locked || !entrance.complete });
+        drawGrid(
+          { ...viewState, locked: viewState.locked || !entrance.complete },
+          { memoLayers },
+        );
       else if (viewState.screen === 'preview') {
         drawBackground();
         drawPreview(viewState);
@@ -1385,6 +1407,7 @@ function render(timestamp) {
         viewState.screen,
         viewState.page,
         viewState.selectedIndex,
+        memoLayers.length,
         ...viewState.channels.map((channel) => channel?.id ?? null),
       ];
       homeUnderlayCache.draw(sceneKey, drawUnderlay);

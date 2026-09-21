@@ -107,8 +107,9 @@ they do not certify original pixel or input-boundary equivalence.
 
 The Board retains a fixed central date while arrows change the selected day.
 Entry combines footer 1000–1040 with grid 70–90; return combines footer
-6000–6040 with grid 100–120. Input remains locked through the transition, and
-posted-card layers retire before the grid reappears.
+6000–6040 with grid 100–120. Input remains locked through the transition.
+Returned posted cards retain their saved world coordinates beneath the Wii Menu
+grid, so only the portions outside the grid are visible after the scene closes.
 
 Calendar uses original month/year/day/Today controls. Memo uses original editor,
 keyboard and toolbar resources with local draft and posted records. Stored

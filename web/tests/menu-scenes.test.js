@@ -442,6 +442,36 @@ test(
     assert.deepEqual(actions, []);
   },
 );
+test(
+  'posted corner Memos remain under the Wii Menu at their saved position after Board return',
+  { skip: !available },
+  () => {
+    const date = new Date(2026, 8, 17, 12);
+    const scenes = createMenuScenes(layouts, {
+      memos: [{
+        id: 'corner-memo',
+        text: 'Corner Memo',
+        createdAt: date.toISOString(),
+        position: { x: -230, y: -80 },
+        readAt: date.toISOString(),
+      }],
+    });
+    scenes.open('board');
+    scenes.advance(40);
+    scenes.presentation({ date });
+    const before = scenes.presentation({ date }).layers.find(
+      ({ prefix }) => prefix === 'memo-card-corner-memo:',
+    ).layout.root.translation;
+
+    assert.equal(scenes.activate('back'), true);
+    scenes.advance(40);
+    assert.equal(scenes.snapshot().scene, 'closed');
+    assert.deepEqual(scenes.memoReturnLayers()[0].layout.root.translation, before);
+    assert.equal(scenes.memoReturnLayers()[0].prefix, 'memo-card-corner-memo:');
+    scenes.setMemos([]);
+    assert.deepEqual(scenes.memoReturnLayers(), []);
+  },
+);
 test('Board footer hover and activation work before requesting its first presentation',
   { skip: !available }, () => {
     for (const id of ['calendar', 'create']) {

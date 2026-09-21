@@ -172,7 +172,8 @@ export function createMenuScenes(
     maskAge = 0;
   let boardScroll = null,
     storage = null,
-    memoDraft = draft;
+    memoDraft = draft,
+    memoReturnLayers = [];
   const boardArrowAtLimit = (id, value = boardDate || currentDate) =>
     memoBoard.canTurnPage(id) ? false : id === 'prev'
       ? value.getFullYear() === 2000 && value.getMonth() === 0 && value.getDate() === 1
@@ -277,6 +278,7 @@ export function createMenuScenes(
     boardScroll = null;
     boardPageIndicators.clear();
     storage = null;
+    memoReturnLayers = [];
     memoBoard.setMemos(memos);
     memoBoard.setDate(currentDate);
     commit([make('my_IplTop_c', 'my_IplTop_c', undefined, 0, 0)], 0);
@@ -678,6 +680,7 @@ export function createMenuScenes(
       if (memoBoard.snapshot().draggingMemo) return memoBoard.cancelPointer();
       if (phase || scene === 'closed') return false;
       if (scene === 'board') {
+        memoReturnLayers = memoBoard.presentation().cardLayers;
         onSound('WIPL_SE_DECIDE');
         neutralBoardFocus();
         boardTransition = 'exit';
@@ -712,7 +715,9 @@ export function createMenuScenes(
     },
     messageSummary: (date = currentDate) => memoBoard.summary(date),
     getMemos: () => memoBoard.records(),
+    memoReturnLayers: () => memoReturnLayers,
     setMemos(value) {
+      memoReturnLayers = [];
       memoBoard.setMemos(value);
       memos = memoBoard.records();
       boardChild?.setMemos?.(memos);
