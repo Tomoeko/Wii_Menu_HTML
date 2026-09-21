@@ -148,6 +148,7 @@ let zoomCapture = null,
   pendingZoomCapture = false,
   slotRects = [];
 let grabPointerId = null,
+  grabButton = null,
   scenes,
   saveQueue = Promise.resolve();
 let channelSoundPoint = null;
@@ -1934,6 +1935,30 @@ function installInput() {
       }
       const state = menu.getState();
       if (sceneFader.active || restart.active) return;
+      if (
+        grabPointerId !== null &&
+        event.button === 0 &&
+        state.screen === 'grid' &&
+        !state.overlay &&
+        !notice
+      ) {
+        const point = screenPoint(
+          display,
+          screen.getBoundingClientRect(),
+          event.clientX,
+          event.clientY,
+        );
+        const arrow = resolveDragArrowHover(interactive, point);
+        if (arrow) {
+          // A drag uses the middle/right button, so a primary click can still
+          // reach an edge arrow. Keep the page action disabled, but retain
+          // the native press highlight on the already-held bubble.
+          setHover(arrow);
+          footer.press(arrow);
+          event.preventDefault();
+          return;
+        }
+      }
       if (event.button === 2 && !state.overlay && !notice) {
         const point = screenPoint(
           display,
@@ -2036,6 +2061,7 @@ function installInput() {
       if (target && drag.start(target.index, state.channels, point)) {
         event.preventDefault();
         grabPointerId = event.pointerId;
+        grabButton = event.button;
         screen.setPointerCapture(event.pointerId);
         focus.clear();
         balloon.clear();
@@ -2068,7 +2094,7 @@ function installInput() {
       }
       memoPointer = null;
     }
-    if (event.pointerId !== grabPointerId) return;
+    if (event.pointerId !== grabPointerId || event.button !== grabButton) return;
     audio.stopLoop('drag');
     updateDragTarget();
     const sound = drag.release(menu.getState().channels, { scrolling: menu.getState().locked });
@@ -2076,6 +2102,7 @@ function installInput() {
     if (sound) void audio.play(sound);
     if (screen.hasPointerCapture(event.pointerId)) screen.releasePointerCapture(event.pointerId);
     grabPointerId = null;
+    grabButton = null;
     event.preventDefault();
   });
   screen.addEventListener('pointercancel', () => {
@@ -2085,6 +2112,7 @@ function installInput() {
     drag.cancel();
     audio.stopLoop('drag');
     grabPointerId = null;
+    grabButton = null;
   });
   window.addEventListener('blur', () => {
     releaseTextArrow();
@@ -2097,6 +2125,7 @@ function installInput() {
       drag.cancel();
       audio.stopLoop('drag');
       grabPointerId = null;
+      grabButton = null;
     }
   });
   window.addEventListener('keydown', (event) => {
