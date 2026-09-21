@@ -2,6 +2,7 @@ import { indexLayout, poseLayout } from './animation.js';
 import { standardDisplay } from './display.js';
 import { createMemoEraseDialog, MEMO_DIALOG_LAYOUT } from './board-memo-dialog.js';
 import { createMemoScrollArrows } from './memo-scroll-arrows.js';
+import { createFooterArrowVisibility } from './footer-controller.js';
 import { createIncomingLetterSession, INCOMING_SESSION_LAYOUTS } from './incoming-letter-session.js';
 import { validateIncomingLetter } from './incoming-letter-fixture.js';
 import { isPrimaryKeyboardTrigger } from './keyboard-activation.js';
@@ -152,6 +153,7 @@ export function createBoardMemos(
       scrollLimit);
   };
   let readerArrows = createMemoScrollArrows(layouts[READER]);
+  const footerArrows = createFooterArrowVisibility(layouts[FOOTER]);
   let heldArrow = null;
   const arrowId = (id) =>
     id === 'memo-up' ? 'memo-scroll-up' : id === 'memo-down' ? 'memo-scroll-down' : null;
@@ -183,6 +185,8 @@ export function createBoardMemos(
     scrollTween = null;
     heldArrow = null;
     readerArrows = createMemoScrollArrows(layouts[READER]);
+    footerArrows.reset();
+    footerArrows.setArrows({ prev: true, next: true });
     drag = null;
     dialog = null;
     erasePending = false;
@@ -434,8 +438,7 @@ export function createBoardMemos(
   function footerLayer() {
     const clips = [
       footerClip('G_SeenChange', footerFrame()),
-      footerClip('G_ArwL_End', 10110),
-      footerClip('G_ArwR_End', 10110),
+      ...footerArrows.clips(),
     ];
     const backFocus = focus.get('memo-back');
     if (backFocus)
@@ -566,6 +569,7 @@ export function createBoardMemos(
         });
       }
       readerArrows.advance(frames);
+      footerArrows.advance(frames);
       for (const motion of focus.values()) motion.frame += frames;
       if (scrollTween) {
         scrollTween.frame += frames;
@@ -742,6 +746,7 @@ export function createBoardMemos(
       readerArrows = createMemoScrollArrows(layouts[READER]);
       phase = 'open';
       frame = 0;
+      footerArrows.setArrows({ prev: false, next: false });
       hovered = null;
       return true;
     },
@@ -756,6 +761,7 @@ export function createBoardMemos(
       onSound('WIPL_SE_BOARD_UNSELECT');
       phase = 'back-select';
       frame = 0;
+      footerArrows.setArrows({ prev: true, next: true }, { delay: 20 });
       hovered = null;
       return true;
     },

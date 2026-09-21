@@ -348,6 +348,39 @@ test(
   },
 );
 
+test('Memo entry and exit reuse the shared ten-frame footer arrow transition', sourceTest, () => {
+  const board = createBoardMemos(layouts, {
+    date,
+    memos: [record('a', 'A')],
+  });
+  const arrowTranslation = () =>
+    pane(layer(board.presentation(), 'memo-footer:'), 'N_ArwL_End').translation[0];
+
+  board.advance(11);
+  assert.equal(board.activate('memo-open-a'), true);
+  assert.equal(arrowTranslation(), 0);
+  board.advance(5);
+  assert.equal(arrowTranslation(), -100);
+  board.advance(5);
+  assert.equal(arrowTranslation(), -200);
+  board.advance(16);
+  assert.equal(board.snapshot().phase, 'read');
+  assert.equal(arrowTranslation(), -200);
+
+  assert.equal(board.back(), true);
+  assert.equal(arrowTranslation(), -200);
+  board.advance(19);
+  assert.equal(board.snapshot().phase, 'back-select');
+  assert.equal(arrowTranslation(), -200);
+  board.advance(1);
+  assert.equal(board.snapshot().phase, 'close');
+  assert.equal(arrowTranslation(), -200);
+  board.advance(5);
+  assert.equal(arrowTranslation(), -100);
+  board.advance(5);
+  assert.equal(arrowTranslation(), 0);
+});
+
 test(
   'short reader repeats only actual text rows and long reader scroll is bounded',
   sourceTest,

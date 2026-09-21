@@ -156,16 +156,60 @@ export function messageBadgePose(source, { count = 0, age = 0, newMailFrame = nu
   return layout;
 }
 
+/**
+ * Drives the shared footer arrows between their original hidden and visible
+ * endpoint poses. ChannelSelect and Memo readers both use the same ten-frame
+ * translation, so both scenes retain the same transition timing.
+ */
+export function createFooterArrowVisibility(source) {
+  const animation = source.animations.my_IplTop_e;
+  const states = new Map();
+  let age = 0;
+  return {
+    reset() {
+      age = 0;
+      states.clear();
+    },
+    advance(frames) {
+      age += frames;
+    },
+    setArrows(visible, { delay = 0 } = {}) {
+      const changed = [];
+      const transitionAge = age + delay;
+      for (const id of ['prev', 'next']) {
+        const next = Boolean(visible[id]);
+        const previous = states.get(id);
+        if (previous?.visible === next) continue;
+        states.set(id, {
+          visible: next,
+          start: previous ? transitionAge : transitionAge - 10,
+        });
+        changed.push(id);
+      }
+      return changed;
+    },
+    clips() {
+      return [...states].map(([id, state]) => ({
+        animation,
+        group: id === 'prev' ? 'G_ArwL_End' : 'G_ArwR_End',
+        frame: (state.visible ? 10150 : 10100) +
+          Math.max(0, Math.min(10, age - state.start)),
+        loop: false,
+      }));
+    },
+  };
+}
+
 /** Source footer hover groups; sceneFrame is the caller's scene-change pose. */
 export function createFooterController(source, balloonSource, measure, options = {}) {
   const balloons = createFooterBalloons(balloonSource, measure, options);
   const states = new Map();
   const arrows = createArrowInteraction(commonArrowDefinitions(source));
+  const arrowVisibility = createFooterArrowVisibility(source);
   let newMailActive = false,
     newMailAge = 0;
   let hovered = null;
   let age = 0;
-  const arrowVisibility = new Map();
   const api = {
     reset() {
       age = 0;
@@ -174,7 +218,7 @@ export function createFooterController(source, balloonSource, measure, options =
       newMailAge = 0;
       states.clear();
       arrows.reset();
-      arrowVisibility.clear();
+      arrowVisibility.reset();
       balloons.clear();
     },
     hover(id) {
@@ -200,26 +244,16 @@ export function createFooterController(source, balloonSource, measure, options =
       newMailAge = 0;
     },
     setArrows(visible) {
-      for (const id of ['prev', 'next']) {
-        const next = Boolean(visible[id]);
-        const previous = arrowVisibility.get(id);
-        if (previous?.visible === next) continue;
-        arrowVisibility.set(id, { visible: next, start: previous ? age : age - 10 });
-        if (!next && arrows.hovered === id) api.hover(null);
-      }
+      for (const id of arrowVisibility.setArrows(visible))
+        if (!visible[id] && arrows.hovered === id) api.hover(null);
     },
     arrowClips() {
-      const animation = source.animations.my_IplTop_e;
-      return [...arrowVisibility].map(([id, state]) => ({
-        animation,
-        group: id === 'prev' ? 'G_ArwL_End' : 'G_ArwR_End',
-        frame: (state.visible ? 10150 : 10100) + Math.min(10, age - state.start),
-        loop: false,
-      }));
+      return arrowVisibility.clips();
     },
     advance(frames) {
       age += frames;
       arrows.advance(frames);
+      arrowVisibility.advance(frames);
       if (newMailActive) {
         newMailAge += frames;
         if (newMailAge >= 180) {
