@@ -70,6 +70,7 @@ import {
   createArrowInteraction,
   isPersistentArrowControl,
   pointerRemainsInPersistentControl,
+  resolveDragArrowHover,
   resolvePointerHover,
   shouldActivateArrowPointerDown,
 } from './arrow-interaction.js';
@@ -1034,6 +1035,23 @@ function releaseTextArrow() {
 
 function updateArrowHover(state = menu.getState()) {
   if (!pointer.visible || state.overlay) return;
+  const dragState = drag.getState();
+  const dragging = dragState && ['grab', 'drag'].includes(dragState.phase);
+  if (dragging) {
+    const dragArrow = resolveDragArrowHover(interactive, pointer);
+    if (dragArrow) {
+      setHover(dragArrow);
+      return;
+    }
+    // A drag owns the normal channel controls. Once the pointer leaves an
+    // arrow, release its held bubble immediately and wait for a new arrow
+    // hit instead of allowing a disabled channel button to reacquire hover.
+    if (isPersistentArrowControl(hover)) {
+      if (pointerRemainsInPersistentControl(interactive, pointer, hover)) return;
+      setHover(null);
+    }
+    return;
+  }
   const target = resolvePointerHover(interactive, pointer);
   if (target) setHover(target);
   else if (pointerRemainsInPersistentControl(interactive, pointer, hover)) return;
@@ -1138,10 +1156,8 @@ function updateDragTarget() {
   const state = menu.getState();
   // Native drag paging listens to the same expanding B_Arw hit pane as
   // ordinary pointer focus, including its held +/− bubble.
-  const arrow = interactive.find(
-    (item) => ['prev', 'next'].includes(item.id) && pointInside(pointer, item.rect),
-  );
-  const edge = arrow ? (arrow.id === 'prev' ? -1 : 1) : 0;
+  const arrow = resolveDragArrowHover(interactive, pointer);
+  const edge = arrow === 'prev' ? -1 : arrow === 'next' ? 1 : 0;
   drag.point(pointer, hit?.index ?? null, edge);
   const valid = hit && (hit.index === drag.getState().source || !state.channels[hit.index]);
   focus.target(valid ? hit.index : null);

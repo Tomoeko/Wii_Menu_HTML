@@ -6,6 +6,7 @@ import { indexLayout, poseLayout } from '../src/animation.js';
 import { createDisplay } from '../src/display.js';
 import {
   pointerRemainsInPersistentControl,
+  resolveDragArrowHover,
   resolvePointerHover,
   shouldActivateArrowPointerDown,
 } from '../src/arrow-interaction.js';
@@ -241,6 +242,30 @@ test('a held arrow keeps its bubble while a page click temporarily disables its 
     'a fresh disabled DOM event still cannot acquire focus');
   assert.equal(pointerRemainsInPersistentControl(controls, { x: 600, y: 220, visible: true },
     'scene-next'), false);
+});
+
+test('channel dragging can acquire a disabled edge arrow and clears it after departure', () => {
+  const controls = [
+    {
+      id: 'next',
+      disabled: true,
+      rect: { x: 720, y: 170, w: 80, h: 100 },
+    },
+    {
+      id: 'channel-11',
+      disabled: true,
+      rect: { x: 320, y: 150, w: 120, h: 120 },
+    },
+  ];
+  const point = { x: 760, y: 220, visible: true };
+  assert.equal(resolveDragArrowHover(controls, point), 'next');
+  point.x = 600;
+  assert.equal(resolveDragArrowHover(controls, point), null);
+  point.x = 760;
+  point.y = 260;
+  assert.equal(resolveDragArrowHover(controls, point), 'next');
+  point.visible = false;
+  assert.equal(resolveDragArrowHover(controls, point), null);
 });
 
 test('arrow visibility plays the original endpoints without toggling pane visibility', sourceTest, () => {

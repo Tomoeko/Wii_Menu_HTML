@@ -67,6 +67,25 @@ export function pointerRemainsInPersistentControl(controls, point, id) {
   });
 }
 
+/**
+ * Resolve a channel-drag edge arrow from the current pointer position.
+ *
+ * ChannelSelect disables its transparent arrow buttons while a channel is
+ * being dragged so a release cannot activate a page action. The rendered
+ * arrow still owns the pointer area, however, and its held focus bubble must
+ * continue to follow the pointer. Keep this resolver separate from normal
+ * pointer hover resolution, which intentionally ignores disabled controls.
+ */
+export function resolveDragArrowHover(controls, point) {
+  if (!point || point.visible === false) return null;
+  return controls.findLast((control) => {
+    const rect = control.rect;
+    return isArrowId(control.id) && rect &&
+      point.x >= rect.x && point.x <= rect.x + rect.w &&
+      point.y >= rect.y && point.y <= rect.y + rect.h;
+  })?.id ?? null;
+}
+
 /** DOM enter/leave notifications can lag animated button bounds by a render.
  * Resolve them with the same source geometry as per-frame arrow reconciliation,
  * so an overlapping sibling cannot repeatedly restart the arrow's focus cue.
