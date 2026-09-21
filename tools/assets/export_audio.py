@@ -23,6 +23,10 @@ from sequence_audio import (
 )
 
 SOUNDS = {
+    # Wii Menu starts the looping BGM with this original one-shot phrase.
+    # It is a separate BRSAR wave, so omitting it leaves the first startup
+    # seconds silent even though the later BGM sequence is complete.
+    "backgroundIntro": "WIPL_SE_WII_START",
     "hover": "WIPL_SE_CH_TARGETTING",
     "buttonHover": "WIPL_SE_BT_TARGETTING",
     "select": "WIPL_SE_CH_SELECT",

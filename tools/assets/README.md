@@ -34,6 +34,12 @@ regenerates the built-in mix; `capture` requires an activated recording.
 `--background` remains accepted for compatibility. `WII_MENU_NODE` may point to
 an explicit Node executable if it is absent from `PATH`.
 
+The exporter also retains `WIPL_SE_WII_START` as `backgroundIntro`. The browser
+starts that original one-shot wave alongside the first BGM sequence pass, then
+loops the prepared or realtime sequence at its verified sequence boundary.
+An activated native DSP capture records the mixed startup wave already, so its
+manifest is marked accordingly and the browser does not double-play the cue.
+
 `audio.backgroundMode` in `config.json` selects `"prepared"` (the default) or
 `"realtime"`. Live playback loads the original sequence and PCM instruments
 into an AudioWorklet; it retains its clock and voices across preview/HOME pauses.

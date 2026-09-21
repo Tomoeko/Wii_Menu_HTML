@@ -12,7 +12,7 @@ import wave
 from unittest.mock import patch
 
 from export_audio import (
-    load_captured_background, local_asset_path, message_scroll_loop_metadata,
+    SOUNDS, load_captured_background, local_asset_path, message_scroll_loop_metadata,
     prepare_background, walk_sequence,
 )
 from native_audio_tables import NativeAudioTables, read_dol_address
@@ -91,6 +91,9 @@ class MessageScrollFixture(SustainedFixture):
 
 
 class SequenceAudioTests(unittest.TestCase):
+    def test_menu_audio_catalog_retains_the_original_startup_wave(self):
+        self.assertEqual(SOUNDS["backgroundIntro"], "WIPL_SE_WII_START")
+
     def test_background_metadata_preserves_the_sequence_effect_profile(self):
         definition = {
             "offline": {"loopStart": 0.0, "loopEnd": 1.0},

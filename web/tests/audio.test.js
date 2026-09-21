@@ -316,6 +316,70 @@ test('first-click sound waits for gesture resume and reuses the preload', async 
   await audio.destroy();
 });
 
+test('fresh menu playback starts the Wii startup wave with the looping BGM', async (t) => {
+  const { contexts, urls } = environment(t);
+  const audio = createAudio({
+    manifest: {
+      background: { src: '/background.wav' },
+      backgroundIntro: { src: '/background-intro.wav' },
+    },
+  });
+  await audio.unlock();
+  assert.equal(await audio.startBackground(), true);
+  const [background, intro] = contexts[0].sources;
+  assert.equal(background.loop, true);
+  assert.equal(intro.loop, false);
+  assert.equal(background.offset, 0);
+  assert.equal(intro.offset, 0);
+  assert.deepEqual(urls, ['/background.wav', '/background-intro.wav']);
+
+  intro.onended();
+  audio.pauseBackground();
+  await audio.startBackground();
+  assert.equal(contexts[0].sources.length, 3, 'the completed intro is not replayed on resume');
+  assert.equal(contexts[0].sources[2].loop, true);
+  await audio.destroy();
+});
+
+test('a native mixed capture does not double-play its startup wave', async (t) => {
+  const { contexts, urls } = environment(t);
+  const audio = createAudio({
+    manifest: {
+      background: { src: '/captured-background.wav', includesStartupWave: true },
+      backgroundIntro: { src: '/background-intro.wav' },
+    },
+  });
+  await audio.unlock();
+  assert.equal(await audio.startBackground(), true);
+  assert.equal(contexts[0].sources.length, 1);
+  assert.deepEqual(urls, ['/captured-background.wav']);
+  await audio.destroy();
+});
+
+test('realtime sequence playback restores the startup wave even with a capture manifest', async (t) => {
+  const { contexts, urls } = environment(t);
+  const instance = realtimeFixture();
+  const audio = createAudio({
+    backgroundMode: 'realtime',
+    manifest: {
+      background: {
+        src: '/captured-background.wav',
+        includesStartupWave: true,
+        sequence: { src: '/sequence.json' },
+      },
+      backgroundIntro: { src: '/background-intro.wav' },
+    },
+    realtimeFactory: async () => instance,
+  });
+  await audio.unlock();
+  assert.equal(await audio.startBackground(), true);
+  assert.deepEqual(instance.events, ['play']);
+  assert.equal(contexts[0].sources.length, 1);
+  assert.equal(contexts[0].sources[0].loop, false);
+  assert.deepEqual(urls, ['/background-intro.wav']);
+  await audio.destroy();
+});
+
 test('master volume applies before unlock, stays muted, and restores the selected level', async (t) => {
   const { contexts } = environment(t);
   const audio = createAudio();

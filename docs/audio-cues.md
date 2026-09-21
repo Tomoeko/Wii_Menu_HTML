@@ -47,6 +47,12 @@ Its loop markers are 71.454 to 138.714 seconds. Source hashes, renderer version,
 output hash, note count and peak level are recorded in generated metadata;
 changed or missing PCM causes regeneration.
 
+The first startup phrase is a separate original wave, `WIPL_SE_WII_START`,
+rather than part of the looping `WIPL_BGM_MENU` sequence. It is exported as
+`backgroundIntro` and starts with the first sequence pass on a fresh menu or
+HOME return. Native DSP captures already contain this mixed wave and carry an
+explicit manifest marker so the runtime does not play it twice.
+
 The built-in BGM file is labeled `original-sequence-built-in-dry-approximate`:
 this original sequence contains no AuxA send commands. It uses linear sample
 interpolation; versions 6 and 7 add the verified integer volume stages and
@@ -58,11 +64,12 @@ An initial comparison against the locally activated native capture (WAV SHA-256
 `616c3f4a83288191e2c39309e742b6759a50947f3465a3a6074e9a8a35630963`)
 aligns the built-in output by 33 samples. Joint stereo waveform correlation is
 0.99862 over 5–16 seconds, 0.99858 over 16–32 seconds and 0.99848 over
-32–60 seconds; fitted gain remains between 0.9992 and 0.9999. The first five
-seconds contain substantial additional native audio and are excluded from this
-inference. The capture is preserved unchanged. These measurements support the
-shared tick clock and overall mix, while the residual waveform differences
-still prevent a claim of exact DSP equivalence.
+32–60 seconds; fitted gain remains between 0.9992 and 0.9999. The earlier
+five-second comparison contained the separate startup wave; the exporter now
+retains that wave explicitly instead of treating it as a missing sequence note.
+The capture is preserved unchanged. These measurements support the shared tick
+clock and overall mix, while the residual waveform differences still prevent a
+claim of exact DSP equivalence.
 
 ## Selectable live playback
 
@@ -148,8 +155,9 @@ The ignored `artifacts/audio-residual-audit/` directory retains the immutable
 before/after WAVs, native disassembly, fixed-alignment measurement script and
 JSON report. The revised focus WAV SHA-256 is
 `8c45cae0dfa6cae68843a0e595c7b0a817d522d910e83dfcbc8de84e98b5cbbf`.
-A fresh isolated export produced all 71 sounds; unsent BGM retained its previous
-PCM hash `044c5156d1779181fef0c6022ed889fae766ecc963814550a1824950429b9f9c`.
+A fresh isolated export produced all 72 sounds, including the startup wave; the
+BGM sequence retained its previous PCM hash
+`044c5156d1779181fef0c6022ed889fae766ecc963814550a1824950429b9f9c`.
 The Chrome 153 AudioWorklet test captured 60,000 samples at 48 kHz and matched
 the shared offline engine with zero sample error after the same resampling.
 This verifies the delayed path runs consistently in both backends; it is not a

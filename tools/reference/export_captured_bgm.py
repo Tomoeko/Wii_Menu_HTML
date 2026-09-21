@@ -127,6 +127,7 @@ def main():
         "sourceSymbol": "WIPL_BGM_MENU",
         "gain": 1,
         "rendering": "original-menu-emulated-ax-capture",
+        "includesStartupWave": True,
         "loopStart": loop_start / 32000,
         "loopEnd": loop_end / 32000,
     }

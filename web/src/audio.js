@@ -44,6 +44,7 @@ export function createAudio({
   let destroyed = false;
   let backgroundWanted = false;
   let background = null;
+  let backgroundIntro = null;
   let backgroundVersion = 0;
   let channel = null;
   let channelVersion = 0;
@@ -82,6 +83,23 @@ export function createAudio({
   }
 
   const load = (name) => loadAsset(name, entry(name));
+
+  function backgroundIntroAsset() {
+    // A native capture is cut from the mixed DSP stream and already contains
+    // the startup wave. Built-in and realtime sequence paths need the separate
+    // one-shot resource because their BGM sequence starts at tick zero.
+    const backgroundAsset = entry('background');
+    const captureIncludesStartup = backgroundMode !== 'realtime' && (
+      backgroundAsset?.includesStartupWave ||
+      backgroundAsset?.rendering === 'original-menu-emulated-ax-capture'
+    );
+    return captureIncludesStartup ? null : entry('backgroundIntro');
+  }
+
+  function shouldPreload(name) {
+    if (name === 'backgroundIntro' && !backgroundIntroAsset()) return false;
+    return name !== 'background' || backgroundMode === 'prepared';
+  }
 
   function reportRequest(operation, symbol, options) {
     // Optional inspection observes requests before mute, loading or the hover
@@ -161,7 +179,14 @@ export function createAudio({
     return true;
   }
 
-  function sourceFor(asset, buffer, loop, options = {}, destination = master) {
+  function sourceFor(
+    asset,
+    buffer,
+    loop,
+    options = {},
+    destination = master,
+    onEnded = () => {},
+  ) {
     const source = context.createBufferSource();
     const gain = context.createGain();
     source.buffer = buffer;
@@ -187,19 +212,30 @@ export function createAudio({
       source.disconnect();
       gain.disconnect();
       panner?.disconnect();
+      onEnded();
     };
     return { source, gain, panner };
   }
 
   function beginTrack(track) {
-    if (menuPaused || destroyed) return;
+    if (!track || menuPaused || destroyed) return;
+    if (track.ended) return;
     if (track.realtime) {
       if (track.realtime.play()) track.source = track.realtime;
       return;
     }
     const { asset, buffer, loop } = track;
     if (!loop && track.offset >= buffer.duration) return;
-    Object.assign(track, sourceFor(asset, buffer, loop));
+    let player;
+    player = sourceFor(asset, buffer, loop, {}, master, () => {
+      // A one-shot startup cue must not be replayed when the menu resumes
+      // after it has already reached the end of its source buffer.
+      if (track.source === player.source && !loop) {
+        track.source = null;
+        track.ended = true;
+      }
+    });
+    Object.assign(track, player);
     track.startedAt = context.currentTime;
     track.source.start(0, track.offset);
   }
@@ -248,9 +284,14 @@ export function createAudio({
     if (background) {
       if (background.source) return false;
       beginTrack(background);
+      beginTrack(backgroundIntro);
       return true;
     }
     const version = ++backgroundVersion;
+    const introAsset = backgroundIntroAsset();
+    const introPromise = introAsset
+      ? load('backgroundIntro')
+      : Promise.resolve(null);
     if (backgroundMode === 'realtime') {
       const asset = entry('background')?.sequence;
       if (!asset?.src) {
@@ -260,23 +301,31 @@ export function createAudio({
       }
       try {
         let realtime;
-        realtime = await realtimeFactory({
-          context,
-          destination: master,
-          asset,
-          baseUrl,
-          onError: (error) => {
-            failed.add('backgroundSequence');
-            if (realtime && background?.realtime === realtime) background = null;
-            onError('backgroundSequence', error);
-          },
-        });
+        const [createdRealtime, introBuffer] = await Promise.all([
+          realtimeFactory({
+            context,
+            destination: master,
+            asset,
+            baseUrl,
+            onError: (error) => {
+              failed.add('backgroundSequence');
+              if (realtime && background?.realtime === realtime) background = null;
+              onError('backgroundSequence', error);
+            },
+          }),
+          introPromise,
+        ]);
+        realtime = createdRealtime;
         if (destroyed || !backgroundWanted || version !== backgroundVersion) {
           realtime.destroy(0);
           return false;
         }
         background = { realtime, source: null };
+        backgroundIntro = introBuffer
+          ? { asset: introAsset, buffer: introBuffer, loop: false, offset: 0 }
+          : null;
         beginTrack(background);
+        beginTrack(backgroundIntro);
         return true;
       } catch (error) {
         if (!destroyed && version === backgroundVersion) {
@@ -286,10 +335,14 @@ export function createAudio({
         return false;
       }
     }
-    const buffer = await load('background');
+    const [buffer, introBuffer] = await Promise.all([load('background'), introPromise]);
     if (!buffer || destroyed || !backgroundWanted || version !== backgroundVersion) return false;
     background = { asset: entry('background'), buffer, loop: true, offset: 0 };
+    backgroundIntro = introBuffer
+      ? { asset: introAsset, buffer: introBuffer, loop: false, offset: 0 }
+      : null;
     beginTrack(background);
+    beginTrack(backgroundIntro);
     return true;
   }
 
@@ -297,13 +350,16 @@ export function createAudio({
     backgroundWanted = false;
     backgroundVersion += 1;
     pauseTrack(background, fadeMs);
+    pauseTrack(backgroundIntro, fadeMs);
   }
 
   function stopBackground(fadeMs = (5 * 1000) / 60) {
     backgroundWanted = false;
     backgroundVersion += 1;
     stopTrack(background, fadeMs);
+    stopTrack(backgroundIntro, fadeMs);
     background = null;
+    backgroundIntro = null;
   }
 
   function stopChannel(fadeMs = 0) {
@@ -317,7 +373,7 @@ export function createAudio({
     // existing voices and effect state are retired immediately. Browser loads
     // also need invalidation so a completed decode cannot recreate an old cue.
     effectVersion += 1;
-    const stoppedTracks = new Set([background?.source, channel?.source]);
+    const stoppedTracks = new Set([background?.source, backgroundIntro?.source, channel?.source]);
     stopBackground(0);
     stopChannel(0);
     loops.clear();
@@ -351,7 +407,7 @@ export function createAudio({
         await context.resume();
         if (destroyed) return false;
         for (const name of Object.keys(entries)) {
-          if (name !== 'background' || backgroundMode === 'prepared') void load(name);
+          if (shouldPreload(name)) void load(name);
         }
         if (backgroundWanted) void startBackground();
         return context.state === 'running';
@@ -384,7 +440,7 @@ export function createAudio({
         })
         .catch(() => {});
       for (const name of Object.keys(entries)) {
-        if (name !== 'background' || backgroundMode === 'prepared') void load(name);
+        if (shouldPreload(name)) void load(name);
       }
       return context.state === 'running';
     },
@@ -440,6 +496,7 @@ export function createAudio({
       if (menuPaused || destroyed) return;
       menuPaused = true;
       pauseTrack(background);
+      pauseTrack(backgroundIntro);
       pauseTrack(channel);
       for (const effect of effects) {
         effect.paused = true;
@@ -450,6 +507,7 @@ export function createAudio({
       if (!menuPaused || destroyed) return;
       menuPaused = false;
       if (background && backgroundWanted) beginTrack(background);
+      if (backgroundIntro && backgroundWanted) beginTrack(backgroundIntro);
       if (channel) beginTrack(channel);
       for (const effect of effects) {
         if (!effect.paused) continue;
