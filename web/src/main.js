@@ -12,6 +12,7 @@ import {
   previewChangeClip,
   previewStartButtonClip,
   activatePreviewReturn,
+  createPreviewButtonHover,
 } from './preview-transition.js';
 import { createChannelFocus } from './channel-focus.js';
 import { createChannelBalloon } from './channel-balloon.js';
@@ -135,7 +136,8 @@ function setScreenState(name, value) {
 }
 let previewModuleLead = 0,
   previewArrowsStartedAt = 0,
-  previewArrows;
+  previewArrows,
+  previewButtonHover;
 let sdButton, footer, sdMenu;
 let config,
   display,
@@ -678,11 +680,12 @@ function drawPreview(state, { capture = false, initial = false } = {}) {
     ['start', 'G_FocusBtnB'],
   ]) {
     if (id === 'start' && !startEnabled) continue;
+    const focus = previewButtonHover.clip(id);
     clips.push(
       clip(
         source,
-        hover === id ? 'my_ChTop_a_FocusBtn_on' : 'my_ChTop_a_FocusBtnA_off',
-        hover === id ? (now - hoverAt) * 0.06 : 10,
+        focus.animation,
+        focus.frame,
         group,
       ),
     );
@@ -1151,8 +1154,9 @@ function setHover(value) {
   }
   if (scenes) scenes.hover(value?.startsWith('scene-') ? value.slice(6) : null);
   if (sdMenu) sdMenu.hover(value?.startsWith('sd-menu-') ? value.slice(8) : null);
-  previewArrows?.hover(menu.getState().screen === 'preview' ? value : null);
   const state = menu.getState();
+  previewArrows?.hover(state.screen === 'preview' ? value : null);
+  previewButtonHover?.hover(state.screen === 'preview' ? value : null);
   const draggingChannel = state.screen === 'grid' &&
     ['grab', 'drag'].includes(drag?.getState()?.phase);
   const footerOwnsSound = draggingChannel && isArrowId(value)
@@ -1295,6 +1299,8 @@ function render(timestamp) {
     return;
   }
   const previousState = menu.getState();
+  if (previousState.screen !== 'preview' && previewButtonHover?.hovered)
+    previewButtonHover.reset();
   if (previousState.overlay || previousState.transition || sceneFader.active || restart.active || notice)
     releaseTextArrow();
   const restartFrames = advanceHomeBoundary(home, restart, delta * 0.06);
@@ -1332,6 +1338,7 @@ function render(timestamp) {
     focus.advance(delta * 0.06);
     balloon.advance(delta * 0.06);
     previewArrows.advance(delta * 0.06);
+    if (previousState.screen === 'preview') previewButtonHover.advance(delta * 0.06);
     if (
       !sceneFader.active &&
       !systemSettingsVisible &&
@@ -1781,6 +1788,7 @@ async function init() {
     onComplete: (requestId) => settingsSurface?.completeValidation(requestId),
   });
   previewArrows = createArrowInteraction(commonArrowDefinitions(layouts.my_IplTop_e));
+  previewButtonHover = createPreviewButtonHover();
   footer = createFooterController(
     layouts.my_IplTop_e,
     layouts.my_IplTopBalloon_a,
@@ -1970,7 +1978,10 @@ async function init() {
       pendingZoomCapture = true;
     if (state.transition?.kind === 'preview' && state.transition.elapsed === 0) {
       previewArrows.press(state.transition.direction < 0 ? 'prev' : 'next');
-    } else if (state.screen !== 'preview') previewArrows.reset();
+    } else if (state.screen !== 'preview') {
+      previewArrows.reset();
+      previewButtonHover?.reset();
+    }
     if (state.locked) {
       focus.clear();
       balloon.clear();

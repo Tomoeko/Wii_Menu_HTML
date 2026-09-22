@@ -8,6 +8,7 @@ import {
   previewChangeClip,
   previewStartButtonClip,
   activatePreviewReturn,
+  createPreviewButtonHover,
 } from '../src/preview-transition.js';
 import { commonArrowDefinitions, createArrowInteraction } from '../src/arrow-interaction.js';
 
@@ -91,6 +92,37 @@ test('Start changes enabled appearance at the banner swap only when entering/lea
     ).frame,
     10,
   );
+});
+
+test('preview button focus completes a source-timed departure and reverses smoothly', () => {
+  const focus = createPreviewButtonHover();
+  assert.deepEqual(focus.clip('back'), {
+    animation: 'my_ChTop_a_FocusBtnA_off',
+    frame: 10,
+  });
+  focus.hover('back');
+  focus.advance(3);
+  assert.deepEqual(focus.clip('back'), {
+    animation: 'my_ChTop_a_FocusBtn_on',
+    frame: 3,
+  });
+  focus.hover(null);
+  const leaving = focus.clip('back');
+  assert.equal(leaving.animation, 'my_ChTop_a_FocusBtnA_off');
+  assert.ok(leaving.frame > 0 && leaving.frame < 8);
+  focus.advance(10);
+  assert.deepEqual(focus.clip('back'), {
+    animation: 'my_ChTop_a_FocusBtnA_off',
+    frame: 10,
+  });
+  focus.hover('start');
+  focus.advance(10);
+  focus.hover(null);
+  assert.equal(focus.clip('start').frame, 0);
+  focus.advance(3);
+  focus.hover('start');
+  assert.equal(focus.clip('start').animation, 'my_ChTop_a_FocusBtn_on');
+  assert.ok(focus.clip('start').frame < 5, 're-entry reverses the active rollout');
 });
 
 test('the clicked arrow uses the independent native thirty-frame select flash', () => {
