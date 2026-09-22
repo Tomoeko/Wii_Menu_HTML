@@ -59,6 +59,8 @@ preparing the menu assets, install it directly with:
 ```sh
 npm run channels -- validate templates/custom-channel
 npm run channels -- add templates/custom-channel
+npm run channels -- install examples/custom-channels/custom-artwork-qa-da0a7872 \
+  examples/custom-channels/custom-studio-channel-9899b686
 ```
 
 To create an independent editable copy instead, run:
@@ -66,7 +68,7 @@ To create an independent editable copy instead, run:
 ```sh
 node tools/channels.mjs init ~/MyChannel --id custom-my-channel --title "My Channel"
 node tools/channels.mjs validate ~/MyChannel
-node tools/channels.mjs add ~/MyChannel
+node tools/channels.mjs install ~/MyChannel
 node tools/channels.mjs list
 ```
 
@@ -84,6 +86,8 @@ re-enabling saved positions, missing assets and shared WAD/custom commands.
 
 ```sh
 node tools/channels.mjs remove custom-my-channel
+# Or remove one or more packages by their authored folders:
+node tools/channels.mjs remove ~/MyChannel /path/to/another-channel
 ```
 
 Removal updates only the custom catalog. It preserves the authored package, WAD

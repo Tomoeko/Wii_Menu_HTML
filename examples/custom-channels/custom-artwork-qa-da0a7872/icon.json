@@ -1,0 +1,644 @@
+{
+  "width": 608,
+  "height": 456,
+  "originType": 1,
+  "name": "icon",
+  "textures": [
+    {
+      "name": "icon-artwork",
+      "url": "icon.jpg",
+      "width": 300,
+      "height": 150
+    }
+  ],
+  "fonts": [
+    "wbf1.brfna"
+  ],
+  "materials": [
+    {
+      "name": "VertexColor",
+      "colors": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          255,
+          255,
+          255,
+          255
+        ],
+        [
+          255,
+          255,
+          255,
+          255
+        ]
+      ],
+      "textureMaps": []
+    },
+    {
+      "name": "icon-artwork",
+      "colors": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          255,
+          255,
+          255,
+          255
+        ],
+        [
+          255,
+          255,
+          255,
+          255
+        ]
+      ],
+      "textureMaps": [
+        {
+          "texture": 0,
+          "wrapS": 0,
+          "wrapT": 0
+        }
+      ]
+    }
+  ],
+  "groups": {},
+  "root": {
+    "name": "RootPane",
+    "type": "pan1",
+    "flags": 1,
+    "origin": 4,
+    "alpha": 255,
+    "translation": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "scale": [
+      1,
+      1
+    ],
+    "size": [
+      608,
+      456
+    ],
+    "children": [
+      {
+        "name": "Background",
+        "type": "pic1",
+        "flags": 5,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "size": [
+          170,
+          96
+        ],
+        "children": [],
+        "material": 0,
+        "vertexColors": [
+          [
+            23,
+            54,
+            87,
+            255
+          ],
+          [
+            23,
+            54,
+            87,
+            255
+          ],
+          [
+            23,
+            54,
+            87,
+            255
+          ],
+          [
+            23,
+            54,
+            87,
+            255
+          ]
+        ],
+        "texCoords": []
+      },
+      {
+        "name": "Content",
+        "type": "pan1",
+        "flags": 6,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "size": [
+          608,
+          456
+        ],
+        "children": [
+          {
+            "name": "Mark",
+            "type": "pan1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [
+              0,
+              12,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "size": [
+              60,
+              60
+            ],
+            "children": [
+              {
+                "name": "Tile1",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  -9,
+                  9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile2",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  9,
+                  9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile3",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  -9,
+                  -9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              },
+              {
+                "name": "Tile4",
+                "type": "pic1",
+                "flags": 1,
+                "origin": 4,
+                "alpha": 255,
+                "translation": [
+                  9,
+                  -9,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  1,
+                  1
+                ],
+                "size": [
+                  13,
+                  13
+                ],
+                "children": [],
+                "material": 0,
+                "vertexColors": [
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ],
+                  [
+                    86,
+                    213,
+                    235,
+                    255
+                  ]
+                ],
+                "texCoords": []
+              }
+            ]
+          },
+          {
+            "name": "Title",
+            "type": "txt1",
+            "flags": 1,
+            "origin": 4,
+            "alpha": 255,
+            "translation": [
+              0,
+              -28,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1
+            ],
+            "size": [
+              120,
+              22
+            ],
+            "children": [],
+            "material": 0,
+            "text": "Artwork QA",
+            "font": 0,
+            "fontSize": [
+              10,
+              12
+            ],
+            "textPosition": 4,
+            "textColors": [
+              [
+                255,
+                255,
+                255,
+                255
+              ],
+              [
+                255,
+                255,
+                255,
+                255
+              ]
+            ],
+            "charSpace": 0,
+            "lineSpace": 0
+          }
+        ]
+      },
+      {
+        "name": "ArtworkBorder",
+        "type": "pic1",
+        "flags": 5,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "size": [
+          300,
+          150
+        ],
+        "children": [],
+        "material": 0,
+        "vertexColors": [
+          [
+            86,
+            213,
+            235,
+            255
+          ],
+          [
+            86,
+            213,
+            235,
+            255
+          ],
+          [
+            86,
+            213,
+            235,
+            255
+          ],
+          [
+            86,
+            213,
+            235,
+            255
+          ]
+        ],
+        "texCoords": []
+      },
+      {
+        "name": "Artwork",
+        "type": "pic1",
+        "flags": 5,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1
+        ],
+        "size": [
+          300,
+          150
+        ],
+        "children": [],
+        "material": 1,
+        "vertexColors": [
+          [
+            255,
+            255,
+            255,
+            255
+          ],
+          [
+            255,
+            255,
+            255,
+            255
+          ],
+          [
+            255,
+            255,
+            255,
+            255
+          ],
+          [
+            255,
+            255,
+            255,
+            255
+          ]
+        ],
+        "texCoords": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        ]
+      }
+    ]
+  },
+  "animations": {
+    "icon": {
+      "frames": 180,
+      "loop": true,
+      "targets": [
+        {
+          "name": "Mark",
+          "type": 0,
+          "tracks": [
+            {
+              "kind": "RLPA",
+              "id": 0,
+              "target": 5,
+              "curveType": 2,
+              "keys": [
+                {
+                  "frame": 0,
+                  "value": -6,
+                  "slope": 0
+                },
+                {
+                  "frame": 90,
+                  "value": 6,
+                  "slope": 0
+                },
+                {
+                  "frame": 180,
+                  "value": -6,
+                  "slope": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "artwork": {
+    "kind": "icon",
+    "width": 300,
+    "height": 150
+  }
+}

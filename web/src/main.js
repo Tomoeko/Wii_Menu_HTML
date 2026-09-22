@@ -1645,7 +1645,11 @@ async function init() {
     'disc',
     ...selected.defaultOrder,
   ];
-  const placement = planChannelSlots(channels, channelPlacement, defaultIds);
+  const placement = planChannelSlots(channels, channelPlacement, defaultIds, {
+    priorityIds: selected.channels
+      .filter((channel) => !channel.custom)
+      .map((channel) => channel.id),
+  });
   channelPlacement = serializeChannelPlacement(placement.slots, {
     ...channelPlacement,
     positions: placement.positions,

@@ -30,7 +30,8 @@ npm run prepare -- --wad /path/to/menu.wad --channel-wad /path/to/channel.wad
 npm run prepare -- --rebuild --nand /path/to/nand
 npm run channels -- list
 npm run channels -- add --wad /path/to/channel.wad
-npm run channels -- remove CHANNEL_ID
+npm run channels -- install /path/to/custom-channel-one /path/to/custom-channel-two
+npm run channels -- remove CHANNEL_ID custom-channel-folder
 ```
 
 Custom channel packages can be created with:

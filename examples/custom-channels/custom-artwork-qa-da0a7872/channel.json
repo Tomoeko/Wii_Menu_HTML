@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "custom-artwork-qa-da0a7872",
+  "title": "Artwork QA",
+  "iconLayout": "icon.json",
+  "bannerLayout": "banner.json",
+  "audio": {
+    "src": "sound.wav",
+    "loop": false
+  }
+}

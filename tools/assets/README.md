@@ -15,11 +15,16 @@ The supplied USA 4.3 System Menu WAD contains the menu layouts, settings HTML, b
 
 ```sh
 npm run channels -- add --wad /path/to/channel.wad
+npm run channels -- install /path/to/custom-channel-one /path/to/custom-channel-two
 npm run channels -- list
-npm run channels -- remove 0001000154455354
+npm run channels -- remove 0001000154455354 custom-my-channel
 ```
 
 Removal changes the local catalog and remembers exclusions on later NAND imports; it does not delete the supplied WAD or NAND content. Reimporting the same channel WAD enables it again. Channel placement follows checksum-validated `iplsave.bin` when supplied; `savedLayout` retains 48 original slots and gaps. Additional preferred channels from WADs or NANDs are appended to the available default order. Existing NAND title IDs retain their original imported content; explicit WAD imports can replace them. New NAND imports copy their selected banner resources into managed private storage, so rebuilds do not depend on the extraction scratch directory. Browser rearrangement configuration is separate and is not overwritten by the exporter.
+
+NAND channels retain priority over custom channels. If custom channels were
+installed before a NAND import, newly introduced NAND titles take their exact
+saved-layout slots first and custom channels are placed into the remaining slots.
 
 Menu effects and channel sounds export automatically. The built-in Python converter reads original BNS DSP ADPCM and uncompressed RIFF/WAVE without an external media decoder. It preserves sample rate, channel order, sample count, and source loop markers; it does not bake repeated loops or fades into the WAV. See [the channel audio decoder](../../docs/channel-audio.md) for supported formats, validation, and comparison evidence. The drag sound retains its original looping waveform; its AX envelope is not synthesized.
 

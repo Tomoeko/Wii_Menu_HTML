@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "custom-studio-channel-9899b686",
+  "title": "Studio Channel",
+  "iconLayout": "icon.json",
+  "bannerLayout": "banner.json",
+  "audio": {
+    "src": "sound.wav",
+    "loop": false
+  }
+}

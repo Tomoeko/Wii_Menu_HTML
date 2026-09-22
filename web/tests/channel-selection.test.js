@@ -15,6 +15,7 @@ import {
   runChannelCommand,
   setChannelEnabled,
 } from '../../tools/channels.mjs';
+import { initializeCustomChannel } from '../../tools/custom-channels.mjs';
 
 const channel = (id) => ({ id, title: id });
 const disc = channel('disc');
@@ -75,6 +76,23 @@ test('visibility follows native defaults, explicit overrides and stable catalog 
     () => selectChannelCatalog({ channels: [channel('x')], defaultOrder: ['missing'] }),
     /order/,
   );
+});
+
+test('new NAND defaults reclaim their exact slots before older custom placement', () => {
+  const native = channel('000100014e415449');
+  const custom = channel('custom-before-nand');
+  const saved = empty();
+  saved[1] = custom.id;
+  const nativeDefaults = empty();
+  nativeDefaults[1] = native.id;
+  const placement = planChannelSlots(
+    [disc, native, custom],
+    { version: 1, slots: saved },
+    nativeDefaults,
+    { priorityIds: [native.id] },
+  );
+  assert.equal(placement.slots[1].id, native.id);
+  assert.equal(placement.slots[2].id, custom.id);
 });
 
 test('disabled position survives rearrangement and re-enabling does not displace a new owner', () => {
@@ -190,6 +208,52 @@ test('unified visibility commands preserve catalog, source configuration and sta
   ]);
   assert.equal(result.channels.find((entry) => entry.id === 'one').enabled, true);
   await assert.rejects(runChannelCommand(['remove', 'disc']), /Disc/);
+});
+
+test('install accepts several authored folders and remove accepts IDs or folders', async (t) => {
+  const paths = await fixture(t);
+  const root = join(paths.assets, '..');
+  const localDirectory = join(root, 'local');
+  const first = join(root, 'first-channel');
+  const second = join(root, 'second-channel');
+  await initializeCustomChannel(first, { id: 'custom-first-batch', title: 'First batch' });
+  await initializeCustomChannel(second, { id: 'custom-second-batch', title: 'Second batch' });
+
+  const installed = await runChannelCommand([
+    'install',
+    first,
+    second,
+    '--assets',
+    paths.assets,
+    '--local-dir',
+    localDirectory,
+  ]);
+  assert.deepEqual(
+    installed.installed.map((entry) => entry.id),
+    ['custom-first-batch', 'custom-second-batch'],
+  );
+
+  const removed = await runChannelCommand([
+    'remove',
+    first,
+    'custom-second-batch',
+    '--assets',
+    paths.assets,
+    '--config',
+    paths.configFile,
+    '--layout',
+    paths.layoutFile,
+    '--local-dir',
+    localDirectory,
+  ]);
+  assert.deepEqual(
+    removed.removed.map((entry) => entry.id),
+    ['custom-first-batch', 'custom-second-batch'],
+  );
+  assert.deepEqual(
+    (await readChannelInventory(paths)).channels.map((entry) => entry.id),
+    ['disc', 'one', 'two', 'extra'],
+  );
 });
 
 test('inventory identifies missing layouts without overlapping remaining visible titles', async (t) => {

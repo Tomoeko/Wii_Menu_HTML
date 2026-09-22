@@ -56,6 +56,9 @@ export async function readChannelInventory(options = {}) {
   const available = selection.defaultOrder
     .map((id) => byId.get(id))
     .filter((channel) => !channel.missing.length);
+  const nativeIds = available
+    .filter((channel) => !channel.custom)
+    .map((channel) => channel.id);
   const arrangement = await readArrangement(paths.layoutFile);
   const defaultIds = catalog.savedLayout?.slots?.map((slot) => slot?.id ?? null) ?? [
     'disc',
@@ -65,6 +68,7 @@ export async function readChannelInventory(options = {}) {
     [{ id: 'disc', title: 'Disc Channel' }, ...available],
     arrangement,
     defaultIds,
+    { priorityIds: nativeIds },
   );
   const slots = new Map(
     plan.slots.flatMap((channel, index) => (channel ? [[channel.id, index]] : [])),
@@ -157,14 +161,17 @@ const help = `Channel management (local files only)
   npm run channels -- validate <folder>
   npm run channels -- add <folder-or-channel.wad> [--common-key-file <file>]
   npm run channels -- add --wad <channel.wad> [--common-key-file <file>]
+  npm run channels -- install <folder> [<folder> ...]
   npm run channels -- list
   npm run channels -- enable <id>
   npm run channels -- disable <id>
   npm run channels -- reset <id>
-  npm run channels -- remove <id>
+  npm run channels -- remove <id-or-folder> [<id-or-folder> ...]
 
 init writes animated icon/banner layouts and an original synthesized sound.wav.
 Enable/disable changes config.json only; reset restores that ID's catalog default.
+Install accepts authored folders and can install several in one command. Remove
+accepts IDs or authored folders and keeps all supplied source files.
 Remove uninstalls the local entry but keeps the source WAD or authoring folder.
 Reload the menu after changes. Disc cannot be disabled or removed.
 
@@ -176,7 +183,17 @@ export async function runChannelCommand(args) {
   const [command, ...rest] = args;
   if (!command || ['--help', 'help'].includes(command)) return help;
   if (
-    !['init', 'validate', 'add', 'list', 'enable', 'disable', 'reset', 'remove'].includes(command)
+    ![
+      'init',
+      'validate',
+      'add',
+      'install',
+      'list',
+      'enable',
+      'disable',
+      'reset',
+      'remove',
+    ].includes(command)
   ) {
     throw new Error(`Unknown channel command: ${command}`);
   }
@@ -212,11 +229,17 @@ export async function runChannelCommand(args) {
   if (options.wad && command === 'add' && positional.length === 0) positional.push(options.wad);
   else if (options.wad)
     throw new Error('--wad is only supported by add without a positional path.');
-  if (positional.length !== (command === 'list' ? 0 : 1)) throw new Error(help);
+  const acceptsMany = command === 'install' || command === 'remove';
+  if (command === 'list' ? positional.length !== 0 : acceptsMany
+    ? positional.length < 1
+    : positional.length !== 1) {
+    throw new Error(help);
+  }
   const commandOptions = {
     init: ['id', 'title'],
     validate: [],
     add: ['assets', 'local-dir', 'wad', 'common-key-file', 'common-key-index'],
+    install: ['assets', 'local-dir'],
     list: ['assets', 'config', 'layout'],
     enable: ['assets', 'config', 'layout'],
     disable: ['assets', 'config', 'layout'],
@@ -247,16 +270,74 @@ export async function runChannelCommand(args) {
     const enabled = command === 'reset' ? null : command === 'enable';
     return setChannelEnabled(positional[0], enabled, paths);
   }
+  if (command === 'install') {
+    const sources = [];
+    const installed = [];
+    const requestedIds = new Set();
+    for (const folder of positional) {
+      const source = resolve(folder);
+      if (!(await stat(source).catch(() => null))?.isDirectory()) {
+        throw new Error(`Install expects an authored channel folder: ${folder}`);
+      }
+      const prepared = await readCustomPackage(source);
+      if (requestedIds.has(prepared.manifest.id)) {
+        throw new Error(`The install list contains duplicate channel ID: ${prepared.manifest.id}`);
+      }
+      requestedIds.add(prepared.manifest.id);
+      sources.push(source);
+    }
+    for (const source of sources) {
+      installed.push(
+        await addCustomChannel(source, paths.assets, {
+          localDirectory: paths.localDirectory,
+        }),
+      );
+    }
+    return { installed };
+  }
   if (command === 'remove') {
-    const id = positional[0];
-    if (id === 'disc') throw new Error('The Disc Channel cannot be removed.');
+    const requests = [];
+    const requestedIds = new Set();
+    for (const target of positional) {
+      let id = target;
+      const source = resolve(target);
+      if ((await stat(source).catch(() => null))?.isDirectory()) {
+        id = (await readCustomPackage(source)).manifest.id;
+      }
+      if (requestedIds.has(id)) {
+        throw new Error(`The remove list contains duplicate channel ID: ${id}`);
+      }
+      requestedIds.add(id);
+      requests.push(id);
+    }
     const inventory = await readChannelInventory(paths);
-    const channel = inventory.channels.find((entry) => entry.id === id);
-    if (!channel) throw new Error(`Channel is not installed: ${id}`);
-    if (channel.source === 'custom')
-      return removeCustomChannel(id, paths.assets, { localDirectory: paths.localDirectory });
-    await prepare(['remove', id, '--local-dir', paths.localDirectory, '--output', paths.assets]);
-    return { id, removed: true };
+    const channels = new Map(inventory.channels.map((channel) => [channel.id, channel]));
+    for (const id of requests) {
+      if (id === 'disc') throw new Error('The Disc Channel cannot be removed.');
+      if (!channels.has(id)) throw new Error(`Channel is not installed: ${id}`);
+    }
+    const removed = [];
+    for (const id of requests) {
+      const channel = channels.get(id);
+      if (channel.source === 'custom') {
+        removed.push(
+          await removeCustomChannel(id, paths.assets, {
+            localDirectory: paths.localDirectory,
+          }),
+        );
+      } else {
+        await prepare([
+          'remove',
+          id,
+          '--local-dir',
+          paths.localDirectory,
+          '--output',
+          paths.assets,
+        ]);
+        removed.push({ id, removed: true });
+      }
+    }
+    return removed.length === 1 ? removed[0] : { removed };
   }
   const source = resolve(positional[0]);
   if ((await stat(source)).isDirectory()) {

@@ -63,7 +63,12 @@ function rememberedPositions(state) {
 
 /** Active saved owners win, then free remembered positions, then free slots.
  * Inactive preferences are retained separately and never reserve a visible tile. */
-export function planChannelSlots(channels, savedState = null, defaultIds = []) {
+export function planChannelSlots(
+  channels,
+  savedState = null,
+  defaultIds = [],
+  { priorityIds = [] } = {},
+) {
   if (!Array.isArray(channels)) throw new Error('Expected a channel catalog.');
   if (savedState && !Array.isArray(savedState) && savedState.slots !== null) {
     validateChannelArrangement(savedState);
@@ -77,14 +82,35 @@ export function planChannelSlots(channels, savedState = null, defaultIds = []) {
   }
   const savedIds = Array.isArray(savedState) ? savedState : savedState?.slots;
   const initialIds = Array.isArray(savedIds) ? savedIds : defaultIds;
+  const savedIdSet = new Set(
+    [
+      ...(Array.isArray(savedIds) ? savedIds : []),
+      ...(!Array.isArray(savedState) && savedState?.positions
+        ? Object.keys(savedState.positions)
+        : []),
+    ].filter((id) => typeof id === 'string'),
+  );
+  const priority = new Set(
+    priorityIds.filter((id) => typeof id === 'string' && catalog.has(id)),
+  );
+  const reservedDefaults = new Map();
+  for (let slot = 1; slot < CHANNEL_SLOT_COUNT; slot++) {
+    const id = defaultIds[slot];
+    if (priority.has(id) && !savedIdSet.has(id)) reservedDefaults.set(slot, id);
+  }
   const positions = rememberedPositions(
     Array.isArray(savedIds) ? savedState : { ...savedState, slots: defaultIds },
   );
   const slots = Array(CHANNEL_SLOT_COUNT).fill(null);
   const used = new Set(['disc']);
   slots[0] = catalog.get('disc') ?? { id: 'disc', title: 'Disc Channel' };
+  for (const [slot, id] of reservedDefaults) {
+    slots[slot] = catalog.get(id);
+    used.add(id);
+  }
   for (let slot = 1; slot < CHANNEL_SLOT_COUNT; slot++) {
     const id = initialIds?.[slot];
+    if (reservedDefaults.has(slot)) continue;
     if (catalog.has(id) && !used.has(id)) {
       slots[slot] = catalog.get(id);
       used.add(id);
