@@ -112,6 +112,7 @@ let renderer,
   home,
   hover = null,
   hoverAt = 0,
+  suppressSceneMemoHover = false,
   now = 0,
   notice = '';
 let lastRenderTimestamp = 0;
@@ -402,6 +403,11 @@ function drawFooter(state, matrix = identity) {
       if (menu.openBoard()) {
         boardVisited = true;
         scenes.open('board');
+        // Keep a stationary pointer from carrying the Wii Menu's hover target
+        // into the newly-created Memo hit regions. The user must move the
+        // pointer before a Memo can acquire focus in the new scene.
+        suppressSceneMemoHover = true;
+        setHover(null);
         return true;
       }
       return false;
@@ -1075,6 +1081,7 @@ function updateArrowHover(state = menu.getState()) {
 }
 
 function setPointerHover(requested) {
+  if (suppressSceneMemoHover && requested?.startsWith('scene-memo-')) return;
   const target = menu.getState().overlay
     ? requested : resolvePointerHover(interactive, pointer, requested);
   if (!target && requested === null &&
@@ -1095,6 +1102,7 @@ function playSceneSound(name, options = {}) {
   } else void audio.play(name, options);
 }
 function setHover(value) {
+  if (suppressSceneMemoHover && value?.startsWith('scene-memo-')) return;
   if (menu?.getState().overlay) {
     home.hover(value);
     hover = value;
@@ -1262,7 +1270,10 @@ function render(timestamp) {
     if (sample.phase === 'grid' || sample.complete) {
       const gridAge = (sceneNow - startedAt) * 0.06;
       footer.advance(gridAge - (previousRestart.phase === 'grid' ? previousRestart.frame : 0));
-      drawGrid({ ...menu.getState(), locked: true }, { input: false });
+      drawGrid(
+        { ...menu.getState(), locked: true },
+        { input: false, memoLayers: scenes.memoReturnLayers?.() ?? [] },
+      );
       drawPointer();
     } else {
       box(0, 0, display.width, display.height, [0, 0, 0, 255]);
@@ -1367,7 +1378,8 @@ function render(timestamp) {
   }
   if (!systemSettingsVisible) {
     const memoLayers =
-      viewState.screen === 'grid' && !viewState.transition
+      viewState.screen === 'grid' &&
+      (!viewState.transition || viewState.transition.kind === 'home')
         ? scenes.memoReturnLayers?.() ?? []
         : [];
     const drawUnderlay = () => {
@@ -1855,6 +1867,8 @@ async function init() {
       (fonts.get(layout?.fonts?.[pane.font]) || font).layoutPaneText(value, pane),
     onNavigate: (destination) => {
       if (destination === 'grid') {
+        suppressSceneMemoHover = true;
+        setHover(null);
         if (menu.getState().screen === 'settings') sceneFader.start(() => menu.back());
         else menu.back();
       } else if (destination === 'system-settings')
@@ -1924,6 +1938,7 @@ async function init() {
 function installInput() {
   screen.addEventListener('pointermove', (event) => {
     if (restart.active) return;
+    suppressSceneMemoHover = false;
     if (heldTextArrow) {
       const target = interactive.find((item) => item.id === heldTextArrow.controlId);
       if (!pointInside(pointer, target?.rect)) {
