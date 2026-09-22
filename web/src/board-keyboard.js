@@ -1290,7 +1290,19 @@ export function createBoardKeyboard(
       candidateHold.hover(id);
       keytopHold.hover(id);
       if (phonePending && id !== `key-phone-${phonePending.index}`) phonePending = null;
-      if (locked() || focused === id) return false;
+      if (locked()) {
+        // A page click keeps its arrow bubble through the twenty-update
+        // scroll, but a real pointer departure must still clear that bubble
+        // while the overlay is locked and its buttons are temporarily inert.
+        if (id === null && focused !== null && symbolPhase) {
+          const old = controls().find((item) => item.id === focused);
+          if (!suppressFocus(old)) animate(old, animationName(old, 'Focus-OUT'), 'normal');
+          focused = null;
+          return true;
+        }
+        return false;
+      }
+      if (focused === id) return false;
       const items = controls();
       const old = items.find((item) => item.id === focused);
       const next = items.find((item) => item.id === id);

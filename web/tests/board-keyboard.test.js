@@ -1783,6 +1783,11 @@ test('More controls render, focus and return to their complete idle poses',
     keyboard.advance(8);
     for (const name of ['P_SGNkey_prev', 'P_SGNkey_next', 'P_SGNkey_close'])
       assert.deepEqual(rendered().get(name), idle.get(name));
+    keyboard.hover('key-symbols-prev');
+    keyboard.activate('key-symbols-prev');
+    assert.equal(keyboard.hover(null), true, 'departure during paging clears the retained bubble');
+    keyboard.advance(20);
+    assert.deepEqual(rendered().get('P_SGNkey_prev'), idle.get('P_SGNkey_prev'));
   });
 
 
