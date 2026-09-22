@@ -45,7 +45,7 @@ function clip(layout, name, frame, options = {}) {
   };
 }
 
-function baseClips(layout, kind, frame) {
+function baseClips(layout, kind, frame, custom = false) {
   if (kind === 'icon') {
     for (const name of ['icon_Start', 'icon', 'icon_Whole']) {
       if (animationAt(layout, name)) return [clip(layout, name, frame)];
@@ -60,7 +60,7 @@ function baseClips(layout, kind, frame) {
     // template. Keep that loop active during the fade/slide intro so the
     // artwork is already moving on its first rendered frame; waiting for the
     // intro to finish leaves a centered pose that jumps when the loop starts.
-    const customLoop = Boolean(layout.artwork);
+    const customLoop = custom || Boolean(layout.artwork);
     // Start keeps its final values for properties absent from the loop track.
     return [
       clip(layout, 'banner_Start', Math.min(frame, end), { loop: false }),
@@ -77,7 +77,12 @@ function baseClips(layout, kind, frame) {
 export function channelClips(channel, kind, frame, options = {}) {
   const layout = channel[kind];
   if (!layout) return [];
-  const clips = baseClips(layout, kind, options.baseFrame ?? frame),
+  const clips = baseClips(
+    layout,
+    kind,
+    options.baseFrame ?? frame,
+    Boolean(channel.custom),
+  ),
     id = channel.shortId;
   const rso = (index, elapsed = frame, settings = {}) =>
     clips.push(clip(layout, `${kind}_Rso${index}`, elapsed, settings));

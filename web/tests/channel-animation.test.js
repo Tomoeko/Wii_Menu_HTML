@@ -66,7 +66,32 @@ test('custom banner sway is posed during the intro instead of starting abruptly 
   source.root.children = [mark];
   const opening = channelClips({ shortId: 'custom-example', banner: source }, 'banner', 0);
   assert.deepEqual(opening.map((clip) => clip.frame), [0, 0]);
-  assert.equal(poseChannel({ shortId: 'custom-example', banner: source }, 'banner', 0).root.children[0].rotation[2], -6);
+  assert.equal(
+    poseChannel({ shortId: 'custom-example', banner: source }, 'banner', 0)
+      .root.children[0].rotation[2],
+    -6,
+  );
+});
+
+test('custom template banners also overlap the sway loop before artwork is added', () => {
+  const source = layout({ banner_Start: anim(31), banner_Loop: anim(180, true) });
+  const channel = { id: 'custom-example', custom: true, banner: source };
+  assert.deepEqual(
+    channelClips(channel, 'banner', 0).map((clip) => clip.frame),
+    [0, 0],
+  );
+  source.root.children = [pane('Mark')];
+  source.animations.banner_Loop.targets = [
+    {
+      name: 'Mark',
+      type: 0,
+      tracks: [{ kind: 'RLPA', target: 5, curveType: 1, keys: [{ frame: 0, value: -6 }] }],
+    },
+  ];
+  assert.equal(
+    poseChannel(channel, 'banner', 0).root.children[0].rotation[2],
+    -6,
+  );
 });
 
 test('Photo icon selects the original default track and banner repeats after its intro', () => {
