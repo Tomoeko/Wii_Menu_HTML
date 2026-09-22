@@ -288,6 +288,18 @@ test('arrow visibility plays the original endpoints without toggling pane visibi
   assert.deepEqual(footer.arrowClips().map((clip) => clip.frame), [10160, 10160]);
 });
 
+test('settings return restores both arrows without replaying their appearance clip', sourceTest, () => {
+  const footer = createFooterController(source, balloonSource, measure);
+  footer.setArrows({ prev: true, next: true });
+  footer.advance(30);
+  footer.setArrows({ prev: false, next: false });
+  footer.advance(4);
+  footer.setArrows({ prev: true, next: true }, { immediate: true });
+  assert.deepEqual(footer.arrowClips().map((clip) => clip.frame), [10160, 10160]);
+  footer.advance(4);
+  assert.deepEqual(footer.arrowClips().map((clip) => clip.frame), [10160, 10160]);
+});
+
 test('today message badge clamps at99, persists through hover and runs original arrival animation', sourceTest, () => {
   const sounds = [];
   const footer = createFooterController(source, balloonSource, measure, {

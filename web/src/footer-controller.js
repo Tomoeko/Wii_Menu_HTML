@@ -173,7 +173,7 @@ export function createFooterArrowVisibility(source) {
     advance(frames) {
       age += frames;
     },
-    setArrows(visible, { delay = 0 } = {}) {
+    setArrows(visible, { delay = 0, immediate = false } = {}) {
       const changed = [];
       const transitionAge = age + delay;
       for (const id of ['prev', 'next']) {
@@ -182,7 +182,7 @@ export function createFooterArrowVisibility(source) {
         if (previous?.visible === next) continue;
         states.set(id, {
           visible: next,
-          start: previous ? transitionAge : transitionAge - 10,
+          start: immediate || !previous ? transitionAge - 10 : transitionAge,
         });
         changed.push(id);
       }
@@ -243,8 +243,8 @@ export function createFooterController(source, balloonSource, measure, options =
       newMailActive = false;
       newMailAge = 0;
     },
-    setArrows(visible) {
-      for (const id of arrowVisibility.setArrows(visible))
+    setArrows(visible, options = {}) {
+      for (const id of arrowVisibility.setArrows(visible, options))
         if (!visible[id] && arrows.hovered === id) api.hover(null);
     },
     arrowClips() {

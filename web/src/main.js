@@ -373,7 +373,9 @@ function drawFooterBalloons() {
 }
 
 function drawFooter(state, matrix = identity) {
-  footer.setArrows(menuFooterState(state).arrows);
+  footer.setArrows(menuFooterState(state).arrows, {
+    immediate: state.transition?.kind === 'settings' && state.screen === 'grid',
+  });
   drawSDButton(true, true, state.locked, matrix);
   const summary = scenes?.messageSummary(sceneDate) ?? { count: 0, unreadCount: 0 };
   const layout = footer.pose({
@@ -1346,7 +1348,15 @@ function render(timestamp) {
   }
   menu.advance(delta);
   const state = menu.getState();
-  footer.setArrows(menuFooterState(state, scenes.snapshot()).arrows);
+  footer.setArrows(menuFooterState(state, scenes.snapshot()).arrows, {
+    // The settings scene owns the footer while Wii Options is open. On the
+    // return transition the arrows resume at their settled endpoint instead
+    // of replaying ChannelSelect's ten-frame reappearance clip. Include the
+    // previous state because menu.advance() can finish the transition here.
+    immediate:
+      (state.transition?.kind === 'settings' && state.screen === 'grid') ||
+      (previousState.transition?.kind === 'settings' && state.screen === 'grid'),
+  });
   const entrance = menuEntranceSample((sceneNow - startedAt) * 0.06, {
     healthShown: entranceHealthShown,
   });
@@ -1381,11 +1391,14 @@ function render(timestamp) {
     renderer.clear();
   }
   if (!systemSettingsVisible) {
+    const memoTransition = viewState.transition?.kind;
     const memoLayers =
-      viewState.screen === 'grid' &&
-      // Page scrolling only moves the Home Menu artwork; parked Memos remain
-      // in world space and must be drawn on every transition frame.
-      (!viewState.transition || ['home', 'page'].includes(viewState.transition.kind))
+      (viewState.screen === 'grid' || ['select', 'back'].includes(memoTransition)) &&
+      // Home, page, channel and settings returns keep the parked Memo cards
+      // in the same draw pass as the underlying menu instead of dropping and
+      // recreating them between transition frames.
+      (!viewState.transition ||
+        ['home', 'page', 'select', 'back', 'settings'].includes(memoTransition))
         ? scenes.memoReturnLayers?.() ?? []
         : [];
     const drawUnderlay = () => {
