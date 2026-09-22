@@ -446,7 +446,7 @@ appearance/disappearance resources animate the shared Close prototype, and the
 SGN focus resources provide the matching hover and pushed poses for all three
 More controls. The browser binds the previous/next buttons to those shared
 resources before either button is hovered. Tests check their initial
-visibility, shared fade, independent focus, and page-scroll cue.
+visibility, shared fade, independent focus, and Wii Menu footer page cue.
 
 Composition now records a start position when a non-whitespace character is
 typed with prediction already enabled, including digits and symbols. Enabling
@@ -884,8 +884,8 @@ The More window's appearance and focus bindings were also checked through the
 renderer hierarchy. Both page-arrow bodies appear on the first visible update,
 retain the original material opacity through hover/departure and page changes,
 and return to their complete idle poses. The close button and both arrows use
-the original SGN focus resources, and page changes request the short line-scroll
-cue instead of the keyboard-layout switching sound. These are
+the original SGN focus resources, and page changes request the same `WSD_SELECT`
+cue as the Wii Menu footer instead of the keyboard-layout switching sound. These are
 resource/controller regressions, not aligned native capture acceptance.
 
 ## September 21 integrated UI check

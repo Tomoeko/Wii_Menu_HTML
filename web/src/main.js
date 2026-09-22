@@ -1063,6 +1063,18 @@ function releaseTextArrow() {
   heldTextArrow = null;
 }
 
+function cancelMemoPointer() {
+  if (!memoPointer) return false;
+  const { active, pointerId } = memoPointer;
+  if (active) scenes.cancelPointer();
+  if (screen.hasPointerCapture(pointerId)) screen.releasePointerCapture(pointerId);
+  memoPointer = null;
+  // A captured pointer can still deliver a delayed click after it leaves the
+  // surface. Suppress that stale click; the next real pointerdown clears it.
+  if (active) suppressMemoClick = true;
+  return active;
+}
+
 function updateArrowHover(state = menu.getState()) {
   if (!pointer.visible || state.overlay) return;
   const dragState = drag.getState();
@@ -1989,6 +2001,14 @@ function installInput() {
     }
     if (memoPointer && !menu.getState().overlay) {
       if (
+        pointer.x < 0 || pointer.x > display.width ||
+        pointer.y < 0 || pointer.y > display.height
+      ) {
+        cancelMemoPointer();
+      }
+    }
+    if (memoPointer && !menu.getState().overlay) {
+      if (
         !memoPointer.active &&
         Math.hypot(pointer.x - memoPointer.start.x, pointer.y - memoPointer.start.y) > 3
       ) {
@@ -2002,7 +2022,8 @@ function installInput() {
   });
   screen.addEventListener('pointerleave', () => {
     releaseTextArrow();
-    if (grabPointerId !== null || memoPointer?.active) return;
+    cancelMemoPointer();
+    if (grabPointerId !== null) return;
     pointer.visible = false;
     setHover(null);
   });
@@ -2166,8 +2187,7 @@ function installInput() {
   });
   screen.addEventListener('pointercancel', () => {
     releaseTextArrow();
-    scenes.cancelPointer();
-    memoPointer = null;
+    cancelMemoPointer();
     drag.cancel();
     audio.stopLoop('drag');
     grabPointerId = null;
@@ -2177,8 +2197,7 @@ function installInput() {
     scenes.suspendAudio();
     settingsKeyboard?.keyInput('', { type: 'blur' });
     scenes.keyInput('', { type: 'blur' });
-    scenes.cancelPointer();
-    memoPointer = null;
+    cancelMemoPointer();
     if (grabPointerId !== null) {
       drag.cancel();
       audio.stopLoop('drag');
@@ -2249,10 +2268,7 @@ function installInput() {
       event.preventDefault();
       if (event.repeat) return;
       if (memoPointer) {
-        scenes.cancelPointer();
-        if (screen.hasPointerCapture(memoPointer.pointerId))
-          screen.releasePointerCapture(memoPointer.pointerId);
-        memoPointer = null;
+        cancelMemoPointer();
       } else if (drag.getState()) {
         drag.cancel();
         audio.stopLoop('drag');

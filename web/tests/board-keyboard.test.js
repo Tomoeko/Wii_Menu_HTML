@@ -1026,7 +1026,8 @@ test(
   'symbol overlay actually appears and changes pages through original BRLAN states',
   { skip: !available },
   () => {
-    const keyboard = createBoardKeyboard(layouts);
+    const sounds = [];
+    const keyboard = createBoardKeyboard(layouts, { onSound: (id) => sounds.push(id) });
     keyboard.activate('key-more');
     keyboard.advance(18);
     let overlay = keyboard
@@ -1039,10 +1040,24 @@ test(
     overlay = keyboard
       .presentation()
       .layers.find((layer) => layer.prefix === 'keyboard-symbols:').layout;
-    assert.ok(indexLayout(overlay).panes.get('N_SGNkeyall_00').translation[0] > 0);
+    assert.ok(indexLayout(overlay).panes.get('N_SGNkeyall_00').translation[0] < 0);
     assert.equal(indexLayout(overlay).panes.get('T_SGNkey_20').text, '[');
+    assert.equal(sounds.at(-1), 'WSD_SELECT');
     keyboard.advance(10);
     assert.equal(keyboard.snapshot().symbolPage, 1);
+    assert.ok(
+      indexLayout(
+        keyboard.presentation().layers.find((layer) => layer.prefix === 'keyboard-symbols:').layout,
+      ).panes.get('P_SGNkey_next').scale[0] > 1,
+      'the clicked arrow keeps its hover pose after the page settles',
+    );
+    keyboard.activate('key-symbols-prev');
+    keyboard.advance(10);
+    overlay = keyboard
+      .presentation()
+      .layers.find((layer) => layer.prefix === 'keyboard-symbols:').layout;
+    assert.ok(indexLayout(overlay).panes.get('N_SGNkeyall_00').translation[0] > 0);
+    assert.equal(sounds.at(-1), 'WSD_SELECT');
   },
 );
 
@@ -1747,6 +1762,8 @@ test('More controls render, focus and return to their complete idle poses',
       ['key-symbols-close', 'P_SGNkey_close'],
     ]) {
       assert.equal(keyboard.hover(id), true, id);
+      if (id === 'key-symbols-prev')
+        assert.equal(sounds.at(-1), 'WIPL_SE_BT_TARGETTING');
       keyboard.advance(5);
       const focused = rendered().get(picture);
       assert.ok(focused.scale[0] > idle.get(picture).scale[0], id);
@@ -1756,8 +1773,14 @@ test('More controls render, focus and return to their complete idle poses',
       assert.deepEqual(rendered().get(picture), idle.get(picture), id);
     }
     keyboard.activate('key-symbols-next');
-    assert.equal(sounds.at(-1), 'WIPL_SE_LINE_SCROLL');
+    assert.equal(sounds.at(-1), 'WSD_SELECT');
+    const soundCount = sounds.length;
+    assert.equal(keyboard.hover('key-symbols-next'), false);
+    assert.equal(sounds.length, soundCount);
     keyboard.advance(20);
+    assert.ok(rendered().get('P_SGNkey_next').scale[0] > idle.get('P_SGNkey_next').scale[0]);
+    keyboard.hover(null);
+    keyboard.advance(8);
     for (const name of ['P_SGNkey_prev', 'P_SGNkey_next', 'P_SGNkey_close'])
       assert.deepEqual(rendered().get(name), idle.get(name));
   });

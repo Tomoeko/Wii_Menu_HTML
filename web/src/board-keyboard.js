@@ -1303,7 +1303,13 @@ export function createBoardKeyboard(
       focused = next?.id || null;
       if (next?.id.startsWith('key-candidate-'))
         candidates().selectedIndex = Number(next.id.slice('key-candidate-'.length));
-      if (next) sound('CHAR_FOCUS');
+      if (next) {
+        // More-page arrows are the same page controls as the Wii Menu footer:
+        // use its target cue instead of the character-key focus sound.
+        if (next.key === SYMBOLS && /key-symbols-(prev|next)$/.test(next.id))
+          onSound('WIPL_SE_BT_TARGETTING');
+        else sound('CHAR_FOCUS');
+      }
       return true;
     },
     activate(id, { secondary = false, primary = !secondary } = {}) {
@@ -1404,13 +1410,17 @@ export function createBoardKeyboard(
         const direction = id.endsWith('prev') ? -1 : 1;
         transitionOverlay(
           'symbols',
-          direction < 0 ? 'prev' : 'next',
+          // The source BRLAN names the movement from the page being replaced:
+          // its `prev` clip moves the current page left and its `next` clip
+          // moves it right. The visible button direction is the inverse.
+          direction < 0 ? 'next' : 'prev',
           20,
           (symbolPage + direction + symbolPages.length) % symbolPages.length,
         );
-        // The More arrows scroll the symbol table. Use the short page-scroll
-        // cue rather than the longer keyboard-layout switching sound.
-        sound('LINE_SCROLL');
+        // Match the Wii Menu footer's exact page-arrow cue.
+        onSound('WSD_SELECT');
+        // Keep the native arrow bubble focused until the pointer leaves it.
+        focused = id;
       } else if (id.startsWith('key-symbol-'))
         insert(symbolPages[symbolPage][Number(id.slice(11))]);
       else if (id.startsWith('key-phone-mode-')) {

@@ -663,6 +663,7 @@ test(
       false,
     );
     scenes.cancelPointer();
+    assert.equal(scenes.snapshot().draggingMemo, false);
     assert.equal(scenes.activate('memo-open-a'), true);
     scenes.advance(26);
     assert.equal(scenes.keyInput('ArrowDown', { type: 'keyup' }), false);
