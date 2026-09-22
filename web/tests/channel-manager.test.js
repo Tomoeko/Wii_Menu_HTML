@@ -65,8 +65,12 @@ test('custom channel details validate the public title and color limits', () => 
   assert.throws(() => validateChannelDetails('Channel', 'red', '#56d5eb'), /color/);
 });
 
-test('PNG header checks reject wrong formats and unsafe dimensions before decoding', () => {
+test('image headers accept SVG guides and reject wrong formats or unsafe dimensions', () => {
   assert.deepEqual(validateImageBytes(pngHeader(240, 160)), { width: 240, height: 160 });
+  assert.deepEqual(
+    validateImageBytes(Buffer.from('<svg width="832" height="456"></svg>')),
+    { width: 832, height: 456 },
+  );
   const padded = Buffer.concat([Buffer.alloc(7), pngHeader(4096, 1), Buffer.alloc(3)]);
   assert.deepEqual(validateImageBytes(padded.subarray(7, 40)), { width: 4096, height: 1 });
   assert.throws(() => validateImageBytes(Buffer.from('not an image')), /PNG/);
@@ -114,12 +118,13 @@ test('folder import preserves supported nested resources and rejects ambiguous p
     file('My Folder/channel.json'),
     file('My Folder/layouts/icon.json'),
     file('My Folder/media/icon.png'),
+    file('My Folder/media/banner-guide.svg'),
     file('My Folder/README.md'),
     file('My Folder/.DS_Store'),
   ]);
   assert.deepEqual(
     planned.files.map((entry) => entry.path),
-    ['channel.json', 'layouts/icon.json', 'media/icon.png', 'README.md'],
+    ['channel.json', 'layouts/icon.json', 'media/icon.png', 'media/banner-guide.svg', 'README.md'],
   );
   assert.equal(planned.ignored, 1);
   assert.throws(() => planFolderImport([file('Package/layouts/icon.json')]), /channel.json/);

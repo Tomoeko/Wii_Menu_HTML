@@ -5,6 +5,61 @@ function invalid(message) {
 
 const text = (bytes) => String.fromCharCode(...bytes);
 
+function svgLength(value) {
+  const match = /^(\d+(?:\.\d+)?)(?:px)?$/i.exec(value.trim());
+  if (!match) return null;
+  const length = Number(match[1]);
+  return Number.isFinite(length) && length > 0 ? length : null;
+}
+
+function svgAttribute(source, name) {
+  const match = new RegExp(`\\b${name}\\s*=\\s*[\\\"']([^\\\"']+)[\\\"']`, 'i').exec(
+    source,
+  );
+  return match?.[1];
+}
+
+/** Read dimensions from a static, same-file SVG without executing its markup. */
+function svgDimensions(bytes) {
+  let source;
+  try {
+    source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    invalid('Invalid SVG image encoding.');
+  }
+  if (
+    /<!doctype|<!entity|<script\b|<foreignobject\b|<iframe\b|<object\b|<embed\b|<image\b|(?:href|xlink:href)\s*=\s*[\"'](?:https?:|data:|\/\/)/i.test(
+      source,
+    )
+  ) {
+    invalid('SVG images must contain only local, static artwork.');
+  }
+  const root = /<svg\b([^>]*)>/i.exec(source)?.[1];
+  if (!root || !/<\/svg>\s*$/i.test(source)) invalid('Invalid SVG image.');
+  const viewBox = svgAttribute(root, 'viewBox')
+    ?.trim()
+    .split(/\s+/)
+    .map(Number);
+  const width = svgLength(svgAttribute(root, 'width') ?? '') ?? viewBox?.[2];
+  const height = svgLength(svgAttribute(root, 'height') ?? '') ?? viewBox?.[3];
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width < 1 ||
+    height < 1 ||
+    width > 4096 ||
+    height > 4096 ||
+    (viewBox &&
+      (viewBox.length !== 4 ||
+        !viewBox.every(Number.isFinite) ||
+        viewBox[2] <= 0 ||
+        viewBox[3] <= 0))
+  ) {
+    invalid('SVG images must have valid dimensions from 1 to 4096.');
+  }
+  return [Math.round(width), Math.round(height)];
+}
+
 function jpegDimensions(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (bytes.length < 4 || view.getUint16(0) !== 0xffd8) invalid('Invalid JPEG header.');
@@ -199,7 +254,10 @@ export function inspectImageHeader(input) {
     format = 'jpeg';
     extension = 'jpg';
     [width, height] = jpegDimensions(bytes);
-  } else invalid('Artwork must be a PNG, JPEG, or GIF image.');
+  } else if (/^\uFEFF?\s*(?:<\?xml[^>]*>\s*)?<svg\b/i.test(text(bytes.subarray(0, 1024)))) {
+    format = extension = 'svg';
+    [width, height] = svgDimensions(bytes);
+  } else invalid('Artwork must be a PNG, JPEG, GIF, or SVG image.');
   if (!width || !height || width > 4096 || height > 4096) {
     invalid('Image dimensions must be from 1 to 4096.');
   }

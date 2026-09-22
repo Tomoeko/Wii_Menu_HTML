@@ -43,6 +43,7 @@ const mime = {
   '.gif': 'image/gif',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
   '.wav': 'audio/wav',

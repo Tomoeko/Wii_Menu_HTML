@@ -1,0 +1,95 @@
+{
+  "width": 608,
+  "height": 456,
+  "originType": 1,
+  "name": "banner",
+  "textures": [
+    {
+      "name": "banner-guide-16x9",
+      "url": "banner-guide-16x9.svg",
+      "width": 832,
+      "height": 456
+    },
+    {
+      "name": "banner-guide-4x3",
+      "url": "banner-guide-4x3.svg",
+      "width": 608,
+      "height": 456
+    }
+  ],
+  "fonts": [],
+  "materials": [
+    {
+      "name": "banner-guide-16x9",
+      "colors": [
+        [0, 0, 0, 0],
+        [255, 255, 255, 255],
+        [255, 255, 255, 255]
+      ],
+      "textureMaps": [
+        {
+          "texture": 0,
+          "wrapS": 0,
+          "wrapT": 0
+        }
+      ]
+    },
+    {
+      "name": "banner-guide-4x3",
+      "colors": [
+        [0, 0, 0, 0],
+        [255, 255, 255, 255],
+        [255, 255, 255, 255]
+      ],
+      "textureMaps": [
+        {
+          "texture": 1,
+          "wrapS": 0,
+          "wrapT": 0
+        }
+      ]
+    }
+  ],
+  "groups": {},
+  "root": {
+    "name": "RootPane",
+    "type": "pan1",
+    "flags": 1,
+    "origin": 4,
+    "alpha": 255,
+    "translation": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1],
+    "size": [608, 456],
+    "children": [
+      {
+        "name": "Guide",
+        "type": "pic1",
+        "flags": 5,
+        "origin": 4,
+        "alpha": 255,
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [832, 456],
+        "children": [],
+        "material": 0,
+        "vertexColors": [
+          [255, 255, 255, 255],
+          [255, 255, 255, 255],
+          [255, 255, 255, 255],
+          [255, 255, 255, 255]
+        ],
+        "texCoords": [
+          [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [1, 1]
+          ]
+        ]
+      }
+    ]
+  },
+  "animations": {}
+}

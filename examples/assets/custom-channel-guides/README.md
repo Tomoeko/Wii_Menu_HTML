@@ -3,7 +3,8 @@
 These transparent SVG overlays are original authoring aids for Photoshop,
 Illustrator, GIMP and similar tools. Open a guide at its native size, place it
 above the artwork while composing, and hide the guide before exporting. The
-guide itself must never be included in a channel texture.
+`custom-style-guide-svg` example intentionally includes the guides as visible
+channel textures so their placement marks can be inspected in the menu.
 
 The menu's logical layout is 608×456. Layout translations use a centered origin
 with positive Y upward. SVG and image pixels use a top-left origin with positive

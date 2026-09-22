@@ -427,8 +427,13 @@ export function createMenuScenes(
     suspendAudio() {
       memoBoard.suspendAudio();
     },
-    open(next = 'options') {
+    open(next = 'options', date) {
       if (!['options', 'board'].includes(next)) throw new RangeError('Unknown scene entry point');
+      if (date !== undefined &&
+          (!(date instanceof Date) || Number.isNaN(date.getTime()))) {
+        throw new RangeError('Menu scene date must be valid.');
+      }
+      if (date !== undefined) currentDate = new Date(date.getTime());
       reset();
       scene = next;
       if (scene === 'options') start([backClip('SeenIn', 'G_BarIn')], enterButtons);

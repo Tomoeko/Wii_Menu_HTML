@@ -20,7 +20,7 @@ function crc32(bytes) {
 /** Check compressed image data before publishing it as a browser texture. */
 export function pngDimensions(bytes) {
   if (bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') {
-    invalid('Artwork must be a PNG, JPEG, or GIF image.');
+    invalid('Artwork must be a PNG, JPEG, GIF, or SVG image.');
   }
   let header;
   let ended = false;
@@ -107,6 +107,7 @@ export function pngDimensions(bytes) {
 
 export function imageMetadata(bytes, { decode = true } = {}) {
   const metadata = inspectImageHeader(bytes);
+  if (metadata.format === 'svg') return metadata;
   const signature = bytes.subarray(0, 8).toString('hex');
   if (signature === '89504e470d0a1a0a') {
     const [width, height] = pngDimensions(bytes);
@@ -125,7 +126,7 @@ export function imageMetadata(bytes, { decode = true } = {}) {
       ...(decode ? { decoded } : {}),
     };
   }
-  invalid('Artwork must be a PNG, JPEG, or GIF image.');
+  invalid('Artwork must be a PNG, JPEG, GIF, or SVG image.');
 }
 
 function pngChunk(type, bytes) {

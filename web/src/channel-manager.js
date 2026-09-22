@@ -129,7 +129,7 @@ export function planFolderImport(inputFiles) {
       throw new Error('Select one channel folder with relative package paths.');
     roots.add(parts.shift());
     const path = parts.join('/');
-    if (!/\.(json|png|jpe?g|gif|wav|md)$/i.test(path)) {
+    if (!/\.(json|png|jpe?g|gif|svg|wav|md)$/i.test(path)) {
       ignored++;
       continue;
     }
@@ -147,7 +147,9 @@ export function planFolderImport(inputFiles) {
   if (files.length > UPLOAD_LIMITS.files)
     throw new Error('A channel folder can contain up to 260 supported files.');
   validateMediaBudget(
-    files.filter(({ path }) => /\.(png|jpe?g|gif|wav)$/i.test(path)).map(({ file }) => file),
+    files
+      .filter(({ path }) => /\.(png|jpe?g|gif|svg|wav)$/i.test(path))
+      .map(({ file }) => file),
     'none',
   );
   const requestBytes = files.reduce(
@@ -167,10 +169,25 @@ function base64(bytes) {
 }
 
 async function decodeImage(file) {
-  const image = await createImageBitmap(file).catch(() => {
-    throw new Error('This image cannot be decoded. Choose another PNG, JPEG or GIF.');
-  });
-  image.close();
+  try {
+    if (typeof createImageBitmap === 'function') {
+      const image = await createImageBitmap(file);
+      image.close();
+      return;
+    }
+  } catch {
+    // Some browsers do not expose SVG decoding through createImageBitmap.
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+  } catch {
+    throw new Error('This image cannot be decoded. Choose another PNG, JPEG, GIF, or SVG.');
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 async function startChannelManager() {
@@ -611,7 +628,7 @@ async function startChannelManager() {
       const files = [];
       for (const entry of plan.files) {
         let bytes;
-        if (/\.(png|jpe?g|gif|wav)$/i.test(entry.path))
+        if (/\.(png|jpe?g|gif|svg|wav)$/i.test(entry.path))
           bytes = (await readUpload(entry.file, /\.wav$/i.test(entry.path) ? 'audio' : 'image'))
             .bytes;
         else bytes = new Uint8Array(await entry.file.arrayBuffer());

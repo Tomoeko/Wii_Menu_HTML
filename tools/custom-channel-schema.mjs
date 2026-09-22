@@ -121,8 +121,8 @@ export function validateChannelLayout(value, kind) {
     if (textureNames.has(texture.name)) fail('textures', `duplicate ${texture.name}`);
     textureNames.add(texture.name);
     relativeResource(texture.url, 'texture.url');
-    if (!/\.(?:png|jpg|jpeg|gif)$/i.test(texture.url))
-      fail('texture.url', 'expected PNG, JPEG, or GIF');
+    if (!/\.(?:png|jpg|jpeg|gif|svg)$/i.test(texture.url))
+      fail('texture.url', 'expected PNG, JPEG, GIF, or SVG');
     number(texture.width, 'texture.width', 1, 4096, true);
     number(texture.height, 'texture.height', 1, 4096, true);
   });

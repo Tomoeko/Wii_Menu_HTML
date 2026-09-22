@@ -1,7 +1,7 @@
 # Authoring custom channels
 
-Custom channels use JSON layouts and animation curves, PNG textures, and optional
-PCM WAV sound. The menu renders them through the same pane, material, font and
+Custom channels use JSON layouts and animation curves, PNG, JPEG, GIF, or SVG textures,
+and optional PCM WAV sound. The menu renders them through the same pane, material, font and
 animation code as imported channel resources. Hover, selection, channel preview,
 return, dragging and saved placement use the existing menu controllers. The Start
 button remains a local placeholder; packages cannot launch arbitrary programs or
@@ -21,7 +21,8 @@ adds a complete sample with an animated icon, banner entrance/loop and original
 2.4-second sound. Installing the same example again does not create a duplicate.
 
 For your own channel, enter a name, choose background/accent colors, and select
-**Create and install**. Optional PNG, JPEG or GIF files add icon and preview artwork. The sound
+**Create and install**. Optional PNG, JPEG, GIF, or SVG files add icon and preview artwork.
+The sound
 selector offers the original sample melody, silence, or your own PCM WAV. A
 generated identifier keeps separate creations from replacing one another.
 
@@ -34,7 +35,7 @@ sound without entering the menu.
 
 To install an existing authored package, select its folder under **Have a channel
 folder?** and choose **Import and install**. The folder must contain `channel.json`
-at its top level. JSON, PNG, JPEG, GIF, WAV and Markdown files are retained; unsupported file
+at its top level. JSON, PNG, JPEG, GIF, SVG, WAV and Markdown files are retained; unsupported file
 types are ignored. The manager rejects duplicate identifiers instead of replacing
 an existing channel. For an intentional update with the same ID, edit your source
 folder and use the CLI `add` command below.
@@ -199,9 +200,10 @@ as a 0–8 alignment (4 centered), `textColors` as top/bottom RGBA, and optional
 `charSpace`/`lineSpace`. The template references `wbf1.brfna`; the renderer resolves
 prepared shared fonts, with the menu font fallback. Text never becomes HTML.
 
-## Add a PNG
+## Add image artwork
 
-Put `artwork.png` in the authoring directory. Add this texture descriptor, using
+Put `artwork.png`, `artwork.gif`, or `artwork.svg` in the authoring directory. Add this
+texture descriptor, using
 the image's actual pixel dimensions:
 
 ```json
@@ -212,6 +214,11 @@ the image's actual pixel dimensions:
   "height": 128
 }
 ```
+
+SVG files are checked as static, same-file artwork. External resources, scripts,
+and embedded HTML are rejected before installation. The style-guide overlays in
+`examples/assets/custom-channel-guides/` are valid SVG textures and are used by
+the `custom-style-guide-svg` example.
 
 Add a material with a single texture map (`texture` is its index):
 
@@ -267,7 +274,7 @@ values **per frame**, not normalized tangents. Key frames must strictly increase
 
 Limits bound accidental resource overload: 128 panes, 16 tree levels, 64 materials,
 128 textures, 10,000 keys per layout, 2 MiB per JSON file and 32 MiB of referenced
-media. PNG dimensions and WAV sample metadata are checked during installation.
+media. PNG, JPEG, GIF, and SVG dimensions plus WAV sample metadata are checked during installation.
 
 Use the channel inspector to play/scrub the exact same layouts:
 
@@ -277,5 +284,5 @@ http://127.0.0.1:5173/inspect.html?channel=custom-my-channel&kind=banner
 ```
 
 The tests exercise template animation through the production controller, optional
-PNG/WAV installation, updates/removal without disturbing native imports, path
+PNG/JPEG/GIF/SVG/WAV installation, updates/removal without disturbing native imports, path
 containment, invalid input preserving the current catalog, and saved-slot merging.

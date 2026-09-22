@@ -159,8 +159,12 @@ function normalizeImport(value) {
     object(file, ['path', 'base64'], 'file');
     relativeResource(file.path, 'file path');
     const extension = extname(file.path).toLowerCase();
-    if (!['.json', '.png', '.jpg', '.jpeg', '.gif', '.wav', '.md'].includes(extension)) {
-      invalid('Channel folders may contain only JSON, PNG, JPEG, GIF, WAV, and Markdown files.');
+    if (
+      !['.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.wav', '.md'].includes(extension)
+    ) {
+      invalid(
+        'Channel folders may contain only JSON, PNG, JPEG, GIF, SVG, WAV, and Markdown files.',
+      );
     }
     const name = file.path.toLowerCase();
     if (names.has(name)) invalid('Duplicate or case-colliding file paths are not allowed.');
@@ -172,8 +176,9 @@ function normalizeImport(value) {
             file.base64,
             ['.json', '.md'].includes(extension) ? maximumJsonBytes : maximumMediaBytes,
           );
-    if (['.png', '.jpg', '.jpeg', '.gif', '.wav'].includes(extension)) mediaBytes += bytes.length;
-    if (['.png', '.jpg', '.jpeg', '.gif'].includes(extension))
+    if (['.png', '.jpg', '.jpeg', '.gif', '.svg', '.wav'].includes(extension))
+      mediaBytes += bytes.length;
+    if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].includes(extension))
       imageMetadata(bytes, { decode: false });
     totalBytes += bytes.length;
     return { path: file.path, bytes };

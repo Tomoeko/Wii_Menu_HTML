@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "id": "custom-style-guide-svg",
+  "title": "SVG Style Guides",
+  "iconLayout": "icon.json",
+  "bannerLayout": "banner.json"
+}

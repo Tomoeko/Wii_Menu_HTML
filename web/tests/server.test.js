@@ -75,6 +75,7 @@ async function fixture(t) {
       '<!doctype html><title>Original engine fixture</title>',
     'web/public/assets/settings/fixture.js': 'setTimeout("void 0", 0);',
     'web/public/assets/fonts/fixture.ttf': 'synthetic font header fixture',
+    'web/public/assets/guide.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="1"></svg>',
     '.local/private.json': 'PRIVATE_TEST_MARKER',
   };
   for (const [relative, value] of Object.entries(files)) {
@@ -309,7 +310,8 @@ test('Settings resource policy permits original sandbox behavior without weakeni
   const settings = await request('/assets/settings/fixture.html');
   const script = await request('/assets/settings/fixture.js');
   const font = await request('/assets/fonts/fixture.ttf');
-  for (const response of [main, settings, script, font]) {
+  const guide = await request('/assets/guide.svg');
+  for (const response of [main, settings, script, font, guide]) {
     assert.equal(response.status, 200);
     assert.equal(response.headers['cross-origin-resource-policy'], undefined);
     assert.equal(response.headers['x-content-type-options'], 'nosniff');
@@ -326,6 +328,7 @@ test('Settings resource policy permits original sandbox behavior without weakeni
   assert.equal(script.headers['content-type'], 'text/javascript');
   assert.equal(font.headers['content-type'], 'font/ttf');
   assert.equal(font.headers['access-control-allow-origin'], '*');
+  assert.equal(guide.headers['content-type'], 'image/svg+xml');
   assert.equal(main.headers['access-control-allow-origin'], undefined);
 });
 

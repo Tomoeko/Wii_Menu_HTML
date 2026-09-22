@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="832" height="456" viewBox="0 0 832 456">
+  <title>Custom channel 16:9 icon and preview frame guide</title>
+  <desc>Native 832 by 456 channel preview with its exact rounded display mask, center axes, and 170 by 96 icon artwork slot.</desc>
+  <path d="M0 0H832V456H0Z M 338,7 199,8 102,10 65,12 45,16 38,20 33,24 29,28 27,32 23,40 20,48 19,56 18,64 16,80 15,100 14,120 13,150 12,200 12,300 14,340 15,360 16,380 19,400 25,420 48,440 338,448 493,448 783,440 806,420 812,400 815,380 816,360 817,340 819,300 819,200 818,150 817,120 816,100 815,80 813,64 812,56 811,48 808,40 804,32 802,28 798,24 793,20 786,16 766,12 729,10 632,8 493,7 Z" fill="#0f172a" fill-opacity="0.22" fill-rule="evenodd" />
+  <g fill="none" stroke-linecap="square">
+    <path d="M416 0V456M0 228H832" stroke="#2563eb" stroke-width="1" stroke-dasharray="8 6" />
+    <path d="M0 0H832V456H0Z M 338,7 199,8 102,10 65,12 45,16 38,20 33,24 29,28 27,32 23,40 20,48 19,56 18,64 16,80 15,100 14,120 13,150 12,200 12,300 14,340 15,360 16,380 19,400 25,420 48,440 338,448 493,448 783,440 806,420 812,400 815,380 816,360 817,340 819,300 819,200 818,150 817,120 816,100 815,80 813,64 812,56 811,48 808,40 804,32 802,28 798,24 793,20 786,16 766,12 729,10 632,8 493,7 Z" stroke="#dc2626" stroke-width="2" stroke-dasharray="6 4" />
+    <rect x="331" y="180" width="170" height="96" stroke="#16a34a" stroke-width="2" />
+    <rect x="332" y="181" width="168" height="94" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4 6" />
+  </g>
+  <g fill="#f8fafc" stroke="#0f172a" stroke-width="0.5" paint-order="stroke" font-family="Arial, sans-serif" font-size="13">
+    <text x="104" y="24">832×456 native display canvas</text>
+    <text x="104" y="42">red: exact rounded display mask boundary</text>
+    <text x="104" y="60">green: 170×96 icon artwork slot</text>
+    <text x="104" y="78">slot: x=331…501, y=180…276</text>
+    <text x="424" y="220">center (416, 228)</text>
+  </g>
+</svg>
