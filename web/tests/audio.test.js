@@ -320,7 +320,7 @@ test('fresh menu playback starts the Wii startup wave with the looping BGM', asy
   const { contexts, urls } = environment(t);
   const audio = createAudio({
     manifest: {
-      background: { src: '/background.wav' },
+      background: { src: '/background.wav', loopStart: 3.5, loopEnd: 8 },
       backgroundIntro: { src: '/background-intro.wav' },
     },
   });
@@ -330,10 +330,14 @@ test('fresh menu playback starts the Wii startup wave with the looping BGM', asy
   assert.equal(background.loop, true);
   assert.equal(intro.loop, false);
   assert.equal(background.offset, 0);
+  assert.equal(background.loopStart, 3.5);
+  assert.equal(background.loopEnd, 8);
   assert.equal(intro.offset, 0);
+  assert.equal(contexts[0].gains[1].gain.value, 0, 'the BGM is muted during the startup wave');
   assert.deepEqual(urls, ['/background.wav', '/background-intro.wav']);
 
   intro.onended();
+  assert.equal(contexts[0].gains[1].gain.value, 1, 'the BGM opens at the wave boundary');
   audio.pauseBackground();
   await audio.startBackground();
   assert.equal(contexts[0].sources.length, 3, 'the completed intro is not replayed on resume');
@@ -377,6 +381,8 @@ test('realtime sequence playback restores the startup wave even with a capture m
   assert.equal(contexts[0].sources.length, 1);
   assert.equal(contexts[0].sources[0].loop, false);
   assert.deepEqual(urls, ['/background-intro.wav']);
+  contexts[0].sources[0].onended();
+  assert.deepEqual(instance.events, ['play']);
   await audio.destroy();
 });
 

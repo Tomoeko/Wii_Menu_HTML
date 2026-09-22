@@ -76,10 +76,10 @@ export async function createRealtimeBackground({ context, destination, asset, ba
   }
 
   return {
-    play() {
+    play(level = 1) {
       if (disposed) return false;
       node.port.postMessage({ type: 'play' });
-      setGain(1);
+      setGain(level);
       return true;
     },
     pause(fadeMs = 0) {
@@ -99,5 +99,6 @@ export async function createRealtimeBackground({ context, destination, asset, ba
         disposalTimer = setTimeout(dispose, fadeMs);
       }
     },
+    setGain,
   };
 }

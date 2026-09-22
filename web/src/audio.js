@@ -221,23 +221,53 @@ export function createAudio({
     if (!track || menuPaused || destroyed) return;
     if (track.ended) return;
     if (track.realtime) {
-      if (track.realtime.play()) track.source = track.realtime;
+      if (track.realtime.play(track.gainScale ?? 1)) track.source = track.realtime;
       return;
     }
     const { asset, buffer, loop } = track;
     if (!loop && track.offset >= buffer.duration) return;
     let player;
-    player = sourceFor(asset, buffer, loop, {}, master, () => {
+    player = sourceFor(asset, buffer, loop, { gain: track.gainScale ?? 1 }, master, () => {
       // A one-shot startup cue must not be replayed when the menu resumes
       // after it has already reached the end of its source buffer.
       if (track.source === player.source && !loop) {
         track.source = null;
         track.ended = true;
+        track.onEnded?.();
       }
     });
     Object.assign(track, player);
     track.startedAt = context.currentTime;
     track.source.start(0, track.offset);
+  }
+
+  function setTrackGain(track, level) {
+    if (!track) return;
+    track.gainScale = level;
+    if (track.realtime) {
+      track.realtime.setGain?.(level);
+      return;
+    }
+    if (!track.gain || !context) return;
+    const baseGain = Number.isFinite(track.asset?.gain) ? Math.max(0, track.asset.gain) : 1;
+    track.gain.gain.setValueAtTime(baseGain * level, context.currentTime);
+  }
+
+  function releaseBackgroundIntro() {
+    if (!backgroundWanted) return;
+    // Keep the sequence clock running from the menu boundary, but expose its
+    // output only after the separate startup wave has completed.
+    setTrackGain(background, 1);
+  }
+
+  function startPendingBackground() {
+    if (!backgroundWanted || menuPaused || background?.source || backgroundIntro?.source)
+      return false;
+    // Starting both clocks together preserves the authored loop marker. The
+    // sequence is silent until releaseBackgroundIntro opens its gain.
+    beginTrack(background);
+    beginTrack(backgroundIntro);
+    return Boolean(background?.source || backgroundIntro?.source);
   }
 
   function pauseTrack(track, fadeMs = 0) {
@@ -281,12 +311,7 @@ export function createAudio({
   async function startBackground() {
     backgroundWanted = true;
     if (!context || context.state !== 'running' || destroyed) return false;
-    if (background) {
-      if (background.source) return false;
-      beginTrack(background);
-      beginTrack(backgroundIntro);
-      return true;
-    }
+    if (background) return startPendingBackground() || menuPaused;
     const version = ++backgroundVersion;
     const introAsset = backgroundIntroAsset();
     const introPromise = introAsset
@@ -320,13 +345,13 @@ export function createAudio({
           realtime.destroy(0);
           return false;
         }
-        background = { realtime, source: null };
+        background = { realtime, source: null, gainScale: introBuffer ? 0 : 1 };
         backgroundIntro = introBuffer
           ? { asset: introAsset, buffer: introBuffer, loop: false, offset: 0 }
           : null;
-        beginTrack(background);
-        beginTrack(backgroundIntro);
-        return true;
+        if (backgroundIntro)
+          backgroundIntro.onEnded = releaseBackgroundIntro;
+        return startPendingBackground() || menuPaused;
       } catch (error) {
         if (!destroyed && version === backgroundVersion) {
           failed.add('backgroundSequence');
@@ -337,13 +362,19 @@ export function createAudio({
     }
     const [buffer, introBuffer] = await Promise.all([load('background'), introPromise]);
     if (!buffer || destroyed || !backgroundWanted || version !== backgroundVersion) return false;
-    background = { asset: entry('background'), buffer, loop: true, offset: 0 };
+    background = {
+      asset: entry('background'),
+      buffer,
+      loop: true,
+      offset: 0,
+      gainScale: introBuffer ? 0 : 1,
+    };
     backgroundIntro = introBuffer
       ? { asset: introAsset, buffer: introBuffer, loop: false, offset: 0 }
       : null;
-    beginTrack(background);
-    beginTrack(backgroundIntro);
-    return true;
+    if (backgroundIntro)
+      backgroundIntro.onEnded = releaseBackgroundIntro;
+    return startPendingBackground() || menuPaused;
   }
 
   function pauseBackground(fadeMs = (5 * 1000) / 60) {
@@ -506,8 +537,7 @@ export function createAudio({
     resumeMenuAudio() {
       if (!menuPaused || destroyed) return;
       menuPaused = false;
-      if (background && backgroundWanted) beginTrack(background);
-      if (backgroundIntro && backgroundWanted) beginTrack(backgroundIntro);
+      startPendingBackground();
       if (channel) beginTrack(channel);
       for (const effect of effects) {
         if (!effect.paused) continue;
@@ -540,7 +570,7 @@ export function createAudio({
       muted,
       volume,
       menuPaused,
-      backgroundPlaying: Boolean(background?.source),
+      backgroundPlaying: Boolean(background?.source || backgroundIntro?.source),
       backgroundMode,
       channelPlaying: Boolean(channel?.source),
       channelId: channel?.id ?? null,
