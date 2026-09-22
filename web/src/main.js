@@ -1682,6 +1682,7 @@ async function init() {
       sdButton.reset();
       footer.reset();
       menu.finishHome({ returnToMenu: true });
+      scenes.refreshMemoReturnLayers(sceneDate);
       audioSync(menu.getState());
     },
     onError: (error) => console.error('Menu restart resource loading failed', error),

@@ -305,13 +305,13 @@ export function createBoardMemos(
       })),
     ];
   }
-  function cardLayer(record, index, offsetX = 0) {
+  function cardLayer(record, index, offsetX = 0, renderAge = age) {
     const id = `memo-open-${record.id}`,
       motion = focus.get(id);
     // USA 4.3 BoardObject::stt_create selects table entry 1 for ordinary
     // incoming Letters (0x8164B4C8), independently of an attached photo.
     const card = cardLayout(record);
-    const clips = [clip(card, 'PasteLetter', age - (arrival.get(record.id) ?? 0))];
+    const clips = [clip(card, 'PasteLetter', renderAge - (arrival.get(record.id) ?? 0))];
     if (motion) clips.push(clip(card, motion.entering ? 'FocusIn' : 'FocusOut', motion.frame));
     if (pageTransition) clips.push(clip(card, 'NextPage', pageTransition.frame));
     const selection = incoming?.snapshot();
@@ -336,7 +336,7 @@ export function createBoardMemos(
       pinAnimations.set(record.id, suffix);
     }
     const pinAnimation = pinAnimations.get(record.id);
-    if (pinAnimation) clips.push(clip(card, pinAnimation, age, 'G_New', true));
+    if (pinAnimation) clips.push(clip(card, pinAnimation, renderAge, 'G_New', true));
     const layout = poseLayout(layouts[card], clips),
       panes = indexLayout(layout).panes;
     // 0x8139476C selects record+0x11C (header) for Letters and +0x120 (body)
@@ -858,16 +858,17 @@ export function createBoardMemos(
         ...(incoming ? incoming.snapshot() : {}),
       };
     },
-    presentation({ offsetX = 0 } = {}) {
+    presentation({ offsetX = 0, settled = false } = {}) {
       const items = visible(),
         order = [...items].sort((a, b) => cardOrder.indexOf(a.id) - cardOrder.indexOf(b.id));
+      const renderAge = settled ? 100000 : age;
       const cardLayers = order
         .filter(
           (record) =>
             arrival.get(record.id) !== Infinity
               && !((erasePending || incoming?.snapshot().erasing) && record.id === selected?.id),
         )
-        .map((record) => cardLayer(record, items.indexOf(record), offsetX));
+        .map((record) => cardLayer(record, items.indexOf(record), offsetX, renderAge));
       const overlayLayers = [];
       let dialogView = null;
       if (incoming) overlayLayers.push(...incoming.presentation().layers);

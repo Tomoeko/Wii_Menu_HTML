@@ -281,6 +281,7 @@ export function createMenuScenes(
     memoReturnLayers = [];
     memoBoard.setMemos(memos);
     memoBoard.setDate(currentDate);
+    memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
     commit([make('my_IplTop_c', 'my_IplTop_c', undefined, 0, 0)], 0);
   };
   const finishBoardChild = () => {
@@ -680,7 +681,7 @@ export function createMenuScenes(
       if (memoBoard.snapshot().draggingMemo) return memoBoard.cancelPointer();
       if (phase || scene === 'closed') return false;
       if (scene === 'board') {
-        memoReturnLayers = memoBoard.presentation().cardLayers;
+        memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
         onSound('WIPL_SE_DECIDE');
         neutralBoardFocus();
         boardTransition = 'exit';
@@ -716,11 +717,18 @@ export function createMenuScenes(
     messageSummary: (date = currentDate) => memoBoard.summary(date),
     getMemos: () => memoBoard.records(),
     memoReturnLayers: () => memoReturnLayers,
+    refreshMemoReturnLayers(value = currentDate) {
+      currentDate = value;
+      memoBoard.setDate(value);
+      memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
+    },
     setMemos(value) {
       memoReturnLayers = [];
       memoBoard.setMemos(value);
       memos = memoBoard.records();
       boardChild?.setMemos?.(memos);
+      if (scene !== 'board')
+        memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
     },
     pointerDown(id, point) {
       if (scene !== 'board' || phase || boardChild) return false;

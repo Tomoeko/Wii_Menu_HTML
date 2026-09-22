@@ -472,6 +472,25 @@ test(
     assert.deepEqual(scenes.memoReturnLayers(), []);
   },
 );
+test(
+  'Home Menu Memo underlay is restored from persisted records after a date refresh',
+  { skip: !available },
+  () => {
+    const date = new Date(2026, 8, 17, 12);
+    const scenes = createMenuScenes(layouts, {
+      memos: [{
+        id: 'persisted-memo',
+        text: 'Persisted Memo',
+        createdAt: date.toISOString(),
+        position: { x: -230, y: -80 },
+        readAt: date.toISOString(),
+      }],
+    });
+    scenes.refreshMemoReturnLayers(date);
+    assert.equal(scenes.memoReturnLayers().length, 1);
+    assert.deepEqual(scenes.memoReturnLayers()[0].layout.root.translation, [-230, -80, 0]);
+  },
+);
 test('Board footer hover and activation work before requesting its first presentation',
   { skip: !available }, () => {
     for (const id of ['calendar', 'create']) {
