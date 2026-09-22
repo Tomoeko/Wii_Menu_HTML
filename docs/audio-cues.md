@@ -49,11 +49,12 @@ changed or missing PCM causes regeneration.
 
 The first startup phrase is a separate original wave, `WIPL_SE_WII_START`,
 rather than part of the looping `WIPL_BGM_MENU` sequence. It is exported as
-`backgroundIntro`. Sequence-backed playback starts the BGM clock at the same
-boundary with its output muted; the intro is audible first, then the BGM gain
-opens when the wave ends. This preserves the authored loop marker without
-audible overlap. Native DSP captures already contain this mixed wave and carry
-an explicit manifest marker so the runtime does not play it twice.
+`backgroundIntro`. Sequence-backed playback starts the BGM clock and the
+startup wave at the same boundary. The BGM's quiet opening sits underneath the
+startup phrase, preserving the authored loop marker while retaining the native
+short overlap at the hand-off. Native DSP captures already contain this mixed
+wave and carry an explicit manifest marker so the runtime does not play it
+twice.
 
 The built-in BGM file is labeled `original-sequence-built-in-dry-approximate`:
 this original sequence contains no AuxA send commands. It uses linear sample

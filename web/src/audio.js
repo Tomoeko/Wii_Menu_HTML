@@ -227,7 +227,7 @@ export function createAudio({
     const { asset, buffer, loop } = track;
     if (!loop && track.offset >= buffer.duration) return;
     let player;
-    player = sourceFor(asset, buffer, loop, { gain: track.gainScale ?? 1 }, master, () => {
+    player = sourceFor(asset, buffer, loop, {}, master, () => {
       // A one-shot startup cue must not be replayed when the menu resumes
       // after it has already reached the end of its source buffer.
       if (track.source === player.source && !loop) {
@@ -241,30 +241,12 @@ export function createAudio({
     track.source.start(0, track.offset);
   }
 
-  function setTrackGain(track, level) {
-    if (!track) return;
-    track.gainScale = level;
-    if (track.realtime) {
-      track.realtime.setGain?.(level);
-      return;
-    }
-    if (!track.gain || !context) return;
-    const baseGain = Number.isFinite(track.asset?.gain) ? Math.max(0, track.asset.gain) : 1;
-    track.gain.gain.setValueAtTime(baseGain * level, context.currentTime);
-  }
-
-  function releaseBackgroundIntro() {
-    if (!backgroundWanted) return;
-    // Keep the sequence clock running from the menu boundary, but expose its
-    // output only after the separate startup wave has completed.
-    setTrackGain(background, 1);
-  }
-
   function startPendingBackground() {
     if (!backgroundWanted || menuPaused || background?.source || backgroundIntro?.source)
       return false;
-    // Starting both clocks together preserves the authored loop marker. The
-    // sequence is silent until releaseBackgroundIntro opens its gain.
+    // Start both sources at the menu boundary. The BGM's quiet opening sits
+    // beneath the startup wave, preserving the authored loop marker while
+    // retaining the native short overlap at the hand-off.
     beginTrack(background);
     beginTrack(backgroundIntro);
     return Boolean(background?.source || backgroundIntro?.source);
@@ -345,12 +327,10 @@ export function createAudio({
           realtime.destroy(0);
           return false;
         }
-        background = { realtime, source: null, gainScale: introBuffer ? 0 : 1 };
+        background = { realtime, source: null };
         backgroundIntro = introBuffer
           ? { asset: introAsset, buffer: introBuffer, loop: false, offset: 0 }
           : null;
-        if (backgroundIntro)
-          backgroundIntro.onEnded = releaseBackgroundIntro;
         return startPendingBackground() || menuPaused;
       } catch (error) {
         if (!destroyed && version === backgroundVersion) {
@@ -367,13 +347,10 @@ export function createAudio({
       buffer,
       loop: true,
       offset: 0,
-      gainScale: introBuffer ? 0 : 1,
     };
     backgroundIntro = introBuffer
       ? { asset: introAsset, buffer: introBuffer, loop: false, offset: 0 }
       : null;
-    if (backgroundIntro)
-      backgroundIntro.onEnded = releaseBackgroundIntro;
     return startPendingBackground() || menuPaused;
   }
 

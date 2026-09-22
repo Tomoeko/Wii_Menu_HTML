@@ -333,11 +333,15 @@ test('fresh menu playback starts the Wii startup wave with the looping BGM', asy
   assert.equal(background.loopStart, 3.5);
   assert.equal(background.loopEnd, 8);
   assert.equal(intro.offset, 0);
-  assert.equal(contexts[0].gains[1].gain.value, 0, 'the BGM is muted during the startup wave');
+  assert.equal(
+    contexts[0].gains[1].gain.value,
+    1,
+    'the BGM starts with the startup wave for the native hand-off overlap',
+  );
   assert.deepEqual(urls, ['/background.wav', '/background-intro.wav']);
 
   intro.onended();
-  assert.equal(contexts[0].gains[1].gain.value, 1, 'the BGM opens at the wave boundary');
+  assert.equal(contexts[0].gains[1].gain.value, 1, 'the BGM remains open after the startup wave');
   audio.pauseBackground();
   await audio.startBackground();
   assert.equal(contexts[0].sources.length, 3, 'the completed intro is not replayed on resume');
