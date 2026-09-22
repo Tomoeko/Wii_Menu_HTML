@@ -1621,10 +1621,10 @@ export function createBoardKeyboard(
         bounds.size[0] = candidate.clippedRight - candidate.clippedLeft;
         bounds.translation[0] = areaX + (candidate.clippedLeft + candidate.clippedRight) / 2;
       }
-      const layers = [
-        layer(TOOLBAR, toolbar),
-        layer(layoutMode === 'qwerty' ? ASCII : PHONE, keytop),
-      ];
+      // The dictionary strip is part of the keytop surface. Submit it before
+      // the key layout so a focused top-row key can draw its native hover
+      // expansion over the strip instead of disappearing underneath it.
+      const layers = [layer(TOOLBAR, toolbar)];
       if (predictionAllowed) {
         const textLayer = predictionTextLayer(prediction);
         const horizontalClip = candidateClip(prediction);
@@ -1639,7 +1639,14 @@ export function createBoardKeyboard(
           layers.push({ ...layer(PREDICTION, textLayer), clip: horizontalClip });
           layers.push({
             ...layer(PREDICTION, selectedLayer),
-            clip: { ...horizontalClip, x: 0, w: horizontalClip.x + horizontalClip.w },
+            // Focus-IN scales the first glyph beyond the authored text-area
+            // edge for one or two frames. Keep a logical pixel of antialiasing
+            // coverage on the left so that first frame is not scissored.
+            clip: {
+              ...horizontalClip,
+              x: -1,
+              w: horizontalClip.x + horizontalClip.w + 1,
+            },
           });
         } else {
           layers.push(layer(PREDICTION, prediction));
@@ -1649,6 +1656,7 @@ export function createBoardKeyboard(
           if (/^T_prdc_Text_/.test(pane.name)) pane.text = '';
         }
       }
+      layers.push(layer(layoutMode === 'qwerty' ? ASCII : PHONE, keytop));
       if (showBackground) layers.unshift(layer(BACKGROUND, view(BACKGROUND)));
       if (showTextBox) {
         const arrowClips = [...fieldArrows].map(([direction, arrow]) => ({

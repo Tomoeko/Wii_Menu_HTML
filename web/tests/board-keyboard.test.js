@@ -1481,12 +1481,18 @@ test(
   () => {
     const keyboard = createBoardKeyboard(layouts, { initialPredictionEnabled: true });
     keyboard.keyInput('h');
-    const layers = keyboard.presentation().layers.filter((layer) => layer.prefix === 'keyboard-prediction:');
+    const presentation = keyboard.presentation();
+    const layers = presentation.layers.filter((layer) => layer.prefix === 'keyboard-prediction:');
     assert.equal(layers.length, 2);
     assert.equal(layers[0].layout.animations, layouts.fs_VK_predictInput_a.animations);
     assert.equal(layers[1].layout.animations, layouts.fs_VK_predictInput_a.animations);
     assert.notEqual(layers[0].layout.root, layers[1].layout.root);
     assert.notEqual(layers[0].layout.materials, layers[1].layout.materials);
+    assert.ok(
+      presentation.layers.findIndex((layer) => layer.prefix === 'keyboard-prediction:') <
+        presentation.layers.findIndex((layer) => layer.prefix === 'keyboard-ascii:'),
+      'dictionary strip is drawn below the keytops',
+    );
   },
 );
 
@@ -1547,9 +1553,10 @@ test('candidate hover redraws only the selected word and preserves all other vis
         assert.equal(focused.layers.length, 3);
         assert.equal(focused.words.at(-1).text, entry.value, 'selected word is drawn last');
         assert.ok(focused.words.at(-1).scale[0] > 1, 'original focus animation remains bound');
-        assert.equal(focused.layers.at(-1).clip.x, 0, 'focused word keeps native left expansion');
+        assert.equal(focused.layers.at(-1).clip.x, -1,
+          'focused word keeps a one-pixel left antialiasing margin');
         assert.equal(focused.layers.at(-1).clip.w,
-          focused.layers[1].clip.x + focused.layers[1].clip.w);
+          focused.layers[1].clip.x + focused.layers[1].clip.w + 1);
       }
       keyboard.hover(null);
       keyboard.advance(20);
