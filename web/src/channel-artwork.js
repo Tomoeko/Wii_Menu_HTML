@@ -22,9 +22,10 @@ export function fitChannelArtwork(layout, display) {
     snapToBoundary((width * scale) / pixelAspect, areaWidth),
     snapToBoundary(height * scale, areaHeight),
   ];
-  const backgroundHeight = kind === 'banner' ? display.height : areaHeight;
-  panes.get('Background').size = [areaWidth, backgroundHeight];
   const artworkOffsetY = kind === 'banner' ? (display.height - areaHeight) / 2 : 0;
+  const background = panes.get('Background');
+  background.translation[1] += artworkOffsetY;
+  background.size = [areaWidth, areaHeight];
   const artwork = panes.get('Artwork');
   const border = panes.get('ArtworkBorder');
   artwork.translation[1] += artworkOffsetY;

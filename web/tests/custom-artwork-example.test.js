@@ -57,7 +57,12 @@ test('artwork QA banner preserves its source frames and preview placement', asyn
     renderer.quad = () => {};
     renderer.display = display;
     renderer.draw(posed);
+    const background = renderer.rect('Background');
     const rectangle = renderer.rect('Artwork');
+    assert.ok(background);
+    assert.ok(Math.abs(background.y) < 1e-10);
+    assert.ok(Math.abs(background.w - display.width) < 1e-10);
+    assert.ok(Math.abs(background.h - display.bannerContentHeight) < 1e-10);
     assert.ok(rectangle);
     assert.ok(rectangle.x >= -1e-10);
     assert.ok(rectangle.x + rectangle.w <= display.width + 1e-10);
