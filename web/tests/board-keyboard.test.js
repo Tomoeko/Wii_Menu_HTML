@@ -370,7 +370,7 @@ test(
 );
 
 test(
-  'telephone multi-tap departure commits without ending telephone dictionary composition',
+  'telephone multi-tap departure commits and ends telephone dictionary composition',
   { skip: !available },
   () => {
     const keyboard = createBoardKeyboard(layouts);
@@ -397,11 +397,56 @@ test(
     predicted.activate('key-phone-5');
     predicted.advance(90);
     predicted.hover(null);
+    assert.equal(predicted.snapshot().text, 'gm');
+    assert.equal(predicted.snapshot().composition, null);
+    assert.deepEqual(predicted.snapshot().textColorRanges, []);
     predicted.hover('key-phone-5');
     predicted.activate('key-phone-5');
     predicted.activate('key-phone-5');
-    assert.equal(predicted.snapshot().text, 'gmom');
-    assert.deepEqual(predicted.snapshot().composition, { start: 1, end: 4 });
+    assert.equal(predicted.snapshot().text, 'gmno');
+    assert.deepEqual(predicted.snapshot().composition, { start: 2, end: 4 });
+  },
+);
+
+test(
+  'every secondary telephone key marks the active character and finalizes on departure',
+  { skip: !available },
+  () => {
+    const ids = Array.from({ length: 8 }, (_, index) => `key-phone-${index + 1}`);
+    for (const id of ids) {
+      const sounds = [];
+      const keyboard = createBoardKeyboard(layouts, {
+        value: 'g',
+        onSound: (name) => sounds.push(name),
+      });
+      keyboard.activate('key-phone');
+      keyboard.hover(id);
+      keyboard.activate(id);
+      assert.ok(
+        keyboard.snapshot().textColorRanges.some((range) => range.color[0] === 255),
+        `${id} should expose the active phone-character range`,
+      );
+      const soundsBeforeLeave = [...sounds];
+      keyboard.hover(null);
+      keyboard.advance(120);
+      assert.deepEqual(
+        sounds.slice(soundsBeforeLeave.length),
+        ['WIPL_SE_CHAR_DECIDE'],
+        `${id} should finalize with the native decide cue`,
+      );
+      assert.equal(keyboard.snapshot().composition, null, id);
+      assert.deepEqual(keyboard.snapshot().textColorRanges, [], id);
+    }
+
+    const moved = [];
+    const keyboard = createBoardKeyboard(layouts, { onSound: (name) => moved.push(name) });
+    keyboard.activate('key-phone');
+    keyboard.hover('key-phone-1');
+    keyboard.activate('key-phone-1');
+    keyboard.hover('key-phone-2');
+    assert.equal(keyboard.snapshot().textColorRanges.length, 0);
+    assert.equal(moved.at(-1), 'WIPL_SE_CHAR_FOCUS');
+    assert.equal(moved.at(-2), 'WIPL_SE_CHAR_DECIDE');
   },
 );
 

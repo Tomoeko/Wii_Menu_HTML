@@ -240,6 +240,16 @@ export function createBoardKeyboard(
     if (active && reset) notifyDictionary('reset');
     return active;
   }
+
+  function finishPhoneKey() {
+    const pending = Boolean(phonePending);
+    const predicted = Boolean(phonePrediction);
+    phonePending = null;
+    if (predicted) finishComposition();
+    if (pending || predicted) sound('CHAR_DECIDE');
+    return pending || predicted;
+  }
+
   function candidateStrip(values) {
     const panes = indexLayout(layouts[PREDICTION]).panes;
     const prototype = panes.get('T_prdc_Text_00');
@@ -412,7 +422,13 @@ export function createBoardKeyboard(
     const start = caret - prediction.prefix.length;
     const compositionColors = prediction.prefix
       ? [{ start, end: caret, color: [255, 50, 50, 255] }]
-      : [];
+      : phonePending
+        ? [{
+            start: phonePending.caret - phonePending.length,
+            end: phonePending.caret,
+            color: [255, 50, 50, 255],
+          }]
+        : [];
     if (!preview || preview === '>') {
       return {
         displayText: text,
@@ -1289,7 +1305,9 @@ export function createBoardKeyboard(
       scrollRepeat.hover(id);
       candidateHold.hover(id);
       keytopHold.hover(id);
-      if (phonePending && id !== `key-phone-${phonePending.index}`) phonePending = null;
+      const leavingPhoneKey = /^key-phone-\d+$/.test(focused || '') &&
+        id !== focused && !id?.startsWith('key-candidate-');
+      if (leavingPhoneKey && !compositionBoundary) finishPhoneKey();
       if (locked()) {
         // A page click keeps its arrow bubble through the twenty-update
         // scroll, but a real pointer departure must still clear that bubble
