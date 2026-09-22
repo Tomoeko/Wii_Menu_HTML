@@ -149,6 +149,16 @@ behavior. Browser audio still needs the user's initial interaction.
 
 ## Layout and aspect ratio
 
+The channel preview is a complete 608×456 or 832×456 raster. Its native
+rounded black TV mask is drawn over the banner, and the Wii Menu/Start footer
+starts at raster Y 339. In 16:9, the mask's side regions are 87.578947 pixels
+wide; in 4:3, the native corner and side tiles are 64 pixels wide. Keep the
+full preview frame in mind when composing a banner: an aspect-preserving image
+can leave the menu's background visible at either side, as the included example
+does. The guides in `examples/assets/custom-channel-guides/` mark the full
+frame, mask boundary, side regions, artwork envelope, and footer without
+changing the source GIF.
+
 The template uses the readable exported BRLYT schema:
 
 | Field              | Meaning                                                                |
@@ -166,10 +176,23 @@ The template uses the readable exported BRLYT schema:
 
 Keep the layout at 608×456. The icon is drawn around the channel slot's center,
 clipped to 128×96 in 4:3 or 170×96 in 16:9. The template's background fills the
-wider crop while its foreground fits both. The banner uses the full preview.
+full preview raster while its foreground is fitted without changing its pixel
+aspect ratio. Banner artwork fits the 339-pixel body above the native Wii
+Menu/Start footer, which begins at raster Y 339; it is centered in that body
+and never renders underneath the footer. The rounded frame and side mask are
+part of the native channel-title layer, so do not bake a replacement border
+into the GIF or image you author.
 The original widescreen renderer expands the root horizontally; flag `4` on a
 pane compensates its local X scale. The template applies this once to `Content`,
 so its children retain their proportions. Do not add it again to every child.
+
+Import-ready Photoshop/GIMP overlays for these surfaces are in
+`examples/assets/custom-channel-guides/`. They include 4:3 and 16:9 banner
+canvases with the complete rounded frame and side-mask geometry, both icon
+slots, centered axes and a machine-readable `placement-reference.json`. Keep
+the overlay as a temporary top layer and hide it before exporting. Animated
+images and video should retain one fixed canvas; the source GIF is not rewritten
+by the installer.
 
 Text uses `font` as an index into `fonts`, `fontSize: [width, height]`, `textPosition`
 as a 0–8 alignment (4 centered), `textColors` as top/bottom RGBA, and optional

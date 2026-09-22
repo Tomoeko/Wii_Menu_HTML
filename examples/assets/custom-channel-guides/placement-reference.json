@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "coordinateSystem": {
+    "logicalCanvas": [608, 456],
+    "origin": "center",
+    "positiveY": "up",
+    "pixelToLayout": "layoutX = pixelX - 304; layoutY = 228 - pixelY"
+  },
+  "bannerPreview": {
+    "footer": { "y": 339, "height": 117 },
+    "aspects": [
+      {
+        "aspect": "4:3",
+        "canvas": [608, 456],
+        "body": { "x": 0, "y": 0, "width": 608, "height": 339 },
+        "nativeMaskTiles": {
+          "corner": [64, 64],
+          "side": [64, 164],
+          "topAndBottom": [240, 16]
+        },
+        "nativeMaskInteriorBoundaryRaster": {
+          "top": 8,
+          "bottom": 447,
+          "leftAtMiddle": 9,
+          "rightAtMiddle": 598
+        },
+        "sideMaskRegions": [
+          { "x": 0, "y": 0, "width": 64, "height": 339 },
+          { "x": 544, "y": 0, "width": 64, "height": 339 }
+        ],
+        "example200x100Fit": {
+          "x": 0,
+          "y": 17.5,
+          "width": 608,
+          "height": 304,
+          "artworkTranslationY": 58.5
+        }
+      },
+      {
+        "aspect": "16:9",
+        "canvas": [832, 456],
+        "body": { "x": 0, "y": 0, "width": 832, "height": 339 },
+        "nativeMask": {
+          "textureSize": [832, 456],
+          "interiorBoundaryRaster": {
+            "top": 7,
+            "bottom": 448,
+            "leftAtMiddle": 12,
+            "rightAtMiddle": 819
+          }
+        },
+        "sideMaskRegions": [
+          { "x": 0, "y": 0, "width": 87.578947, "height": 339 },
+          { "x": 744.421053, "y": 0, "width": 87.578947, "height": 339 }
+        ],
+        "example200x100Fit": {
+          "x": 68.078947,
+          "y": 0,
+          "width": 695.842106,
+          "height": 339,
+          "artworkTranslationY": 58.5
+        }
+      }
+    ]
+  },
+  "iconSlots": [
+    {
+      "aspect": "4:3",
+      "canvas": [608, 456],
+      "surface": { "x": 240, "y": 180, "width": 128, "height": 96 },
+      "center": [304, 228]
+    },
+    {
+      "aspect": "16:9",
+      "canvas": [832, 456],
+      "surface": { "x": 331, "y": 180, "width": 170, "height": 96 },
+      "center": [416, 228]
+    }
+  ],
+  "artworkQaBanner": {
+    "canvas": [200, 100],
+    "subjectBoundsByFrame": [
+      { "x": 15, "y": 25, "width": 56, "height": 56 },
+      { "x": 70, "y": 25, "width": 56, "height": 56 },
+      { "x": 125, "y": 25, "width": 56, "height": 56 }
+    ],
+    "frameDurationsMs": [200, 300, 400]
+  }
+}

@@ -7,13 +7,20 @@ export function fitChannelArtwork(layout, display) {
   const { panes } = indexLayout(result);
   const { kind, width, height } = result.artwork;
   const areaWidth = kind === 'icon' ? display.thumbnailHalfWidth * 2 : display.width;
-  const areaHeight = kind === 'icon' ? display.thumbnailHalfHeight * 2 : display.height;
+  const areaHeight =
+    kind === 'icon' ? display.thumbnailHalfHeight * 2 : display.bannerContentHeight;
   const pixelAspect = (display.outputAspect * display.height) / display.width;
   const scale = Math.min((areaWidth * pixelAspect) / width, areaHeight / height);
   const fitted = [(width * scale) / pixelAspect, height * scale];
-  panes.get('Background').size = [areaWidth, areaHeight];
-  panes.get('Artwork').size = fitted;
-  panes.get('ArtworkBorder').size = [
+  const backgroundHeight = kind === 'banner' ? display.height : areaHeight;
+  panes.get('Background').size = [areaWidth, backgroundHeight];
+  const artworkOffsetY = kind === 'banner' ? (display.height - areaHeight) / 2 : 0;
+  const artwork = panes.get('Artwork');
+  const border = panes.get('ArtworkBorder');
+  artwork.translation[1] += artworkOffsetY;
+  border.translation[1] += artworkOffsetY;
+  artwork.size = fitted;
+  border.size = [
     Math.min(areaWidth, fitted[0] + 4 / pixelAspect),
     Math.min(areaHeight, fitted[1] + 4),
   ];

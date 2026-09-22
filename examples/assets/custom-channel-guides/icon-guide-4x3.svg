@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="608" height="456" viewBox="0 0 608 456">
+  <title>Custom channel 4:3 icon placement guide</title>
+  <desc>Transparent 608 by 456 guide with the centered 128 by 96 icon slot.</desc>
+  <g fill="none" stroke-linecap="square">
+    <rect x="1" y="1" width="606" height="454" stroke="#94a3b8" stroke-width="2" />
+    <path d="M304 0V456M0 228H608" stroke="#2563eb" stroke-width="1" stroke-dasharray="8 6" />
+    <rect x="240" y="180" width="128" height="96" stroke="#16a34a" stroke-width="2" />
+    <rect x="241" y="181" width="126" height="94" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 5" />
+  </g>
+  <g fill="#14532d" font-family="Arial, sans-serif" font-size="14">
+    <text x="12" y="24">608×456 source canvas</text>
+    <text x="248" y="172">128×96 4:3 slot</text>
+    <text x="314" y="220">center (304, 228)</text>
+  </g>
+</svg>

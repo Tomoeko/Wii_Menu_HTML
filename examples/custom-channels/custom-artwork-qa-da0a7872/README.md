@@ -6,6 +6,12 @@ original five-note composition generated locally from sine oscillators by
 `tools/custom-channel-audio.mjs`: 32 kHz stereo, 16-bit PCM, 2.4 seconds.
 The included waveform uses no existing recording, sample bank or music track.
 
+`banner.gif` is an original 200×100 alignment fixture. Its colored 56×56 subject
+moves through three authored positions (`x=15`, `x=70` and `x=125`, `y=25`)
+with frame timing of 200, 300 and 400 ms. The source canvas is intentionally
+left unchanged so the example also demonstrates how the renderer preserves an
+animated texture canvas while fitting it into the channel preview.
+
 Edit `channel.json` for the identifier and hover label. Edit the `Title` text pane
 in both layouts for the visible title. The installer uses the existing renderer's
 pane, material and animation schema. Coordinates are centered; positive Y is up.
@@ -23,6 +29,10 @@ Use the identifier from your `channel.json` if you changed it.
 See `docs/custom-channels.md` in the project for images, sound, animation keys,
 aspect adjustment, updates and removal. Keep this source directory: generated
 browser assets are not a replacement for your authoring files.
+
+The import-ready placement overlays in `examples/assets/custom-channel-guides/`
+show the same centered coordinate system for banner and icon artwork. Hide or
+remove the overlay before exporting an image, GIF or video for a channel.
 
 The icon repeats a 180-update rotation. The banner fades/slides in over 30 updates
 and retains a separate 180-update loop. Sound starts through the menu's ordinary

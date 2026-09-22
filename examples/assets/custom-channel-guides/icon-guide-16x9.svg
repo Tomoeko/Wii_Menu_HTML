@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="832" height="456" viewBox="0 0 832 456">
+  <title>Custom channel 16:9 icon placement guide</title>
+  <desc>Transparent 832 by 456 guide with the centered 170 by 96 icon slot.</desc>
+  <g fill="none" stroke-linecap="square">
+    <rect x="1" y="1" width="830" height="454" stroke="#94a3b8" stroke-width="2" />
+    <path d="M416 0V456M0 228H832" stroke="#2563eb" stroke-width="1" stroke-dasharray="8 6" />
+    <rect x="331" y="180" width="170" height="96" stroke="#16a34a" stroke-width="2" />
+    <rect x="332" y="181" width="168" height="94" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 5" />
+  </g>
+  <g fill="#14532d" font-family="Arial, sans-serif" font-size="14">
+    <text x="12" y="24">832×456 display canvas</text>
+    <text x="339" y="172">170×96 16:9 slot</text>
+    <text x="426" y="220">center (416, 228)</text>
+  </g>
+</svg>

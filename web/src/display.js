@@ -24,6 +24,10 @@ export function createDisplay(aspectRatio = '16:9') {
     outputAspect: wide ? 16 / 9 : 4 / 3,
     thumbnailHalfWidth: wide ? 85 : 64,
     thumbnailHalfHeight: 48,
+    // my_ChTop_a's Base1/Base0 footer begins at raster Y 339 in the native
+    // 456-line preview. Custom banner artwork must fit the visible body above
+    // the Wii Menu and Start buttons instead of rendering underneath them.
+    bannerContentHeight: 339,
     sdX: wide ? -245 : -152,
     projection: Object.freeze({
       left: -width / 2,
