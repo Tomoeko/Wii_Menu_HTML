@@ -11,55 +11,23 @@
       "height": 256
     }
   ],
-  "fonts": [
-    "wbf1.brfna"
-  ],
+  "fonts": ["wbf1.brfna"],
   "materials": [
     {
       "name": "VertexColor",
       "colors": [
-        [
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          255,
-          255,
-          255,
-          255
-        ],
-        [
-          255,
-          255,
-          255,
-          255
-        ]
+        [0, 0, 0, 0],
+        [255, 255, 255, 255],
+        [255, 255, 255, 255]
       ],
       "textureMaps": []
     },
     {
       "name": "banner-artwork",
       "colors": [
-        [
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          255,
-          255,
-          255,
-          255
-        ],
-        [
-          255,
-          255,
-          255,
-          255
-        ]
+        [0, 0, 0, 0],
+        [255, 255, 255, 255],
+        [255, 255, 255, 255]
       ],
       "textureMaps": [
         {
@@ -77,24 +45,10 @@
     "flags": 1,
     "origin": 4,
     "alpha": 255,
-    "translation": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1
-    ],
-    "size": [
-      608,
-      456
-    ],
+    "translation": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1],
+    "size": [608, 456],
     "children": [
       {
         "name": "Background",
@@ -102,51 +56,17 @@
         "flags": 5,
         "origin": 4,
         "alpha": 255,
-        "translation": [
-          0,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1
-        ],
-        "size": [
-          832,
-          456
-        ],
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [832, 456],
         "children": [],
         "material": 0,
         "vertexColors": [
-          [
-            23,
-            54,
-            87,
-            255
-          ],
-          [
-            23,
-            54,
-            87,
-            255
-          ],
-          [
-            23,
-            54,
-            87,
-            255
-          ],
-          [
-            23,
-            54,
-            87,
-            255
-          ]
+          [23, 54, 87, 255],
+          [23, 54, 87, 255],
+          [23, 54, 87, 255],
+          [23, 54, 87, 255]
         ],
         "texCoords": []
       },
@@ -156,24 +76,10 @@
         "flags": 7,
         "origin": 4,
         "alpha": 255,
-        "translation": [
-          0,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1
-        ],
-        "size": [
-          608,
-          456
-        ],
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [608, 456],
         "children": [
           {
             "name": "Mark",
@@ -181,24 +87,10 @@
             "flags": 1,
             "origin": 4,
             "alpha": 255,
-            "translation": [
-              0,
-              42,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": [
-              1,
-              1
-            ],
-            "size": [
-              60,
-              60
-            ],
+            "translation": [0, 42, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [60, 60],
             "children": [
               {
                 "name": "Artwork",
@@ -206,70 +98,24 @@
                 "flags": 1,
                 "origin": 4,
                 "alpha": 255,
-                "translation": [
-                  0,
-                  0,
-                  0
-                ],
-                "rotation": [
-                  0,
-                  0,
-                  0
-                ],
-                "scale": [
-                  1,
-                  1
-                ],
-                "size": [
-                  60,
-                  60
-                ],
+                "translation": [0, 0, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [60, 60],
                 "children": [],
                 "material": 1,
                 "vertexColors": [
-                  [
-                    255,
-                    255,
-                    255,
-                    255
-                  ],
-                  [
-                    255,
-                    255,
-                    255,
-                    255
-                  ],
-                  [
-                    255,
-                    255,
-                    255,
-                    255
-                  ],
-                  [
-                    255,
-                    255,
-                    255,
-                    255
-                  ]
+                  [255, 255, 255, 255],
+                  [255, 255, 255, 255],
+                  [255, 255, 255, 255],
+                  [255, 255, 255, 255]
                 ],
                 "texCoords": [
                   [
-                    [
-                      0,
-                      0
-                    ],
-                    [
-                      1,
-                      0
-                    ],
-                    [
-                      0,
-                      1
-                    ],
-                    [
-                      1,
-                      1
-                    ]
+                    [0, 0],
+                    [1, 0],
+                    [0, 1],
+                    [1, 1]
                   ]
                 ]
               }
@@ -281,46 +127,19 @@
             "flags": 1,
             "origin": 4,
             "alpha": 255,
-            "translation": [
-              0,
-              -38,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": [
-              1,
-              1
-            ],
-            "size": [
-              500,
-              70
-            ],
+            "translation": [0, -38, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [500, 70],
             "children": [],
             "material": 0,
             "text": "Studio Channel",
             "font": 0,
-            "fontSize": [
-              34,
-              40
-            ],
+            "fontSize": [34, 40],
             "textPosition": 4,
             "textColors": [
-              [
-                255,
-                255,
-                255,
-                255
-              ],
-              [
-                255,
-                255,
-                255,
-                255
-              ]
+              [255, 255, 255, 255],
+              [255, 255, 255, 255]
             ],
             "charSpace": 0,
             "lineSpace": 0
@@ -331,46 +150,19 @@
             "flags": 1,
             "origin": 4,
             "alpha": 255,
-            "translation": [
-              0,
-              -84,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": [
-              1,
-              1
-            ],
-            "size": [
-              500,
-              34
-            ],
+            "translation": [0, -84, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [500, 34],
             "children": [],
             "material": 0,
             "text": "Your own artwork and animation",
             "font": 0,
-            "fontSize": [
-              16,
-              20
-            ],
+            "fontSize": [16, 20],
             "textPosition": 4,
             "textColors": [
-              [
-                255,
-                255,
-                255,
-                255
-              ],
-              [
-                255,
-                255,
-                255,
-                255
-              ]
+              [255, 255, 255, 255],
+              [255, 255, 255, 255]
             ],
             "charSpace": 0,
             "lineSpace": 0

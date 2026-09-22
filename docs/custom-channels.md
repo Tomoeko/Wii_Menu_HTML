@@ -61,6 +61,7 @@ npm run channels -- validate templates/custom-channel
 npm run channels -- add templates/custom-channel
 npm run channels -- install examples/custom-channels/custom-artwork-qa-da0a7872 \
   examples/custom-channels/custom-studio-channel-9899b686
+npm run channels -- overwrite ~/MyChannel /path/to/another-channel
 ```
 
 To create an independent editable copy instead, run:
@@ -76,7 +77,8 @@ The destination of `init` must not already exist. It creates both layouts and
 regenerates the original 32 kHz PCM WAV from local oscillator code. Its icon label is shortened to
 20 characters when needed; the full manifest title remains available in the
 menu hover bubble and banner. Both visible layout labels remain editable. Edit `channel.json`, `icon.json`
-and `banner.json`; run `add` again to replace that channel's installed version.
+and `banner.json`; run `overwrite` to replace that channel's installed version.
+`install` rejects an already installed ID.
 Keep its identifier unchanged to preserve its current saved slot. Reload the menu
 after any install, update or removal. New channels fill available empty slots;
 the menu has 48 slots including the fixed Disc Channel. Additional enabled titles
@@ -100,7 +102,8 @@ Installed entries live in `web/public/assets/custom-channels.json`; resources li
 under `web/public/assets/custom-channels/<id>/<content-hash>/`. Normal WAD prepare,
 add and remove commands do not overwrite this separate catalog. Back up your
 authoring folders and `.local/channel-layout.json`; after deleting prepared assets,
-run `add` again for each authored package. For isolated output/tests, commands accept `--assets /path/to/output`.
+run `install` for new packages or `overwrite` for existing packages. For isolated
+output/tests, commands accept `--assets /path/to/output`.
 `list` and visibility commands also accept `--config /path/to/config.json` and
 `--layout /path/to/channel-layout.json`. The old `channels:custom` alias remains
 available for custom-only commands.

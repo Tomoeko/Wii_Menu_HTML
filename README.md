@@ -31,6 +31,7 @@ npm run prepare -- --rebuild --nand /path/to/nand
 npm run channels -- list
 npm run channels -- add --wad /path/to/channel.wad
 npm run channels -- install /path/to/custom-channel-one /path/to/custom-channel-two
+npm run channels -- overwrite /path/to/custom-channel-one /path/to/custom-channel-two
 npm run channels -- remove CHANNEL_ID custom-channel-folder
 ```
 

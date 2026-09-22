@@ -233,6 +233,39 @@ test('install accepts several authored folders and remove accepts IDs or folders
     ['custom-first-batch', 'custom-second-batch'],
   );
 
+  const firstManifestPath = join(first, 'channel.json');
+  const firstManifest = JSON.parse(await readFile(firstManifestPath, 'utf8'));
+  firstManifest.title = 'Updated first batch';
+  await writeFile(firstManifestPath, json(firstManifest));
+  const overwritten = await runChannelCommand([
+    'overwrite',
+    first,
+    second,
+    '--assets',
+    paths.assets,
+    '--local-dir',
+    localDirectory,
+  ]);
+  assert.deepEqual(
+    overwritten.overwritten.map((entry) => entry.id),
+    ['custom-first-batch', 'custom-second-batch'],
+  );
+  const installedCatalog = JSON.parse(
+    await readFile(join(paths.assets, 'custom-channels.json'), 'utf8'),
+  );
+  assert.equal(installedCatalog.channels[0].title, 'Updated first batch');
+  await assert.rejects(
+    runChannelCommand([
+      'install',
+      first,
+      '--assets',
+      paths.assets,
+      '--local-dir',
+      localDirectory,
+    ]),
+    /already uses this ID/,
+  );
+
   const removed = await runChannelCommand([
     'remove',
     first,

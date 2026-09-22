@@ -162,6 +162,7 @@ const help = `Channel management (local files only)
   npm run channels -- add <folder-or-channel.wad> [--common-key-file <file>]
   npm run channels -- add --wad <channel.wad> [--common-key-file <file>]
   npm run channels -- install <folder> [<folder> ...]
+  npm run channels -- overwrite <folder> [<folder> ...]
   npm run channels -- list
   npm run channels -- enable <id>
   npm run channels -- disable <id>
@@ -172,6 +173,8 @@ init writes animated icon/banner layouts and an original synthesized sound.wav.
 Enable/disable changes config.json only; reset restores that ID's catalog default.
 Install accepts authored folders and can install several in one command. Remove
 accepts IDs or authored folders and keeps all supplied source files.
+Install refuses an already installed custom ID; overwrite explicitly replaces
+one or more existing custom channel installations.
 Remove uninstalls the local entry but keeps the source WAD or authoring folder.
 Reload the menu after changes. Disc cannot be disabled or removed.
 
@@ -188,6 +191,7 @@ export async function runChannelCommand(args) {
       'validate',
       'add',
       'install',
+      'overwrite',
       'list',
       'enable',
       'disable',
@@ -229,7 +233,7 @@ export async function runChannelCommand(args) {
   if (options.wad && command === 'add' && positional.length === 0) positional.push(options.wad);
   else if (options.wad)
     throw new Error('--wad is only supported by add without a positional path.');
-  const acceptsMany = command === 'install' || command === 'remove';
+  const acceptsMany = ['install', 'overwrite', 'remove'].includes(command);
   if (command === 'list' ? positional.length !== 0 : acceptsMany
     ? positional.length < 1
     : positional.length !== 1) {
@@ -240,6 +244,7 @@ export async function runChannelCommand(args) {
     validate: [],
     add: ['assets', 'local-dir', 'wad', 'common-key-file', 'common-key-index'],
     install: ['assets', 'local-dir'],
+    overwrite: ['assets', 'local-dir'],
     list: ['assets', 'config', 'layout'],
     enable: ['assets', 'config', 'layout'],
     disable: ['assets', 'config', 'layout'],
@@ -270,9 +275,10 @@ export async function runChannelCommand(args) {
     const enabled = command === 'reset' ? null : command === 'enable';
     return setChannelEnabled(positional[0], enabled, paths);
   }
-  if (command === 'install') {
+  if (command === 'install' || command === 'overwrite') {
+    const replace = command === 'overwrite';
     const sources = [];
-    const installed = [];
+    const results = [];
     const requestedIds = new Set();
     for (const folder of positional) {
       const source = resolve(folder);
@@ -287,13 +293,14 @@ export async function runChannelCommand(args) {
       sources.push(source);
     }
     for (const source of sources) {
-      installed.push(
+      results.push(
         await addCustomChannel(source, paths.assets, {
+          replace,
           localDirectory: paths.localDirectory,
         }),
       );
     }
-    return { installed };
+    return replace ? { overwritten: results } : { installed: results };
   }
   if (command === 'remove') {
     const requests = [];

@@ -68,6 +68,7 @@ npm run channels -- list
 npm run channels -- add /path/to/channel.wad
 npm run channels -- add /path/to/authored-channel
 npm run channels -- install /path/to/channel-one /path/to/channel-two
+npm run channels -- overwrite /path/to/channel-one /path/to/channel-two
 npm run channels -- disable custom-my-channel
 npm run channels -- enable custom-my-channel
 npm run channels -- reset custom-my-channel
@@ -82,8 +83,10 @@ the supplied WAD or authoring folder. Use Channel Manager Delete for the normal
 Trash/Restore workflow. A CLI-uninstalled title must be reimported to return.
 Disc stays in slot zero and cannot be hidden or removed.
 
-`install` accepts multiple authored folders. `remove` accepts multiple installed
-IDs or authored folders; folders are read for their manifest ID before removal.
+`install` accepts multiple authored folders and refuses an already installed ID.
+`overwrite` accepts multiple authored folders and explicitly replaces those
+custom installations. `remove` accepts multiple installed IDs or authored
+folders; folders are read for their manifest ID before removal.
 Prepared NAND channels stay ahead of custom channels in the catalog. When a NAND
 save layout becomes available after custom installation, newly introduced NAND
 titles reclaim their saved native slots first and custom titles fill the remaining

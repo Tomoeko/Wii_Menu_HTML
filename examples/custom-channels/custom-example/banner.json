@@ -4,31 +4,14 @@
   "originType": 1,
   "name": "banner",
   "textures": [],
-  "fonts": [
-    "wbf1.brfna"
-  ],
+  "fonts": ["wbf1.brfna"],
   "materials": [
     {
       "name": "VertexColor",
       "colors": [
-        [
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          255,
-          255,
-          255,
-          255
-        ],
-        [
-          255,
-          255,
-          255,
-          255
-        ]
+        [0, 0, 0, 0],
+        [255, 255, 255, 255],
+        [255, 255, 255, 255]
       ],
       "textureMaps": []
     }
@@ -40,24 +23,10 @@
     "flags": 1,
     "origin": 4,
     "alpha": 255,
-    "translation": [
-      0,
-      0,
-      0
-    ],
-    "rotation": [
-      0,
-      0,
-      0
-    ],
-    "scale": [
-      1,
-      1
-    ],
-    "size": [
-      608,
-      456
-    ],
+    "translation": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1],
+    "size": [608, 456],
     "children": [
       {
         "name": "Background",
@@ -65,51 +34,17 @@
         "flags": 5,
         "origin": 4,
         "alpha": 255,
-        "translation": [
-          0,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1
-        ],
-        "size": [
-          832,
-          456
-        ],
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [832, 456],
         "children": [],
         "material": 0,
         "vertexColors": [
-          [
-            240,
-            249,
-            253,
-            255
-          ],
-          [
-            240,
-            249,
-            253,
-            255
-          ],
-          [
-            240,
-            249,
-            253,
-            255
-          ],
-          [
-            240,
-            249,
-            253,
-            255
-          ]
+          [240, 249, 253, 255],
+          [240, 249, 253, 255],
+          [240, 249, 253, 255],
+          [240, 249, 253, 255]
         ],
         "texCoords": []
       },
@@ -119,24 +54,10 @@
         "flags": 7,
         "origin": 4,
         "alpha": 255,
-        "translation": [
-          0,
-          0,
-          0
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1
-        ],
-        "size": [
-          608,
-          456
-        ],
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1],
+        "size": [608, 456],
         "children": [
           {
             "name": "Mark",
@@ -144,24 +65,10 @@
             "flags": 1,
             "origin": 4,
             "alpha": 255,
-            "translation": [
-              0,
-              42,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": [
-              1,
-              1
-            ],
-            "size": [
-              60,
-              60
-            ],
+            "translation": [0, 42, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [60, 60],
             "children": [
               {
                 "name": "Tile1",
@@ -169,51 +76,17 @@
                 "flags": 1,
                 "origin": 4,
                 "alpha": 255,
-                "translation": [
-                  -24,
-                  24,
-                  0
-                ],
-                "rotation": [
-                  0,
-                  0,
-                  0
-                ],
-                "scale": [
-                  1,
-                  1
-                ],
-                "size": [
-                  38,
-                  38
-                ],
+                "translation": [-24, 24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
                 "children": [],
                 "material": 0,
                 "vertexColors": [
-                  [
-                    0,
-                    169,
-                    220,
-                    255
-                  ],
-                  [
-                    0,
-                    169,
-                    220,
-                    255
-                  ],
-                  [
-                    0,
-                    169,
-                    220,
-                    255
-                  ],
-                  [
-                    0,
-                    169,
-                    220,
-                    255
-                  ]
+                  [0, 169, 220, 255],
+                  [0, 169, 220, 255],
+                  [0, 169, 220, 255],
+                  [0, 169, 220, 255]
                 ],
                 "texCoords": []
               },
@@ -223,51 +96,17 @@
                 "flags": 1,
                 "origin": 4,
                 "alpha": 255,
-                "translation": [
-                  24,
-                  24,
-                  0
-                ],
-                "rotation": [
-                  0,
-                  0,
-                  0
-                ],
-                "scale": [
-                  1,
-                  1
-                ],
-                "size": [
-                  38,
-                  38
-                ],
+                "translation": [24, 24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
                 "children": [],
                 "material": 0,
                 "vertexColors": [
-                  [
-                    40,
-                    191,
-                    225,
-                    255
-                  ],
-                  [
-                    40,
-                    191,
-                    225,
-                    255
-                  ],
-                  [
-                    40,
-                    191,
-                    225,
-                    255
-                  ],
-                  [
-                    40,
-                    191,
-                    225,
-                    255
-                  ]
+                  [40, 191, 225, 255],
+                  [40, 191, 225, 255],
+                  [40, 191, 225, 255],
+                  [40, 191, 225, 255]
                 ],
                 "texCoords": []
               },
@@ -277,51 +116,17 @@
                 "flags": 1,
                 "origin": 4,
                 "alpha": 255,
-                "translation": [
-                  -24,
-                  -24,
-                  0
-                ],
-                "rotation": [
-                  0,
-                  0,
-                  0
-                ],
-                "scale": [
-                  1,
-                  1
-                ],
-                "size": [
-                  38,
-                  38
-                ],
+                "translation": [-24, -24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
                 "children": [],
                 "material": 0,
                 "vertexColors": [
-                  [
-                    10,
-                    137,
-                    191,
-                    255
-                  ],
-                  [
-                    10,
-                    137,
-                    191,
-                    255
-                  ],
-                  [
-                    10,
-                    137,
-                    191,
-                    255
-                  ],
-                  [
-                    10,
-                    137,
-                    191,
-                    255
-                  ]
+                  [10, 137, 191, 255],
+                  [10, 137, 191, 255],
+                  [10, 137, 191, 255],
+                  [10, 137, 191, 255]
                 ],
                 "texCoords": []
               },
@@ -331,51 +136,17 @@
                 "flags": 1,
                 "origin": 4,
                 "alpha": 255,
-                "translation": [
-                  24,
-                  -24,
-                  0
-                ],
-                "rotation": [
-                  0,
-                  0,
-                  0
-                ],
-                "scale": [
-                  1,
-                  1
-                ],
-                "size": [
-                  38,
-                  38
-                ],
+                "translation": [24, -24, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1, 1],
+                "size": [38, 38],
                 "children": [],
                 "material": 0,
                 "vertexColors": [
-                  [
-                    72,
-                    205,
-                    231,
-                    255
-                  ],
-                  [
-                    72,
-                    205,
-                    231,
-                    255
-                  ],
-                  [
-                    72,
-                    205,
-                    231,
-                    255
-                  ],
-                  [
-                    72,
-                    205,
-                    231,
-                    255
-                  ]
+                  [72, 205, 231, 255],
+                  [72, 205, 231, 255],
+                  [72, 205, 231, 255],
+                  [72, 205, 231, 255]
                 ],
                 "texCoords": []
               }
@@ -387,46 +158,19 @@
             "flags": 1,
             "origin": 4,
             "alpha": 255,
-            "translation": [
-              0,
-              -38,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": [
-              1,
-              1
-            ],
-            "size": [
-              500,
-              70
-            ],
+            "translation": [0, -38, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [500, 70],
             "children": [],
             "material": 0,
             "text": "Example Channel",
             "font": 0,
-            "fontSize": [
-              34,
-              40
-            ],
+            "fontSize": [34, 40],
             "textPosition": 4,
             "textColors": [
-              [
-                32,
-                71,
-                92,
-                255
-              ],
-              [
-                32,
-                71,
-                92,
-                255
-              ]
+              [32, 71, 92, 255],
+              [32, 71, 92, 255]
             ],
             "charSpace": 0,
             "lineSpace": 0
@@ -437,46 +181,19 @@
             "flags": 1,
             "origin": 4,
             "alpha": 255,
-            "translation": [
-              0,
-              -84,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": [
-              1,
-              1
-            ],
-            "size": [
-              500,
-              34
-            ],
+            "translation": [0, -84, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1],
+            "size": [500, 34],
             "children": [],
             "material": 0,
             "text": "Your own artwork and animation",
             "font": 0,
-            "fontSize": [
-              16,
-              20
-            ],
+            "fontSize": [16, 20],
             "textPosition": 4,
             "textColors": [
-              [
-                32,
-                71,
-                92,
-                255
-              ],
-              [
-                32,
-                71,
-                92,
-                255
-              ]
+              [32, 71, 92, 255],
+              [32, 71, 92, 255]
             ],
             "charSpace": 0,
             "lineSpace": 0
