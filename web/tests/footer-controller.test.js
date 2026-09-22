@@ -24,6 +24,11 @@ const measure = (text) => text.length * 10;
 test('primary arrow pointer presses activate before native focus and suppress duplicates', () => {
   assert.equal(shouldActivateArrowPointerDown({ id: 'next' }), true);
   assert.equal(shouldActivateArrowPointerDown({ id: 'scene-next' }), true);
+  assert.equal(shouldActivateArrowPointerDown({ id: 'scene-key-symbols-next' }), true);
+  assert.equal(
+    shouldActivateArrowPointerDown({ id: 'settings-keyboard-key-symbols-prev' }),
+    true,
+  );
   assert.equal(shouldActivateArrowPointerDown({ id: 'next', button: 2 }), false);
   assert.equal(shouldActivateArrowPointerDown({ id: 'next', disabled: true }), false);
   assert.equal(shouldActivateArrowPointerDown({ id: 'next', suppressed: 'next' }), false);

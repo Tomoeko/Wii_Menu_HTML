@@ -31,6 +31,10 @@ const persistentControlIds = new Set([
   'scene-key-candidates-next',
   'settings-keyboard-key-candidates-prev',
   'settings-keyboard-key-candidates-next',
+  'scene-key-symbols-prev',
+  'scene-key-symbols-next',
+  'settings-keyboard-key-symbols-prev',
+  'settings-keyboard-key-symbols-next',
 ]);
 
 /** The application's hit regions use these explicit controller prefixes.

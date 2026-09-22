@@ -1075,6 +1075,19 @@ function cancelMemoPointer() {
   return active;
 }
 
+function finishMemoPointer() {
+  if (!memoPointer) return false;
+  const { active, pointerId } = memoPointer;
+  // pointerUp without a replacement point commits board-memos' last delta,
+  // which is the native snap-to-last-grabbed-position behavior at the edge of
+  // the viewport.
+  if (active) scenes.pointerUp();
+  if (screen.hasPointerCapture(pointerId)) screen.releasePointerCapture(pointerId);
+  memoPointer = null;
+  if (active) suppressMemoClick = true;
+  return active;
+}
+
 function updateArrowHover(state = menu.getState()) {
   if (!pointer.visible || state.overlay) return;
   const dragState = drag.getState();
@@ -2004,7 +2017,7 @@ function installInput() {
         pointer.x < 0 || pointer.x > display.width ||
         pointer.y < 0 || pointer.y > display.height
       ) {
-        cancelMemoPointer();
+        finishMemoPointer();
       }
     }
     if (memoPointer && !menu.getState().overlay) {
@@ -2022,7 +2035,7 @@ function installInput() {
   });
   screen.addEventListener('pointerleave', () => {
     releaseTextArrow();
-    cancelMemoPointer();
+    finishMemoPointer();
     if (grabPointerId !== null) return;
     pointer.visible = false;
     setHover(null);
