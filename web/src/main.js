@@ -113,6 +113,7 @@ let renderer,
   hover = null,
   hoverAt = 0,
   suppressSceneMemoHover = false,
+  footerReturnImmediate = false,
   now = 0,
   notice = '';
 let lastRenderTimestamp = 0;
@@ -374,7 +375,8 @@ function drawFooterBalloons() {
 
 function drawFooter(state, matrix = identity) {
   footer.setArrows(menuFooterState(state).arrows, {
-    immediate: state.transition?.kind === 'settings' && state.screen === 'grid',
+    immediate:
+      footerReturnImmediate || (state.transition?.kind === 'settings' && state.screen === 'grid'),
   });
   drawSDButton(true, true, state.locked, matrix);
   const summary = scenes?.messageSummary(sceneDate) ?? { count: 0, unreadCount: 0 };
@@ -491,12 +493,16 @@ function drawGrid(
     }
   }
   if (background) drawBackground(matrix);
-  // Board cards remain in their stored world position underneath the settled
-  // Home Menu. The ChannelSelect layout naturally covers its overlapping
-  // pixels, leaving only the portion parked outside the grid visible.
+  // Board cards remain in their stored world position underneath the Home
+  // Menu. The shared matrix makes them travel with ChannelSelect, while its
+  // layout naturally covers overlapping pixels during the zoom.
   for (const layer of memoLayers) {
     renderer.clip(layer.clip ?? null);
     renderer.draw(layer.layout, {
+      // Memo cards share the Home Menu world transform. During channel zoom
+      // this keeps them moving with the same camera as the Wii Message Board
+      // icon instead of remaining fixed while the grid travels underneath.
+      matrix,
       prefix: layer.prefix,
       onPane: (pane, paneMatrix, alpha) =>
         textPane(pane, paneMatrix, alpha, {}, layer.layout),
@@ -1354,9 +1360,17 @@ function render(timestamp) {
     // of replaying ChannelSelect's ten-frame reappearance clip. Include the
     // previous state because menu.advance() can finish the transition here.
     immediate:
+      footerReturnImmediate ||
       (state.transition?.kind === 'settings' && state.screen === 'grid') ||
       (previousState.transition?.kind === 'settings' && state.screen === 'grid'),
   });
+  if (
+    footerReturnImmediate &&
+    state.screen === 'grid' &&
+    !state.transition &&
+    !sceneFader.active
+  )
+    footerReturnImmediate = false;
   const entrance = menuEntranceSample((sceneNow - startedAt) * 0.06, {
     healthShown: entranceHealthShown,
   });
@@ -1888,8 +1902,12 @@ async function init() {
       if (destination === 'grid') {
         suppressSceneMemoHover = true;
         setHover(null);
-        if (menu.getState().screen === 'settings') sceneFader.start(() => menu.back());
-        else menu.back();
+        if (menu.getState().screen === 'settings') {
+          sceneFader.start(() => {
+            footerReturnImmediate = true;
+            menu.back();
+          });
+        } else menu.back();
       } else if (destination === 'system-settings')
         sceneFader.start(() => openSystemSettings(manifest.settings));
     },
