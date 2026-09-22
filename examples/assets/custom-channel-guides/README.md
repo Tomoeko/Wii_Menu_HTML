@@ -23,7 +23,7 @@ The banner guides include the complete channel preview frame. The red dashed
 outline is the native rounded black mask. The cyan lines mark the native edge
 mask regions: 64 pixels on each side in 4:3, and 87.578947 pixels on each side
 in 16:9. The purple dashed rectangle shows the fitted envelope for the
-included 200×100 example GIF. The gray band is the native Wii Menu/Start footer;
+included 240×100 example GIF. The gray band is the native Wii Menu/Start footer;
 it begins at raster Y 339 and is drawn above the banner.
 
 Artwork is fitted inside the marked body without changing its pixel aspect

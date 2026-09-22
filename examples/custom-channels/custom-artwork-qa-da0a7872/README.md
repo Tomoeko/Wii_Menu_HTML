@@ -6,8 +6,8 @@ original five-note composition generated locally from sine oscillators by
 `tools/custom-channel-audio.mjs`: 32 kHz stereo, 16-bit PCM, 2.4 seconds.
 The included waveform uses no existing recording, sample bank or music track.
 
-`banner.gif` is an original 200×100 alignment fixture. Its colored 56×56 subject
-moves through three authored positions (`x=15`, `x=70` and `x=125`, `y=25`)
+`banner.gif` is an original 240×100 alignment fixture. Its colored 56×56 subject
+moves through three authored positions (`x=35`, `x=90` and `x=145`, `y=25`)
 with frame timing of 200, 300 and 400 ms. The source canvas is intentionally
 left unchanged so the example also demonstrates how the renderer preserves an
 animated texture canvas while fitting it into the channel preview.

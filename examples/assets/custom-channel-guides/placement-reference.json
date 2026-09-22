@@ -28,11 +28,11 @@
           { "x": 0, "y": 0, "width": 64, "height": 339 },
           { "x": 544, "y": 0, "width": 64, "height": 339 }
         ],
-        "example200x100Fit": {
+        "example240x100Fit": {
           "x": 0,
-          "y": 17.5,
+          "y": 42.833333,
           "width": 608,
-          "height": 304,
+          "height": 253.333334,
           "artworkTranslationY": 58.5
         }
       },
@@ -53,11 +53,11 @@
           { "x": 0, "y": 0, "width": 87.578947, "height": 339 },
           { "x": 744.421053, "y": 0, "width": 87.578947, "height": 339 }
         ],
-        "example200x100Fit": {
-          "x": 68.078947,
-          "y": 0,
-          "width": 695.842106,
-          "height": 339,
+        "example240x100Fit": {
+          "x": 0,
+          "y": 0.611111,
+          "width": 832,
+          "height": 337.777778,
           "artworkTranslationY": 58.5
         }
       }
@@ -78,11 +78,11 @@
     }
   ],
   "artworkQaBanner": {
-    "canvas": [200, 100],
+    "canvas": [240, 100],
     "subjectBoundsByFrame": [
-      { "x": 15, "y": 25, "width": 56, "height": 56 },
-      { "x": 70, "y": 25, "width": 56, "height": 56 },
-      { "x": 125, "y": 25, "width": 56, "height": 56 }
+      { "x": 35, "y": 25, "width": 56, "height": 56 },
+      { "x": 90, "y": 25, "width": 56, "height": 56 },
+      { "x": 145, "y": 25, "width": 56, "height": 56 }
     ],
     "frameDurationsMs": [200, 300, 400]
   }

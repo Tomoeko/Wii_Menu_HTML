@@ -31,7 +31,7 @@ function subjectBounds(frame, width, height, background) {
 
 test('artwork QA banner preserves its source frames and preview placement', async () => {
   const decoded = decodeGif(await readFile(join(example, 'banner.gif')));
-  assert.deepEqual([decoded.width, decoded.height], [200, 100]);
+  assert.deepEqual([decoded.width, decoded.height], [240, 100]);
   assert.deepEqual(
     decoded.frames.map((frame) => frame.durationMs),
     [200, 300, 400],
@@ -41,9 +41,9 @@ test('artwork QA banner preserves its source frames and preview placement', asyn
       subjectBounds(frame, decoded.width, decoded.height, [255, 244, 214, 255]),
     ),
     [
-      { x: 15, y: 25, width: 56, height: 56 },
-      { x: 70, y: 25, width: 56, height: 56 },
-      { x: 125, y: 25, width: 56, height: 56 },
+      { x: 35, y: 25, width: 56, height: 56 },
+      { x: 90, y: 25, width: 56, height: 56 },
+      { x: 145, y: 25, width: 56, height: 56 },
     ],
   );
 
@@ -67,11 +67,15 @@ test('artwork QA banner preserves its source frames and preview placement', asyn
       Math.abs(rectangle.y + rectangle.h / 2 - display.bannerContentHeight / 2) < 1e-10,
     );
     if (aspect === '4:3') {
-      assert.deepEqual(rectangle, { x: 0, y: 17.5, w: 608, h: 304 });
+      assert.ok(Math.abs(rectangle.x) < 1e-10);
+      assert.ok(Math.abs(rectangle.y - 42.83333333333334) < 1e-10);
+      assert.ok(Math.abs(rectangle.w - 608) < 1e-10);
+      assert.ok(Math.abs(rectangle.h - 253.3333333333333) < 1e-10);
     } else {
-      assert.ok(Math.abs(rectangle.x - 68.07894736842104) < 1e-10);
-      assert.ok(Math.abs(rectangle.w - 695.8421052631579) < 1e-10);
-      assert.deepEqual(rectangle, { x: rectangle.x, y: 0, w: rectangle.w, h: 339 });
+      assert.ok(Math.abs(rectangle.x) < 1e-10);
+      assert.ok(Math.abs(rectangle.y - 0.6111111111111143) < 1e-10);
+      assert.ok(Math.abs(rectangle.w - 832) < 1e-10);
+      assert.ok(Math.abs(rectangle.h - 337.77777777777777) < 1e-10);
     }
     assert.deepEqual(indexLayout(source).panes.get('Artwork').translation, [0, 58.5, 0]);
   }

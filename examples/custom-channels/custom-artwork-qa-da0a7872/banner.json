@@ -7,7 +7,7 @@
     {
       "name": "banner-artwork",
       "url": "banner.gif",
-      "width": 200,
+      "width": 240,
       "height": 100
     }
   ],
@@ -231,7 +231,7 @@
         "translation": [0, 0, 0],
         "rotation": [0, 0, 0],
         "scale": [1, 1],
-        "size": [200, 100],
+        "size": [240, 100],
         "children": [],
         "material": 0,
         "vertexColors": [
@@ -251,7 +251,7 @@
         "translation": [0, 0, 0],
         "rotation": [0, 0, 0],
         "scale": [1, 1],
-        "size": [200, 100],
+        "size": [240, 100],
         "children": [],
         "material": 1,
         "vertexColors": [
@@ -358,7 +358,7 @@
   },
   "artwork": {
     "kind": "banner",
-    "width": 200,
+    "width": 240,
     "height": 100
   }
 }
