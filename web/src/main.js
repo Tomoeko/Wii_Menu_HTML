@@ -75,7 +75,7 @@ import {
   resolvePointerHover,
   shouldActivateArrowPointerDown,
 } from './arrow-interaction.js';
-import { routeFooterHover } from './hover-routing.js';
+import { routeFooterHover, shouldPlayHoverSound } from './hover-routing.js';
 import { menuFooterState } from './menu-footer-state.js';
 import { normalizeKeyboardPreferences } from './keyboard-preferences.js';
 import { createMenuInspection } from './menu-inspection.js';
@@ -1136,7 +1136,11 @@ function setHover(value) {
     (activeScene.boardChild === 'create' || activeScene.readingMemo ||
       activeScene.storagePage ||
       value.startsWith('scene-memo-'));
-  if (value && !value.startsWith('sd-menu-') && !footerOwnsSound && !sceneOwnsSound)
+  if (shouldPlayHoverSound(value, {
+    startupComplete,
+    footerOwnsSound,
+    sceneOwnsSound,
+  }))
     void audio.play(value.startsWith('channel-') ? 'hover' : 'buttonHover');
 }
 

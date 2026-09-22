@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { createFooterController } from '../src/footer-controller.js';
 import { createMenuState, DEFAULT_TIMING } from '../src/menu-state.js';
-import { routeFooterHover } from '../src/hover-routing.js';
+import { routeFooterHover, shouldPlayHoverSound } from '../src/hover-routing.js';
 
 const read = (name) => {
   const path = new URL(name, import.meta.url);
@@ -23,6 +23,11 @@ function fixture() {
   const menu = createMenuState({ channels: [{ id: 'disc' }, { id: 'mii' }, { id: 'photo' }] });
   return { sounds, footer, menu };
 }
+
+test('Health and Safety retains its hit area without playing a hover cue', () => {
+  assert.equal(shouldPlayHoverSound('health-continue', { startupComplete: false }), false);
+  assert.equal(shouldPlayHoverSound('health-continue', { startupComplete: true }), true);
+});
 
 test('preview page transitions never reacquire the hidden footer during repeated frame routing', sourceTest, () => {
   const { sounds, footer, menu } = fixture();

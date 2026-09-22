@@ -5,6 +5,17 @@ const BOARD_CONTROLS = {
   'scene-create': 'create',
 };
 
+/** Startup overlays keep their pointer hit area, but do not emit menu hover cues. */
+export function shouldPlayHoverSound(
+  value,
+  { startupComplete = true, footerOwnsSound = false, sceneOwnsSound = false } = {},
+) {
+  return Boolean(
+    startupComplete && value && !value.startsWith('sd-menu-') &&
+    !footerOwnsSound && !sceneOwnsSound,
+  );
+}
+
 /** Shared control names are not shared controller ownership. In particular,
  * preview arrows use their own layout and must never refocus the hidden grid
  * footer after a transition clears it. A grid page scroll retains its footer. */
