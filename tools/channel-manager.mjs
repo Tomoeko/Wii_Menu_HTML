@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
@@ -18,7 +19,7 @@ import { relativeResource, validateChannelManifest } from './custom-channel-sche
 import { purgeChannel, recoverPendingChannelPurge } from './channel-purge.mjs';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 const maximumMediaBytes = 32 * 1024 * 1024;
 const maximumJsonBytes = 2 * 1024 * 1024;
 export const CHANNEL_MANAGER_BODY_LIMIT = 56 * 1024 * 1024;

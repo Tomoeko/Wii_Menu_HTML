@@ -7,12 +7,20 @@
     "pixelToLayout": "layoutX = pixelX - 304; layoutY = 228 - pixelY"
   },
   "bannerPreview": {
-    "footer": { "y": 339, "height": 117 },
+    "footer": {
+      "y": 339,
+      "height": 117
+    },
     "aspects": [
       {
         "aspect": "4:3",
         "canvas": [608, 456],
-        "body": { "x": 0, "y": 0, "width": 608, "height": 339 },
+        "body": {
+          "x": 0,
+          "y": 0,
+          "width": 608,
+          "height": 339
+        },
         "nativeMaskTiles": {
           "corner": [64, 64],
           "side": [64, 164],
@@ -25,21 +33,36 @@
           "rightAtMiddle": 598
         },
         "sideMaskRegions": [
-          { "x": 0, "y": 0, "width": 64, "height": 339 },
-          { "x": 544, "y": 0, "width": 64, "height": 339 }
+          {
+            "x": 0,
+            "y": 0,
+            "width": 64,
+            "height": 339
+          },
+          {
+            "x": 544,
+            "y": 0,
+            "width": 64,
+            "height": 339
+          }
         ],
-        "example240x100Fit": {
+        "example239x100Fit": {
           "x": 0,
-          "y": 42.833333,
+          "y": 42.303347,
           "width": 608,
-          "height": 253.333334,
+          "height": 254.393306,
           "artworkTranslationY": 58.5
         }
       },
       {
         "aspect": "16:9",
         "canvas": [832, 456],
-        "body": { "x": 0, "y": 0, "width": 832, "height": 339 },
+        "body": {
+          "x": 0,
+          "y": 0,
+          "width": 832,
+          "height": 339
+        },
         "nativeMask": {
           "textureSize": [832, 456],
           "interiorBoundaryRaster": {
@@ -50,14 +73,24 @@
           }
         },
         "sideMaskRegions": [
-          { "x": 0, "y": 0, "width": 87.578947, "height": 339 },
-          { "x": 744.421053, "y": 0, "width": 87.578947, "height": 339 }
+          {
+            "x": 0,
+            "y": 0,
+            "width": 87.578947,
+            "height": 339
+          },
+          {
+            "x": 744.421053,
+            "y": 0,
+            "width": 87.578947,
+            "height": 339
+          }
         ],
-        "example240x100Fit": {
+        "example239x100Fit": {
           "x": 0,
-          "y": 0.611111,
+          "y": 0,
           "width": 832,
-          "height": 337.777778,
+          "height": 339,
           "artworkTranslationY": 58.5
         }
       }
@@ -67,22 +100,59 @@
     {
       "aspect": "4:3",
       "canvas": [608, 456],
-      "surface": { "x": 240, "y": 180, "width": 128, "height": 96 },
-      "center": [304, 228]
+      "surface": {
+        "x": 240,
+        "y": 180,
+        "width": 128,
+        "height": 96
+      },
+      "center": [304, 228],
+      "nativeMaskInteriorBoundaryRaster": {
+        "top": 8,
+        "bottom": 447,
+        "leftAtMiddle": 9,
+        "rightAtMiddle": 598
+      }
     },
     {
       "aspect": "16:9",
       "canvas": [832, 456],
-      "surface": { "x": 331, "y": 180, "width": 170, "height": 96 },
-      "center": [416, 228]
+      "surface": {
+        "x": 331,
+        "y": 180,
+        "width": 170,
+        "height": 96
+      },
+      "center": [416, 228],
+      "nativeMaskInteriorBoundaryRaster": {
+        "top": 7,
+        "bottom": 448,
+        "leftAtMiddle": 12,
+        "rightAtMiddle": 819
+      }
     }
   ],
   "artworkQaBanner": {
-    "canvas": [240, 100],
+    "canvas": [239, 100],
     "subjectBoundsByFrame": [
-      { "x": 35, "y": 25, "width": 56, "height": 56 },
-      { "x": 90, "y": 25, "width": 56, "height": 56 },
-      { "x": 145, "y": 25, "width": 56, "height": 56 }
+      {
+        "x": 35,
+        "y": 25,
+        "width": 56,
+        "height": 56
+      },
+      {
+        "x": 90,
+        "y": 25,
+        "width": 56,
+        "height": 56
+      },
+      {
+        "x": 145,
+        "y": 25,
+        "width": 56,
+        "height": 56
+      }
     ],
     "frameDurationsMs": [200, 300, 400]
   }

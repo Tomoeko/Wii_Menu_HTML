@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, sep } from 'node:path';
@@ -9,7 +10,7 @@ const validId = (id) =>
   /^[A-Za-z0-9_-]{1,64}$/.test(id) &&
   !['disc', '__proto__', 'prototype', 'constructor'].includes(id);
 const maximumRecords = 2048;
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 
 export class ChannelRecoveryError extends Error {
   constructor(status, code, message) {

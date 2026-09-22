@@ -3,6 +3,15 @@
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 import csv
 from datetime import datetime, timezone
@@ -228,8 +237,8 @@ def analyze(
             "files": atlas_records,
         },
     }
-    (output / "analysis.json").write_text(json.dumps(metadata, indent=2) + "\n")
-    (output / "source-frames.json").write_text(json.dumps(source_records, indent=2) + "\n")
+    (output / "analysis.json").write_text(format_json(metadata))
+    (output / "source-frames.json").write_text(format_json(source_records))
     max_width = max(r["box"][2] - r["box"][0] for r in regions)
     max_height = max(r["box"][3] - r["box"][1] for r in regions)
     cell_width, row_height = max_width + 3, max_height + 24

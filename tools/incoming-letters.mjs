@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { formatJson } from './format-json.mjs';
 import { constants } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { link, lstat, mkdir, open, realpath, rm, writeFile } from 'node:fs/promises';
@@ -14,7 +15,7 @@ const project = fileURLToPath(new URL('../', import.meta.url));
 const maximumFixtureBytes = 2 * 1024 * 1024;
 const maximumPhotoBytes = 4 * 1024 * 1024;
 const maximumBatchPhotoBytes = 32 * 1024 * 1024;
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 
 async function regularDirectory(directory) {
   const info = await lstat(directory);

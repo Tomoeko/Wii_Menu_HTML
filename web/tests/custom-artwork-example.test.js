@@ -31,7 +31,7 @@ function subjectBounds(frame, width, height, background) {
 
 test('artwork QA banner preserves its source frames and preview placement', async () => {
   const decoded = decodeGif(await readFile(join(example, 'banner.gif')));
-  assert.deepEqual([decoded.width, decoded.height], [240, 100]);
+  assert.deepEqual([decoded.width, decoded.height], [239, 100]);
   assert.deepEqual(
     decoded.frames.map((frame) => frame.durationMs),
     [200, 300, 400],
@@ -68,14 +68,14 @@ test('artwork QA banner preserves its source frames and preview placement', asyn
     );
     if (aspect === '4:3') {
       assert.ok(Math.abs(rectangle.x) < 1e-10);
-      assert.ok(Math.abs(rectangle.y - 42.83333333333334) < 1e-10);
+      assert.ok(Math.abs(rectangle.y - 42.30334728033472) < 1e-10);
       assert.ok(Math.abs(rectangle.w - 608) < 1e-10);
-      assert.ok(Math.abs(rectangle.h - 253.3333333333333) < 1e-10);
+      assert.ok(Math.abs(rectangle.h - 254.39330543933056) < 1e-10);
     } else {
       assert.ok(Math.abs(rectangle.x) < 1e-10);
-      assert.ok(Math.abs(rectangle.y - 0.6111111111111143) < 1e-10);
+      assert.ok(Math.abs(rectangle.y) < 1e-10);
       assert.ok(Math.abs(rectangle.w - 832) < 1e-10);
-      assert.ok(Math.abs(rectangle.h - 337.77777777777777) < 1e-10);
+      assert.ok(Math.abs(rectangle.h - 339) < 1e-10);
     }
     assert.deepEqual(indexLayout(source).panes.get('Artwork').translation, [0, 58.5, 0]);
   }

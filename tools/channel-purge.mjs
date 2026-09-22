@@ -8,8 +8,9 @@ import {
   readInstalledChannelCatalog,
 } from './channel-recovery.mjs';
 import { validateChannelArrangement } from '../web/src/channel-storage.js';
+import { formatJson } from './format-json.mjs';
 
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 const journalName = 'channel-purge.json';
 const validId = (id) => typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id)
   && !['disc', '0000000100000002', '__proto__', 'prototype', 'constructor'].includes(id);

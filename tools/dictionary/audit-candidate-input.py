@@ -9,6 +9,15 @@ the entire UI update loop or establish a wall-clock repeat interval.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 import json
 from pathlib import Path
@@ -217,7 +226,7 @@ def main():
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     report = audit(args.state, args.assets)
-    result = json.dumps(report, indent=2) + "\n"
+    result = format_json(report)
     if args.output:
         args.output.write_text(result)
     else:

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { formatJson } from './format-json.mjs';
 /** Numeric browser/source pose audit. This tool does not produce screenshots. */
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
@@ -203,7 +204,7 @@ for (const metadata of catalog.channels) {
   }
   inventory.channels.push(entry);
 }
-await writeFile(join(options.output, 'inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
+await writeFile(join(options.output, 'inventory.json'), formatJson(inventory));
 await writeFile(
   join(options.output, 'README.txt'),
   `${inventory.notice}\n\nEach gzip JSONL begins with a header. Frame 0 contains the full numeric state; apply later frame changes by record name to reconstruct each pose.\nThe inventory lists every raw BRLAN track, default duration and interpreted scheduling controller, including unused source/data branches.\nFrame numbers are 60 Hz menu animation units, not an emulator frame capture. No NAND writes, channel execution or network requests occur.\n`,

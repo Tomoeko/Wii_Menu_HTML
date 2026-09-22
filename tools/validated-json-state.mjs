@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { lstat, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
@@ -43,7 +44,7 @@ export function createValidatedJsonState({ validate, fallback, maxBytes, label }
         const state = validate(await transform(previous));
         const stream = await open(temporary, 'wx', 0o600);
         try {
-          await stream.writeFile(JSON.stringify(state, null, 2) + '\n');
+          await stream.writeFile(formatJson(state));
           await stream.sync();
         } finally {
           await stream.close();

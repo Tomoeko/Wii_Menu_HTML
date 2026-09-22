@@ -7,6 +7,15 @@ No dictionary data or executable instructions are embedded in this source file.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import hashlib
 import json
 from pathlib import Path
@@ -95,7 +104,7 @@ def export_keyboard_dictionary(content_directory: Path, output: Path) -> dict:
             (destination / name).write_bytes(data)
         words_name = f"{language}-oem.json"
         (destination / words_name).write_text(
-            json.dumps({"words": words}, ensure_ascii=False, indent=2) + "\n"
+            format_json({"words": words})
         )
         manifest["languages"][language] = {
             "system": {
@@ -112,5 +121,5 @@ def export_keyboard_dictionary(content_directory: Path, output: Path) -> dict:
                 "wordCount": len(words),
             },
         }
-    (output / "keyboard-dictionary.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (output / "keyboard-dictionary.json").write_text(format_json(manifest))
     return manifest

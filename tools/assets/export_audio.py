@@ -7,6 +7,15 @@ approximate mix; an activated local native capture is preserved by default.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 from array import array
 import hashlib
@@ -504,7 +513,7 @@ def prepare_background(archive, assets, content, *, force=False, definition=None
         **metadata,
         "outputSha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
     }
-    marker.write_text(json.dumps(entry, indent=2) + "\n")
+    marker.write_text(format_json(entry))
     return entry
 
 
@@ -606,7 +615,7 @@ def main():
         ),
         "sha256": hashlib.sha256(sequence_path.read_bytes()).hexdigest(),
     }
-    (args.output / "audio.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (args.output / "audio.json").write_text(format_json(manifest))
     provenance = {
         "source": "sound/IplSound.brsar",
         "sha256": hashlib.sha256(archive.data).hexdigest(),
@@ -635,7 +644,7 @@ def main():
             "from original menu AX output in the local RecompCore emulator; "
             "physical hardware equivalence is not independently verified."
         )
-    (directory / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+    (directory / "provenance.json").write_text(format_json(provenance))
     print(f"Exported {len(manifest)} original-source sounds to {directory}")
 
 

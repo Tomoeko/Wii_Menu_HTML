@@ -23,6 +23,7 @@
     "prepare": "python3 tools/assets/prepare.py",
     "channels": "node tools/channels.mjs",
     "channels:custom": "node tools/custom-channels.mjs",
+    "format:json": "node tools/format-json.mjs --write --tracked",
     "audit:privacy": "node tools/audit-privacy.mjs"
   },
   "engines": {

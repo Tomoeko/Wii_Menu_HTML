@@ -8,6 +8,15 @@ A bounded execution trace cannot establish every native profile's behavior.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 from collections import Counter
 import hashlib
@@ -149,7 +158,7 @@ def main():
     parser.add_argument("--assets", type=Path, required=True)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    result = json.dumps(audit(args.state, args.assets), indent=2) + "\n"
+    result = format_json(audit(args.state, args.assets))
     if args.output:
         args.output.write_text(result)
     else:

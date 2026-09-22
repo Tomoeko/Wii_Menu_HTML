@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """Compare a settled widescreen Settings page 1 against a browser canvas PNG."""
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
 
 import argparse
 import hashlib
@@ -78,7 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path)
     arguments = parser.parse_args()
     report = compare(arguments.native, arguments.browser)
-    output = json.dumps(report, indent=2) + "\n"
+    output = format_json(report)
     if arguments.output:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)
         arguments.output.write_text(output)

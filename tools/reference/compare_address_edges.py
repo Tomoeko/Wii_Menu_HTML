@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """Measure the settled 836×456 Address Book cover/page-one left edge."""
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
 
 import argparse
 import hashlib
@@ -82,7 +90,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     arguments = parser.parse_args()
     report = compare(arguments.native, arguments.browser, arguments.page)
-    text = json.dumps(report, indent=2) + "\n"
+    text = format_json(report)
     if arguments.output:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)
         arguments.output.write_text(text)

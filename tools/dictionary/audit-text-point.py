@@ -9,6 +9,15 @@ activation still requires separate source or native-capture evidence.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 import json
 from pathlib import Path
@@ -218,7 +227,7 @@ def main():
     args = parser.parse_args()
     result = audit(args.state, args.assets)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2) + "\n")
+    args.output.write_text(format_json(result))
     count = len(result["observations"]) + len(result["compositionObservations"])
     print(f"Verified {count} original text-point command cases")
 

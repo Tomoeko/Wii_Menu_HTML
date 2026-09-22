@@ -3,6 +3,15 @@
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -148,7 +157,7 @@ def main() -> int:
         ),
     }
     metadata_path = output / "capture-session.json"
-    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
+    metadata_path.write_text(format_json(metadata))
     print(
         f"Frames: {output / 'Frames'}\nAudio: {output / 'Audio'}\nMetadata: {metadata_path}",
         flush=True,
@@ -171,7 +180,7 @@ def main() -> int:
             header = frame.read(24)
         if header[:8] == b"\x89PNG\r\n\x1a\n":
             metadata["measuredImageSize"] = list(struct.unpack(">II", header[16:24]))
-    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
+    metadata_path.write_text(format_json(metadata))
     return return_code
 
 

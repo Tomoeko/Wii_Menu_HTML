@@ -32,6 +32,7 @@ async function fixture(t) {
     'tools/storage-state.mjs',
     'tools/remote-state.mjs',
     'tools/validated-json-state.mjs',
+    'tools/format-json.mjs',
     'tools/message-service.mjs',
     'tools/channel-manager.mjs',
     'tools/channel-recovery.mjs',

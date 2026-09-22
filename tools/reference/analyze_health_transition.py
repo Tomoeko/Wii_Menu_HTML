@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """Measure a captured health-to-menu sequence without treating XFBs as game ticks."""
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
 
 import argparse
 import csv
@@ -74,7 +82,7 @@ def analyze(capture, start, end, output):
             "these are not asserted to be game update counters."
         ),
     }
-    (output / "health-analysis.json").write_text(json.dumps(info, indent=2) + "\n")
+    (output / "health-analysis.json").write_text(format_json(info))
     numbers = list(range(start, end + 1, 5))
     width, columns = 320, 5
     thumbnail_height = round(width * frames[start].shape[0] / frames[start].shape[1])

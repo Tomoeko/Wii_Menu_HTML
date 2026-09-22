@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,7 +83,7 @@ export function writeArrangement(file, value) {
         throw error;
       }
       try {
-        await writeFile(temporary, JSON.stringify(arrangement, null, 2) + '\n');
+        await writeFile(temporary, formatJson(arrangement));
         await rename(temporary, file);
         return arrangement;
       } finally {

@@ -39,6 +39,36 @@ test('banner Start is one-shot even when its BRLAN flag says loop; Loop begins a
   );
 });
 
+test('custom banner sway is posed during the intro instead of starting abruptly afterward', () => {
+  const mark = pane('Mark');
+  const source = layout({
+    banner_Start: anim(31),
+    banner_Loop: anim(180, true, [
+      {
+        name: 'Mark',
+        type: 0,
+        tracks: [
+          {
+            kind: 'RLPA',
+            target: 5,
+            curveType: 2,
+            keys: [
+              { frame: 0, value: -6, slope: 0 },
+              { frame: 90, value: 6, slope: 0 },
+              { frame: 180, value: -6, slope: 0 },
+            ],
+          },
+        ],
+      },
+    ]),
+  });
+  source.artwork = { kind: 'banner', width: 239, height: 100 };
+  source.root.children = [mark];
+  const opening = channelClips({ shortId: 'custom-example', banner: source }, 'banner', 0);
+  assert.deepEqual(opening.map((clip) => clip.frame), [0, 0]);
+  assert.equal(poseChannel({ shortId: 'custom-example', banner: source }, 'banner', 0).root.children[0].rotation[2], -6);
+});
+
 test('Photo icon selects the original default track and banner repeats after its intro', () => {
   const channel = {
     shortId: 'HAYA',

@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   copyFile,
@@ -26,7 +27,7 @@ const defaultAssets = join(project, 'web/public/assets');
 const template = join(project, 'templates/custom-channel');
 const catalogName = 'custom-channels.json';
 const maximumBytes = 32 * 1024 * 1024;
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 
 async function atomicJson(file, value) {
   await mkdir(dirname(file), { recursive: true });

@@ -1,16 +1,63 @@
 [
-  { "session": "memo", "text": "h" },
-  { "session": "memo", "text": "he" },
-  { "session": "nickname", "text": "bonjour", "language": "fr" },
-  { "session": "memo", "text": "h" },
-  { "session": "memo", "text": "he" },
-  { "session": "memo", "action": "accept", "index": 3 },
-  { "session": "memo", "digits": "6" },
-  { "session": "memo", "action": "accept", "index": 0 },
-  { "session": "memo", "digits": "666" },
-  { "session": "memo", "action": "reset" },
-  { "session": "memo", "text": "he", "case": "upper" },
-  { "session": "memo", "text": "hola", "language": "es" },
-  { "session": "memo", "action": "close" },
-  { "session": "nickname", "action": "close" }
+  {
+    "session": "memo",
+    "text": "h"
+  },
+  {
+    "session": "memo",
+    "text": "he"
+  },
+  {
+    "session": "nickname",
+    "text": "bonjour",
+    "language": "fr"
+  },
+  {
+    "session": "memo",
+    "text": "h"
+  },
+  {
+    "session": "memo",
+    "text": "he"
+  },
+  {
+    "session": "memo",
+    "action": "accept",
+    "index": 3
+  },
+  {
+    "session": "memo",
+    "digits": "6"
+  },
+  {
+    "session": "memo",
+    "action": "accept",
+    "index": 0
+  },
+  {
+    "session": "memo",
+    "digits": "666"
+  },
+  {
+    "session": "memo",
+    "action": "reset"
+  },
+  {
+    "session": "memo",
+    "text": "he",
+    "case": "upper"
+  },
+  {
+    "session": "memo",
+    "text": "hola",
+    "language": "es"
+  },
+  {
+    "session": "memo",
+    "action": "close"
+  },
+  {
+    "session": "nickname",
+    "action": "close"
+  }
 ]

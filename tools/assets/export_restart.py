@@ -2,6 +2,15 @@
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import hashlib
 import json
 from pathlib import Path
@@ -108,7 +117,7 @@ def export_restart_resources(content_directory: Path, output: Path) -> dict:
     destination = f"layouts/restart/{LAYOUT_NAME}.json"
     target = output / destination
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(parsed, indent=2) + "\n")
+    target.write_text(format_json(parsed))
     manifest_path = output / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["layouts"][LAYOUT_NAME] = {
@@ -122,5 +131,5 @@ def export_restart_resources(content_directory: Path, output: Path) -> dict:
         "animations": [LAYOUT_NAME],
         "sourceExecutable": provenance,
     }
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    manifest_path.write_text(format_json(manifest))
     return provenance

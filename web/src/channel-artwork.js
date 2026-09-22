@@ -11,7 +11,17 @@ export function fitChannelArtwork(layout, display) {
     kind === 'icon' ? display.thumbnailHalfHeight * 2 : display.bannerContentHeight;
   const pixelAspect = (display.outputAspect * display.height) / display.width;
   const scale = Math.min((areaWidth * pixelAspect) / width, areaHeight / height);
-  const fitted = [(width * scale) / pixelAspect, height * scale];
+  // A fitted source often lands within a fraction of a logical pixel from a
+  // native edge (for example, a 239×100 GIF in the 832×339 wide banner body).
+  // Leaving that fraction to the rasterizer exposes a one-pixel seam beside
+  // the footer or side mask. Snap only near-boundary values so ordinary
+  // artwork keeps its exact aspect-ratio fit.
+  const snapToBoundary = (value, boundary) =>
+    Math.abs(value - boundary) < 1 ? boundary : value;
+  const fitted = [
+    snapToBoundary((width * scale) / pixelAspect, areaWidth),
+    snapToBoundary(height * scale, areaHeight),
+  ];
   const backgroundHeight = kind === 'banner' ? display.height : areaHeight;
   panes.get('Background').size = [areaWidth, backgroundHeight];
   const artworkOffsetY = kind === 'banner' ? (display.height - areaHeight) / 2 : 0;

@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -43,7 +44,7 @@ export async function updateConfiguration(file, update) {
   try {
     const configuration = await readConfiguration(file);
     const result = await update(configuration);
-    await writeFile(temporary, JSON.stringify(configuration, null, 2) + '\n', { flag: 'wx' });
+    await writeFile(temporary, formatJson(configuration), { flag: 'wx' });
     await rename(temporary, file);
     return result;
   } finally {

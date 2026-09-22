@@ -6,6 +6,14 @@ ordinals may repeat or be skipped. Images are not resampled unless a native-only
 horizontal presentation mapping is explicitly recorded in the configuration.
 Only named, opt-in regions are included in the redacted contact sheet.
 """
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
 
 import argparse
 import csv
@@ -260,7 +268,7 @@ def compare(sidecar, project, native_directory, first, last, configuration, outp
             "Metrics compare unchanged browser pixels with normalized native pixels, not original native-pixel equality. Input file hashes identify the unmodified images.",
         ])
     output.mkdir(parents=True, exist_ok=True)
-    (output / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+    (output / "comparison.json").write_text(format_json(report))
     with (output / "alignment.csv").open("w", newline="") as stream:
         writer = csv.writer(stream)
         writer.writerow(["browser_update", "native_ordinal", "alignment_rgb_mae", *masks])

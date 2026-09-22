@@ -7,6 +7,15 @@ No third-party synthesis or codec package is used.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 from array import array
 import hashlib
 import json
@@ -227,7 +236,7 @@ def export_sequence_resources(
         "sourceDriverSha256": tables.source_sha256,
     }
     path = assets / f"audio/{name}-sequence.json"
-    path.write_text(json.dumps(definition, indent=2) + "\n")
+    path.write_text(format_json(definition))
     return definition
 
 

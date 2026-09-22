@@ -56,10 +56,17 @@ function baseClips(layout, kind, frame) {
     loop = animationAt(layout, 'banner_Loop');
   if (start) {
     const end = maximum(start);
+    // Authored custom banners use the same swaying Mark animation as the
+    // template. Keep that loop active during the fade/slide intro so the
+    // artwork is already moving on its first rendered frame; waiting for the
+    // intro to finish leaves a centered pose that jumps when the loop starts.
+    const customLoop = Boolean(layout.artwork);
     // Start keeps its final values for properties absent from the loop track.
     return [
       clip(layout, 'banner_Start', Math.min(frame, end), { loop: false }),
-      ...(loop && frame >= end ? [clip(layout, 'banner_Loop', frame - end, { loop: true })] : []),
+      ...(loop && (customLoop || frame >= end)
+        ? [clip(layout, 'banner_Loop', customLoop ? frame : frame - end, { loop: true })]
+        : []),
     ];
   }
   if (loop) return [clip(layout, 'banner_Loop', frame, { loop: true })];

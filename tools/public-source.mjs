@@ -5,6 +5,7 @@ import { extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectPrivacy } from './audit-privacy.mjs';
 import { createExampleAudio } from './custom-channel-audio.mjs';
+import { formatJson as formatValue } from './format-json.mjs';
 import { DEFAULT_CONFIG } from '../web/src/config.js';
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -33,7 +34,7 @@ const requiredFiles = [
   'tools/assets/prepare.py', 'tools/audit-privacy.mjs',
 ];
 const maximumSourceBytes = 4 * 1024 * 1024;
-const formatJson = (value) => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+const formatJson = (value) => Buffer.from(formatValue(value));
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 /** Local configuration and saved defaults must never seed a public repository. */

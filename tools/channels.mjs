@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { formatJson } from './format-json.mjs';
 import { spawn } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -26,7 +27,7 @@ const defaults = {
   layoutFile: join(project, '.local/channel-layout.json'),
   localDirectory: join(project, '.local'),
 };
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 
 export async function readChannelInventory(options = {}) {
   const paths = { ...defaults, ...options };

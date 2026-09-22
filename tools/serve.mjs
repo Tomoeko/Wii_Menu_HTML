@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDictionaryService } from './dictionary-service.mjs';
+import { formatJson } from './format-json.mjs';
 import { createChannelManager, handleChannelManagerRequest } from './channel-manager.mjs';
 import { readStorageState, writeStorageState, readStorageFixture } from './storage-state.mjs';
 import { readRemoteState, writeRemoteState } from './remote-state.mjs';
@@ -329,7 +330,7 @@ http
         await writeFile(resolve(captures, name + '.png'), png, { flag: 'wx' });
         await writeFile(
           resolve(captures, name + '.json'),
-          JSON.stringify(metadata, null, 2) + '\n',
+          formatJson(metadata),
           { flag: 'wx' },
         );
         res.writeHead(201, { 'Content-Type': 'application/json' });

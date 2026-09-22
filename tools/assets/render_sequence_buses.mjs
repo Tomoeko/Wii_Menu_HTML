@@ -1,3 +1,4 @@
+import { formatJson } from '../../tools/format-json.mjs';
 /** Stage optional main/Aux A resources; never change the prepared WAV catalog. */
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -179,7 +180,7 @@ export async function stageEffectBuses(assetsPath, outputPath, { wsdResources } 
     sounds,
     unsupported,
   };
-  await writeFile(resolve(output, 'audio-buses.json'), JSON.stringify(result, null, 2) + '\n');
+  await writeFile(resolve(output, 'audio-buses.json'), formatJson(result));
   return result;
 }
 

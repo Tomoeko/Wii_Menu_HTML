@@ -1,4 +1,12 @@
 """Recoverable publication of private imports and prepared browser resources."""
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
 
 from contextlib import contextmanager
 import errno
@@ -171,7 +179,7 @@ def _write_journal(local, plan):
     temporary = local / (JOURNAL_NAME + ".next")
     for path in (journal, temporary):
         _safe_path(local, path)
-    payload = (json.dumps(plan, indent=2) + "\n").encode("utf-8")
+    payload = format_json(plan).encode("utf-8")
     if len(payload) > JOURNAL_LIMIT:
         raise ValueError("Preparation recovery journal is too large")
     if temporary.exists():
@@ -361,7 +369,7 @@ def publish_preparation(staged_local, local, staged_output, output, state, *, ch
         if role != "state" and (staged_local / filename).exists():
             replacements.append({"role": role})
     final_state = remap_private_paths(state, staged_local, local)
-    (staged_local / "prepare.json").write_text(json.dumps(final_state, indent=2) + "\n")
+    (staged_local / "prepare.json").write_text(format_json(final_state))
     replacements.extend([{"role": "assets"}, {"role": "state"}])
     for replacement in replacements:
         paths = _replacement_paths(local, output, plan, replacement)

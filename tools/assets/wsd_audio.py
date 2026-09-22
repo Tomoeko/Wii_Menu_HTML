@@ -1,4 +1,12 @@
 """Stage the four verified finite WSD voices without changing prepared audio."""
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
 from array import array
 import argparse
 import hashlib
@@ -90,7 +98,7 @@ def export_wsd_resources(archive, tables, output, *, symbol, name):
         "sourceArchiveSha256": hashlib.sha256(archive.data).hexdigest(),
         "sourceDriverSha256": tables.source_sha256,
     }
-    (output / "audio" / f"{name}-wsd.json").write_text(json.dumps(definition, indent=2) + "\n")
+    (output / "audio" / f"{name}-wsd.json").write_text(format_json(definition))
     return definition
 
 

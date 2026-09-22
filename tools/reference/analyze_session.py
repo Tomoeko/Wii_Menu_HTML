@@ -3,6 +3,15 @@
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import csv
@@ -289,7 +298,7 @@ def main() -> None:
         "audio": audio,
         "strongestPixelChanges": strong_changes,
     }
-    (output / "session-index.json").write_text(json.dumps(result, indent=2) + "\n")
+    (output / "session-index.json").write_text(format_json(result))
     lines = [
         "# Original menu session capture",
         "",

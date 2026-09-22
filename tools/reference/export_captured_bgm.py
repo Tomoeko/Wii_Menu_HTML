@@ -3,6 +3,15 @@
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -171,18 +180,18 @@ def main():
     record = {"background": entry, "provenance": provenance}
     report = capture / "analysis/background"
     report.mkdir(parents=True, exist_ok=True)
-    (report / "background-capture.json").write_text(json.dumps(record, indent=2) + "\n")
+    (report / "background-capture.json").write_text(format_json(record))
     if options.activate:
-        (directory / "background-capture.json").write_text(json.dumps(record, indent=2) + "\n")
+        (directory / "background-capture.json").write_text(format_json(record))
         audio_path = assets / "audio.json"
         audio = json.loads(audio_path.read_text()) if audio_path.exists() else {}
         audio["background"] = entry
-        audio_path.write_text(json.dumps(audio, indent=2) + "\n")
+        audio_path.write_text(format_json(audio))
         manifest_path = assets / "manifest.json"
         if manifest_path.exists():
             manifest = json.loads(manifest_path.read_text())
             manifest.setdefault("audio", {}).update(audio)
-            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+            manifest_path.write_text(format_json(manifest))
         provenance_path = directory / "provenance.json"
         combined = json.loads(provenance_path.read_text()) if provenance_path.exists() else {}
         combined.setdefault("sounds", {})["background"] = entry
@@ -190,7 +199,7 @@ def main():
         combined["limitations"] = (
             "Effects retain their documented decoding/mixing limits. BGM uses unchanged emulator AX/DSP PCM; physical hardware equivalence is not independently verified."
         )
-        provenance_path.write_text(json.dumps(combined, indent=2) + "\n")
+        provenance_path.write_text(format_json(combined))
     print(
         json.dumps(
             {

@@ -6,6 +6,15 @@ verified, and extraction never installs anything into a console or emulator.
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import hashlib
 import json
 from pathlib import Path
@@ -137,7 +146,7 @@ def extract_wad(source, destination, common_key, common_key_index=0):
             (staged / "content" / f"{content_id}.app").write_bytes(payload)
         (staged / "content/title.tmd").write_bytes(sections["tmd"])
         (staged / "ticket.bin").write_bytes(sections["ticket"])
-        (staged / "import.json").write_text(json.dumps(metadata, indent=2) + "\n")
+        (staged / "import.json").write_text(format_json(metadata))
         if title.exists():
             shutil.rmtree(title)
         staged.rename(title)

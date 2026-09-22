@@ -40,7 +40,11 @@ Custom channel packages can be created with:
 ```sh
 npm run channels:custom -- init ~/MyChannel --id custom-my-channel --title "My Channel"
 npm run channels:custom -- add ~/MyChannel
+npm run format:json
 ```
+
+`format:json` rewrites tracked JSON with compact numeric arrays and readable
+object layout. The shared formatter is also used by channel and state writers.
 
 ## Configuration and controls
 

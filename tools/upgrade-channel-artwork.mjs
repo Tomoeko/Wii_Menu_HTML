@@ -1,3 +1,4 @@
+import { formatJson } from './format-json.mjs';
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
@@ -8,7 +9,7 @@ import { installCustomChannel, readCustomPackage } from './custom-channels.mjs';
 import { indexLayout } from '../web/src/animation.js';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
-const format = (value) => JSON.stringify(value, null, 2) + '\n';
+const format = formatJson;
 const white = [255, 255, 255, 255];
 
 /** Only the exact earlier creator output qualifies; authored variations are left intact. */

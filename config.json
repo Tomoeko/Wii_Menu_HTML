@@ -27,23 +27,15 @@
     "reconnectDelayMs": 3000,
     "reconnect": {
       "mode": "automatic",
-      "players": [
-        1
-      ],
+      "players": [1],
       "intervalMs": 400,
       "startFailures": 0,
       "stopFailures": 0
     }
   },
   "input": {
-    "homeKeys": [
-      "Home",
-      "h"
-    ],
-    "grabButtons": [
-      1,
-      2
-    ]
+    "homeKeys": ["Home", "h"],
+    "grabButtons": [1, 2]
   },
   "channels": {
     "persistLayout": true,

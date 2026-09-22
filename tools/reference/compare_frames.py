@@ -3,6 +3,15 @@
 
 from __future__ import annotations
 
+try:
+    from tools.json_format import format_json
+except ModuleNotFoundError:  # Direct execution from a tools subdirectory.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from json_format import format_json
+
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -209,7 +218,7 @@ def main() -> None:
         }
     )
     options.output.parent.mkdir(parents=True, exist_ok=True)
-    options.output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
+    options.output.with_suffix(".json").write_text(format_json(report))
     options.output.with_suffix(".md").write_text(markdown(report))
     print(f"Wrote {options.output.with_suffix('.json')} and {options.output.with_suffix('.md')}")
 
