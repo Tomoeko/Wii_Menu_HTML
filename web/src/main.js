@@ -1383,7 +1383,9 @@ function render(timestamp) {
   if (!systemSettingsVisible) {
     const memoLayers =
       viewState.screen === 'grid' &&
-      (!viewState.transition || viewState.transition.kind === 'home')
+      // Page scrolling only moves the Home Menu artwork; parked Memos remain
+      // in world space and must be drawn on every transition frame.
+      (!viewState.transition || ['home', 'page'].includes(viewState.transition.kind))
         ? scenes.memoReturnLayers?.() ?? []
         : [];
     const drawUnderlay = () => {
