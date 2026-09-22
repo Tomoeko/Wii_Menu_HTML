@@ -279,8 +279,8 @@ export function createMenuScenes(
     boardPageIndicators.clear();
     storage = null;
     memoReturnLayers = [];
-    memoBoard.setMemos(memos);
     memoBoard.setDate(currentDate);
+    memoBoard.setMemos(memos, { settled: true });
     memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
     commit([make('my_IplTop_c', 'my_IplTop_c', undefined, 0, 0)], 0);
   };
@@ -724,7 +724,7 @@ export function createMenuScenes(
     },
     setMemos(value) {
       memoReturnLayers = [];
-      memoBoard.setMemos(value);
+      memoBoard.setMemos(value, { settled: true });
       memos = memoBoard.records();
       boardChild?.setMemos?.(memos);
       if (scene !== 'board')

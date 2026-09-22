@@ -212,12 +212,17 @@ export function createBoardMemos(
       readAt: record.readAt ?? null,
     };
   };
-  const setMemos = (value) => {
+  const setMemos = (value, { settled = false } = {}) => {
     records = (Array.isArray(value) ? value : []).map(normalize).filter(Boolean);
     page = 0;
     arrival.clear();
     pinAnimations.clear();
-    for (const record of records) arrival.set(record.id, age);
+    for (const record of records) {
+      const start = settled
+        ? age - duration(cardLayout(record), 'PasteLetter')
+        : age;
+      arrival.set(record.id, start);
+    }
     refreshOrder();
     resetSelection();
   };

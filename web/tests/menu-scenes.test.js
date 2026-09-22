@@ -446,7 +446,8 @@ test(
   'posted corner Memos remain under the Wii Menu at their saved position after Board return',
   { skip: !available },
   () => {
-    const date = new Date(2026, 8, 17, 12);
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
     const scenes = createMenuScenes(layouts, {
       memos: [{
         id: 'corner-memo',
@@ -489,6 +490,32 @@ test(
     scenes.refreshMemoReturnLayers(date);
     assert.equal(scenes.memoReturnLayers().length, 1);
     assert.deepEqual(scenes.memoReturnLayers()[0].layout.root.translation, [-230, -80, 0]);
+  },
+);
+test(
+  're-entering the Message Board keeps persisted Memos at their neutral pose',
+  { skip: !available },
+  () => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    const scenes = createMenuScenes(layouts, {
+      memos: [{
+        id: 'settled-memo',
+        text: 'Settled Memo',
+        createdAt: date.toISOString(),
+        position: { x: -230, y: -80 },
+        readAt: date.toISOString(),
+      }],
+    });
+    scenes.open('board');
+    scenes.advance(40);
+    scenes.back();
+    scenes.advance(40);
+    scenes.open('board');
+    const card = scenes.presentation({ date }).layers.find(
+      ({ prefix }) => prefix === 'memo-card-settled-memo:',
+    ).layout;
+    assert.deepEqual(indexLayout(card).panes.get('N_Letter').scale, [1, 1]);
   },
 );
 test('Board footer hover and activation work before requesting its first presentation',
