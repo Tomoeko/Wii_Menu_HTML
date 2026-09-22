@@ -493,7 +493,11 @@ export function createBoardKeyboard(
       if (['Focus-IN', 'Focus-OUT', 'Pushed'].includes(action)) return `toggleON_${action}`;
     }
     if (item?.key === LANGUAGE) return `PRDC_${action}`;
-    if (item?.key === SYMBOLS && /^key-symbol-\d+$/.test(item.id)) return `SGN_${action}`;
+    // Every control in the More window shares the SGN animation family. The
+    // page arrows and Close button use the same prototype resources as the
+    // symbol keytops, so keeping them on the generic Focus tracks prevents
+    // their hover and pressed poses from being drawn.
+    if (item?.key === SYMBOLS) return `SGN_${action}`;
     if ([PREDICTION, TEXTBOX, BIG_TEXTBOX].includes(item?.key)) {
       if (action === 'Focus-IN') return 'Foucus_IN';
       if (action === 'Focus-OUT' && item.key === PREDICTION) return 'Focus_OUT';
@@ -767,7 +771,11 @@ export function createBoardKeyboard(
     if (allowedCharacters)
       value = [...value].filter((character) => allowedCharacters.includes(character)).join('');
     if (!value) return false;
-    const composing = predictionEnabled && /^[\p{L}\p{M}]+$/u.test(value);
+    // WithZi keeps a literal run together until a delimiter is entered. This
+    // includes digits, punctuation, brackets, and symbols from the More page;
+    // restricting composition to letters made those characters disappear
+    // from the dictionary strip after the first key press.
+    const composing = predictionEnabled && !/\s/u.test(value);
     const next = text.slice(0, caret) + value + text.slice(caret);
     if (next.length > maxLength || (textField && !textField.accepts(next))) {
       sound('CHAR_DELETE_ERROR');
@@ -1400,7 +1408,9 @@ export function createBoardKeyboard(
           20,
           (symbolPage + direction + symbolPages.length) % symbolPages.length,
         );
-        sound('SK_SWITCHING_02');
+        // The More arrows scroll the symbol table. Use the short page-scroll
+        // cue rather than the longer keyboard-layout switching sound.
+        sound('LINE_SCROLL');
       } else if (id.startsWith('key-symbol-'))
         insert(symbolPages[symbolPage][Number(id.slice(11))]);
       else if (id.startsWith('key-phone-mode-')) {

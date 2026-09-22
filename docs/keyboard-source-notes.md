@@ -442,13 +442,15 @@ settles back to the selected pose. This differs from the separately verified
 QWERTY/telephone toolbar choice, which ignores a repeated selected press.
 
 The More popup's previous/next buttons start with alpha zero in the BRLYT. Its
-appearance/disappearance resources animate only the shared Close prototype.
-The browser now binds both navigation buttons to those same resource tracks
-before either button is hovered. Tests check their initial visibility and shared
-fade while preserving independent Close press animation.
+appearance/disappearance resources animate the shared Close prototype, and the
+SGN focus resources provide the matching hover and pushed poses for all three
+More controls. The browser binds the previous/next buttons to those shared
+resources before either button is hovered. Tests check their initial
+visibility, shared fade, independent focus, and page-scroll cue.
 
-Composition now records a start position when a letter is typed with prediction
-already enabled. Enabling prediction does not retroactively mark existing text.
+Composition now records a start position when a non-whitespace character is
+typed with prediction already enabled, including digits and symbols. Enabling
+prediction does not retroactively mark existing text.
 Turning it off, accepting a candidate, selecting a language, or moving the
 insertion point commits the composition; backspacing committed text does not
 restart a dictionary query. The first matching candidate supplies the gray
@@ -878,13 +880,13 @@ texture rectangle, and its descender inside each authored pane. No arbitrary
 pane or glyph expansion is applied. A visual report of any remaining clipping
 still needs a reproduced screenshot before changing the original metrics.
 
-The More window's existing appearance binding was also checked through the
+The More window's appearance and focus bindings were also checked through the
 renderer hierarchy. Both page-arrow bodies appear on the first visible update,
 retain the original material opacity through hover/departure and page changes,
-and return to their complete idle poses. Their original close-button prototype
-keeps scale one in `Focus-IN` and `Roll_over`; enlargement is not inferred from
-other keyboard keys. These are resource/controller regressions, not aligned
-native capture acceptance.
+and return to their complete idle poses. The close button and both arrows use
+the original SGN focus resources, and page changes request the short line-scroll
+cue instead of the keyboard-layout switching sound. These are
+resource/controller regressions, not aligned native capture acceptance.
 
 ## September 21 integrated UI check
 

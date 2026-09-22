@@ -1357,6 +1357,42 @@ test(
 );
 
 test(
+  'dictionary keeps numeric, punctuation and More-page characters in one literal composition',
+  { skip: !available },
+  () => {
+    const requests = [];
+    const keyboard = createBoardKeyboard(layouts, {
+      initialPredictionEnabled: true,
+      predict: (prefix) => {
+        requests.push(prefix);
+        return [];
+      },
+    });
+
+    for (const character of '0123456789-[]') keyboard.keyInput(character);
+    let state = keyboard.snapshot();
+    assert.equal(state.text, '0123456789-[]');
+    assert.deepEqual(state.composition, { start: 0, end: 13 });
+    assert.deepEqual(state.candidateStrip.entries.map(({ value }) => value), ['0123456789-[]']);
+    assert.equal(requests.at(-1), '0123456789-[]');
+
+    keyboard.activate('key-more');
+    keyboard.advance(18);
+    keyboard.activate('key-symbols-next');
+    keyboard.advance(20);
+    assert.equal(keyboard.activate('key-symbol-0'), true);
+    assert.equal(keyboard.snapshot().text, '0123456789-[][');
+    keyboard.activate('key-symbols-close');
+    keyboard.advance(13);
+    keyboard.keyInput(' ');
+    state = keyboard.snapshot();
+    assert.equal(state.text, '0123456789-[][ ');
+    assert.equal(state.composition, null);
+    assert.equal(state.candidateStrip.entries.length, 0);
+  },
+);
+
+test(
   'accepted candidates and disabled prediction cannot resume composition on backspace',
   { skip: !available },
   () => {
@@ -1672,9 +1708,10 @@ test('both Enter paths expose newline markers only after an actual line feed',
   });
 
 
-test('More arrow bodies render on first appearance and return to their complete idle poses',
+test('More controls render, focus and return to their complete idle poses',
   { skip: !available }, () => {
-    const keyboard = createBoardKeyboard(layouts);
+    const sounds = [];
+    const keyboard = createBoardKeyboard(layouts, { onSound: (id) => sounds.push(id) });
     keyboard.activate('key-more');
     const rendered = () => {
       const source = keyboard.presentation().layers.find(
@@ -1704,18 +1741,24 @@ test('More arrow bodies render on first appearance and return to their complete 
     }
     keyboard.advance(17);
     const idle = rendered();
-    keyboard.hover('key-symbols-next');
-    keyboard.advance(5);
-    // The source close-button prototype retains scale one during focus.
-    assert.deepEqual(rendered().get('P_SGNkey_next'), idle.get('P_SGNkey_next'));
-    assert.deepEqual(rendered().get('P_SGNkey_prev'), idle.get('P_SGNkey_prev'));
-    keyboard.hover(null);
-    keyboard.advance(8);
-    for (const name of ['P_SGNkey_prev', 'P_SGNkey_next'])
-      assert.deepEqual(rendered().get(name), idle.get(name));
+    for (const [id, picture] of [
+      ['key-symbols-prev', 'P_SGNkey_prev'],
+      ['key-symbols-next', 'P_SGNkey_next'],
+      ['key-symbols-close', 'P_SGNkey_close'],
+    ]) {
+      assert.equal(keyboard.hover(id), true, id);
+      keyboard.advance(5);
+      const focused = rendered().get(picture);
+      assert.ok(focused.scale[0] > idle.get(picture).scale[0], id);
+      assert.ok(focused.scale[1] > idle.get(picture).scale[1], id);
+      keyboard.hover(null);
+      keyboard.advance(8);
+      assert.deepEqual(rendered().get(picture), idle.get(picture), id);
+    }
     keyboard.activate('key-symbols-next');
+    assert.equal(sounds.at(-1), 'WIPL_SE_LINE_SCROLL');
     keyboard.advance(20);
-    for (const name of ['P_SGNkey_prev', 'P_SGNkey_next'])
+    for (const name of ['P_SGNkey_prev', 'P_SGNkey_next', 'P_SGNkey_close'])
       assert.deepEqual(rendered().get(name), idle.get(name));
   });
 
