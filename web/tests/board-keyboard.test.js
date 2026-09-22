@@ -451,6 +451,25 @@ test(
 );
 
 test(
+  'telephone Space renders U+23B5 only while its pending character is active',
+  { skip: !available },
+  () => {
+    const keyboard = createBoardKeyboard(layouts);
+    keyboard.activate('key-phone');
+    keyboard.hover('key-phone-10');
+    keyboard.activate('key-phone-10');
+    assert.equal(keyboard.snapshot().text, ' ');
+    assert.equal(keyboard.snapshot().displayText, '\u23b5');
+    assert.deepEqual(keyboard.snapshot().textColorRanges, [
+      { start: 0, end: 1, color: [255, 50, 50, 255] },
+    ]);
+    keyboard.hover(null);
+    assert.equal(keyboard.snapshot().displayText, ' ');
+    assert.deepEqual(keyboard.snapshot().textColorRanges, []);
+  },
+);
+
+test(
   'explicit secondary phone trigger reverses the original cycle and primary retains priority',
   { skip: !available },
   () => {

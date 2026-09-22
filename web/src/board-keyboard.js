@@ -29,6 +29,7 @@ import {
   PHONE_MODES,
   PHONE_LABELS,
   PHONE_CYCLES,
+  PHONE_SPACE_MARKER,
   DICTIONARY_LANGUAGES,
 } from './keyboard-data.js';
 
@@ -420,6 +421,11 @@ export function createBoardKeyboard(
       ? prediction.values[candidateIndex]
       : prediction.values.find((word) => word !== '>' && word.startsWith(prediction.prefix));
     const start = caret - prediction.prefix.length;
+    const pendingStart = phonePending ? phonePending.caret - phonePending.length : -1;
+    const pendingSpace = phonePending && text.slice(pendingStart, phonePending.caret) === ' ';
+    const displayText = pendingSpace
+      ? text.slice(0, pendingStart) + PHONE_SPACE_MARKER + text.slice(phonePending.caret)
+      : text;
     const compositionColors = prediction.prefix
       ? [{ start, end: caret, color: [255, 50, 50, 255] }]
       : phonePending
@@ -431,14 +437,14 @@ export function createBoardKeyboard(
         : [];
     if (!preview || preview === '>') {
       return {
-        displayText: text,
+        displayText,
         displayCaret: caret,
         preview: null,
         textColorRanges: compositionColors,
       };
     }
     return {
-      displayText: text.slice(0, start) + preview + text.slice(caret),
+      displayText: displayText.slice(0, start) + preview + displayText.slice(caret),
       displayCaret: hovered ? start + preview.length : caret,
       preview: { start, end: start + preview.length },
       textColorRanges: [

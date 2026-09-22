@@ -24,6 +24,9 @@ export const symbolPages = [
 // The US telephone keyboard tables in tiCpData.cpp. Mode order is
 // Abc, abc, ABC, 123; only the first mode returns to lowercase after a word starts.
 export const PHONE_MODES = ['Abc', 'abc', 'ABC', '123'];
+// The native phone editor displays a pending literal space with this visible
+// marker until the active key is committed or the pointer leaves the key.
+export const PHONE_SPACE_MARKER = '\u23b5';
 export const PHONE_LABELS = [
   '.,?@',
   'abc',
