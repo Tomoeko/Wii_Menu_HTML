@@ -578,6 +578,8 @@ export function createStorageScene(
           [
             clip('base', `Select${next === 'wii' ? 'Sd' : 'Wii'}Flash`, 'G_Select'),
             clip('box', 'SaveDataOut', 'G_Data'),
+            ...(medium().status === 'ready'
+              ? [] : [clip('base', 'ErrorTxtOut', 'G_ErrorTxt')]),
           ],
           () => {
             selectedTab = next;
@@ -680,6 +682,9 @@ export function createStorageScene(
             clip('base', 'DataOut', 'G_DataAll'),
             clip('box', 'SaveDataOut', 'G_Data'),
           ];
+          if (medium().status !== 'ready') {
+            exitClips.push(clip('base', 'ErrorTxtOut', 'G_ErrorTxt'));
+          }
           if (kind === 'channels') {
             exitClips.push(
               clip('base', 'Lost', 'G_ArwL_End'),

@@ -789,6 +789,33 @@ test(
   },
 );
 
+test('Slot B message fades in and leaves before the surrounding grid', {
+  skip: !available,
+}, () => {
+  const scene = createStorageScene(layouts, { kind: 'gamecube' });
+  const panes = () => indexLayout(scene.presentation().layers.find(
+    ({ prefix }) => prefix === 'scene-storage:',
+  ).layout).panes;
+  scene.advance(68);
+  assert.equal(scene.activate('storage-sd'), true);
+  scene.advance(22);
+  assert.equal(panes().get('N_Error').alpha, 0);
+  scene.advance(7);
+  assert.ok(panes().get('N_Error').alpha > 0);
+  assert.ok(panes().get('N_Error').alpha < 255);
+  scene.advance(9);
+  assert.equal(panes().get('N_Error').alpha, 255);
+  assert.equal(scene.activate('back'), true);
+  scene.advance(layouts.it_Button_a.animations.it_Button_a_BtnFlash.frames);
+  assert.equal(scene.snapshot().phase, 'data-out');
+  scene.advance(7);
+  assert.ok(panes().get('N_Error').alpha > 0);
+  assert.ok(panes().get('N_Error').alpha < 255);
+  scene.advance(8);
+  assert.equal(panes().get('N_Error').alpha, 0);
+  assert.ok(panes().get('N_Select_00').alpha > 0);
+});
+
 test(
   'dummy save title uses the original delayed balloon and disappears on activation',
   { skip: !available },
