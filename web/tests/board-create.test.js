@@ -435,6 +435,58 @@ test('Memo software keyboard fades through both thirty-update motions',
     assert.equal(keyboard(), undefined);
   });
 
+test('empty Memo prompt returns through the source alpha curve after keyboard exit',
+  { skip: !available }, () => {
+    const create = createBoardCreate(layouts);
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    const prompt = () => indexLayout(
+      create.presentation().layers.find((layer) => layer.prefix === 'scene-create-body:').layout,
+    ).panes.get('T_TouchLetter');
+    assert.equal(prompt().text, 'Write a memo');
+    assert.equal(prompt().alpha, 255);
+    for (let visit = 0; visit < 2; visit++) {
+      assert.equal(create.activate('memo-edit'), true);
+      create.advance(30);
+      assert.equal(prompt().text, '');
+      assert.equal(prompt().alpha, 0);
+      assert.equal(create.activate('key-back'), true);
+      create.advance(20);
+      assert.equal(prompt().text, 'Write a memo');
+      assert.equal(prompt().alpha, 0);
+      create.advance(5);
+      assert.ok(prompt().alpha > 0 && prompt().alpha < 255);
+      create.advance(5);
+      assert.equal(prompt().text, 'Write a memo');
+      assert.equal(prompt().alpha, 255);
+    }
+  });
+
+test('Memo Mii icon follows the authored sheet fade during Back departure',
+  { skip: !available }, () => {
+    const create = createBoardCreate(layouts);
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    const panes = () => indexLayout(
+      create.presentation().layers.find((layer) => layer.prefix === 'scene-create-body:').layout,
+    ).panes;
+    create.hover('memo-mii');
+    create.advance(6);
+    create.hover('back');
+    create.advance(6);
+    assert.equal(panes().get('Nigaoe').alpha, 255);
+    assert.equal(create.back(), true);
+    create.advance(20);
+    create.advance(8);
+    const middle = panes();
+    assert.ok(middle.get('Nigaoe').alpha > 0 && middle.get('Nigaoe').alpha < 255);
+    assert.ok(Math.abs(middle.get('Nigaoe').alpha - middle.get('N_Header').alpha) < 0.01);
+    create.advance(8);
+    assert.equal(panes().get('Nigaoe').alpha, 0);
+  });
+
 test(
   'offline Letter and Register use native dialogs and distinct settings destinations',
   { skip: !available },

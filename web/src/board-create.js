@@ -146,15 +146,18 @@ export function createBoardCreate(
     clip('my_IplTop_e', 'my_IplTop_e', group, from, to, delay);
   const length = (item) =>
     item.end === undefined ? (item.animation?.frames ?? 0) : item.end - item.offset;
-  const sample = (item, frame) => ({
-    animation: item.animation,
-    group: item.group,
-    loop: false,
-    frame: Math.min(
-      item.end ?? Math.max(0, (item.animation?.frames ?? 0) - 1),
-      item.offset + Math.max(0, frame - item.delay - (item.startDelay ?? 0)),
-    ),
-  });
+  const sample = (item, frame) => {
+    const last = item.end ?? Math.max(0, (item.animation?.frames ?? 0) - 1);
+    const elapsed = Math.max(0, frame - item.delay - (item.startDelay ?? 0));
+    return {
+      animation: item.animation,
+      group: item.group,
+      loop: false,
+      frame: item.reverse
+        ? Math.max(item.offset, last - elapsed)
+        : Math.min(last, item.offset + elapsed),
+    };
+  };
   const posed = (key, clips, frame, base = bases[key]) =>
     poseLayout(
       base,
@@ -634,7 +637,13 @@ export function createBoardCreate(
             onSound(reason === 'ok' ? 'WIPL_SE_SK_DECIDE_CLOSE' : 'WIPL_SE_SK_CANCEL_CLOSE');
             keyboardProgress = 1;
             start(
-              [footer(3313, 3326)],
+              [
+                footer(3313, 3326),
+                // Replay the imported TouchLetter alpha curve backwards so
+                // the empty-sheet prompt returns as the keyboard exits.
+                { ...clip('sofkeybd/my_Memo_a', 'my_Memo_a_TouchLetter'),
+                  reverse: true, delay: 20 },
+              ],
               () => {
                 editing = false;
                 keyboard = null;
@@ -897,7 +906,17 @@ export function createBoardCreate(
               };
         const body = setText(working(bodyKey()), values);
         if (page === 'memo') {
-          const focusedBody = poseLayout(body, [...miiFocus.clips(), ...memoArrows.clips()]);
+          const keyboardState = keyboard?.snapshot();
+          const displayText = keyboardState?.displayText ?? memoText;
+          const exitingBody = memoLeaving && phase?.clips.some(
+            (item) => item.key === 'sofkeybd/my_Memo_a',
+          );
+          // Nigaoe's hover clip carries a constant 255 alpha. During MailOut
+          // the authored body clip must own its 255-to-0 exit fade instead.
+          const focusedBody = poseLayout(body, [
+            ...(!exitingBody ? miiFocus.clips() : []),
+            ...memoArrows.clips(),
+          ]);
           body.root = focusedBody.root;
           body.materials = focusedBody.materials;
           let editorOpacity = 0;
@@ -914,11 +933,13 @@ export function createBoardCreate(
               : 1 - Math.min(1, phase.frame / 30)
             : keyboardProgress;
           arrangeMessageBody(body, {
-            text: keyboard?.snapshot().displayText ?? memoText,
+            text: displayText,
             hint: text(140, 'Write a memo'),
-            keyboard: keyboard?.snapshot(), editing, progress,
+            hintVisible: !displayText && (!keyboard ||
+              Boolean(phase && keyboardProgress === 1 && phase.frame >= 20)),
+            keyboard: keyboardState, editing, progress,
             scrollOffset: memoScroll.snapshot().offset, measureTextLines,
-            lineHeight: memoLines(keyboard?.snapshot().displayText ?? memoText).lineHeight,
+            lineHeight: memoLines(displayText).lineHeight,
           });
         }
         layers.push({ layout: body, prefix: 'scene-create-body:' });

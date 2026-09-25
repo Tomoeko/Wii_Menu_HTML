@@ -6,6 +6,7 @@ import { indexLayout } from './animation.js';
 export function arrangeMessageBody(layout, {
   kind = 'memo', text, hint, keyboard = null, editing = false, progress = 0,
   scrollOffset = 0, measureTextLines, lineHeight = 42,
+  hintVisible = !editing && !text,
 }) {
   const panes = indexLayout(layout).panes;
   const body = panes.get('N_Body');
@@ -37,7 +38,7 @@ export function arrangeMessageBody(layout, {
     resizeFromTop(viewport, 2 * lineHeight);
     viewport.translation[1] -= scrollOffset;
   }
-  panes.get('T_TouchLetter').text = editing || text ? '' : hint;
+  panes.get('T_TouchLetter').text = hintVisible ? hint : '';
   const letter = panes.get('T_Letter');
   letter.text = text;
   if (keyboard) {

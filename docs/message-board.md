@@ -187,6 +187,11 @@ Selecting it opens the original no-Miis notice because this local fixture has
 no populated Mii collection. Blank Post still displays its common-button
 hover, but cannot create an empty local record. The software keyboard uses
 the existing 30-update source fade and vertical movement on entry and exit.
+An empty Memo restores `T_TouchLetter` with the imported nine-frame alpha
+curve during the final ten updates of keyboard exit. On Back, `Nigaoe` follows
+`my_Memo_a_MailOut` alpha from its first frame through frame 16, after the
+20-update common Back press. These source-driven timings have not been
+frame-aligned with a native capture.
 The sheet's gray rulings come from the 42-unit `N_Body` strip in the original
 layout; identifying any extra line needs a matching native/browser frame.
 
