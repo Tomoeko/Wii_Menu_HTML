@@ -58,7 +58,7 @@ test('intensity-alpha fonts and explicit nondefault mappings retain texture RGB'
   );
 });
 
-test('the visible Space marker uses the original Wii keycap glyph when U+23B5 is absent', () => {
+test('the visible Space marker uses the original Wii keycap glyph when U+2423 is absent', () => {
   const font = new BitmapFont({
     characters: { 0xe057: 1 },
     defaultGlyph: 0,
@@ -68,5 +68,5 @@ test('the visible Space marker uses the original Wii keycap glyph when U+23B5 is
     ],
     sheets: [{ width: 4, height: 1, format: 0 }],
   }, {});
-  assert.equal(font.glyph('\u23b5'), font.font.glyphs[1]);
+  assert.equal(font.glyph('\u2423'), font.font.glyphs[1]);
 });

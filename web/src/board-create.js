@@ -234,6 +234,12 @@ export function createBoardCreate(
       ? [footer(footerFocusStart(id, enter, layout), enter ? 2906 : 2938, 'G_CalExit')]
       : [];
   };
+  const focusMotion = (id, enter, layout) =>
+    hoverClips(id, enter, layout).map((item) => ({
+      ...item,
+      focusOwner: id,
+      exiting: !enter,
+    }));
   const controls = (addressState) => {
     if (letter) return letter.controls();
     if (recipientPicker) return recipientPicker.controls();
@@ -544,9 +550,17 @@ export function createBoardCreate(
       miiFocus.hover(parentTarget);
       const focusLayout = posed('my_IplTop_e', focusClips, focusAge);
       commit(focusClips, focusAge);
+      // A departing footer button keeps rolling out while another button is
+      // entered and left. Retiring that clip on every pointer change freezes
+      // the first button at an intermediate scale.
+      const continuingExits = focusClips
+        .filter((item) => item.exiting && item.focusOwner !== parentTarget &&
+          focusAge < (item.end ?? (item.animation?.frames ?? 0) - 1) - item.offset)
+        .map((item) => ({ ...item, offset: item.offset + focusAge }));
       focusClips = [
-        ...(focus ? hoverClips(focus, false, focusLayout) : []),
-        ...(parentTarget ? hoverClips(parentTarget, true, focusLayout) : []),
+        ...continuingExits,
+        ...(focus ? focusMotion(focus, false, focusLayout) : []),
+        ...(parentTarget ? focusMotion(parentTarget, true, focusLayout) : []),
       ];
       focus = parentTarget;
       focusAge = 0;

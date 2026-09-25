@@ -3,7 +3,7 @@ import { keyboardCaretWidth } from './keyboard-caret.js';
 const WHITE = [255, 255, 255, 255];
 // BRFNT stores the same keycap shape in its private-use range; expose it
 // through the standard Unicode marker used by the phone editor state.
-const SPACE_MARKER = 0x23b5;
+const SPACE_MARKER = 0x2423;
 const NATIVE_SPACE_MARKER = 0xe057;
 /** Uses the original BRFNT glyph atlas and per-character advance widths. */
 export class BitmapFont {

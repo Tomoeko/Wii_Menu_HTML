@@ -446,6 +446,33 @@ test('blank Memo Post remains hoverable without sending, and Back retargets smoo
     assert.ok(footerScale('N_BtnL_a3_Cal') > partlyExited);
   });
 
+test('Memo Back and Post finish their rollout across rapid pointer changes',
+  { skip: !available }, () => {
+    for (const [first, second] of [['back', 'submit'], ['submit', 'back']]) {
+      const create = createBoardCreate(layouts);
+      create.advance(39);
+      create.activate('memo');
+      create.advance(27);
+      const scales = () => {
+        const footer = create.presentation().layers.find(
+          (layer) => layer.prefix === 'scene-create-footer:',
+        );
+        const panes = indexLayout(footer.layout).panes;
+        return [
+          panes.get('N_BtnL_a3_Cal').scale[0],
+          panes.get('N_BtnL_a7_Add_R').scale[0],
+        ];
+      };
+      create.hover(first);
+      create.advance(3);
+      create.hover(second);
+      create.advance(1);
+      create.hover(null);
+      create.advance(8);
+      assert.deepEqual(scales(), [1, 1], `${first} then ${second}`);
+    }
+  });
+
 test('Memo software keyboard fades through both thirty-update motions',
   { skip: !available }, () => {
     const create = createBoardCreate(layouts);
@@ -684,15 +711,33 @@ test(
     assert.equal(sounds.at(-1), 'WIPL_SE_SK_OPEN');
     create.advance(30);
     create.activate('key-ok');
-    assert.deepEqual(sounds.slice(-2), ['WIPL_SE_SK_DECIDE_CLOSE', 'WIPL_SE_CHAR_DECIDE']);
+    assert.deepEqual(sounds.slice(-1), ['WIPL_SE_SK_DECIDE_CLOSE']);
     assert.equal(create.snapshot().duration, 30);
     create.advance(30);
     create.activate('memo-edit');
     create.advance(30);
     create.activate('key-back');
-    assert.deepEqual(sounds.slice(-2), ['WIPL_SE_SK_CANCEL_CLOSE', 'WIPL_SE_CHAR_DECIDE']);
+    assert.deepEqual(sounds.slice(-1), ['WIPL_SE_SK_CANCEL_CLOSE']);
   },
 );
+
+test('phone keyboard Back requests only the software keyboard close cue',
+  { skip: !available }, () => {
+    const sounds = [];
+    const create = createBoardCreate(layouts, {
+      getKeyboardPreferences: () => ({ layoutMode: 'phone' }),
+      onSound: (id) => sounds.push(id),
+    });
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    create.activate('memo-edit');
+    create.advance(30);
+    assert.ok(create.presentation().layers.some((layer) => layer.prefix === 'keyboard-phone:'));
+    sounds.length = 0;
+    assert.equal(create.activate('key-back'), true);
+    assert.deepEqual(sounds, ['WIPL_SE_SK_CANCEL_CLOSE']);
+  });
 
 test(
   'Address arrow keeps its hover bubble through page turns until pointer departure',

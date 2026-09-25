@@ -451,7 +451,7 @@ test(
 );
 
 test(
-  'telephone Space renders U+23B5 only while its pending character is active',
+  'telephone Space renders U+2423 only while its pending character is active',
   { skip: !available },
   () => {
     const keyboard = createBoardKeyboard(layouts);
@@ -459,7 +459,7 @@ test(
     keyboard.hover('key-phone-10');
     keyboard.activate('key-phone-10');
     assert.equal(keyboard.snapshot().text, ' ');
-    assert.equal(keyboard.snapshot().displayText, '\u23b5');
+    assert.equal(keyboard.snapshot().displayText, '\u2423');
     assert.deepEqual(keyboard.snapshot().textColorRanges, [
       { start: 0, end: 1, color: [255, 50, 50, 255] },
     ]);

@@ -888,7 +888,6 @@ export function createBoardKeyboard(
     finishComposition();
     dispose();
     onClose(text, { reason });
-    sound('CHAR_DECIDE');
   }
 
   function dismissOverlay() {
