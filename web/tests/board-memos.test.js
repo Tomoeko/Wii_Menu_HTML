@@ -136,6 +136,50 @@ test('crowded dates page ten records at a time without losing or modifying recor
   assert.equal(board.snapshot().memoCount, 10);
 });
 
+test('existing cards stay visible while a Memo page moves and after it settles',
+  sourceTest, () => {
+    const memos = Array.from({ length: 11 }, (_, index) => ({
+      ...record(`page-${index}`, `Memo ${index}`, new Date(2026, 8, 17, 12, index)),
+      position: { x: 0, y: 53 },
+    }));
+    const board = createBoardMemos(layouts, { date, memos });
+    board.advance(20);
+    assert.equal(board.turnPage('prev'), true);
+    const incoming = () => layer(board.presentation(), 'memo-card-page-0:');
+    assert.ok(incoming());
+    assert.ok(incoming().root.translation[0] < -200);
+    assert.ok(pane(incoming(), 'N_Letter').alpha > 0);
+    board.advance(7.5);
+    assert.ok(incoming().root.translation[0] > -304);
+    assert.ok(incoming().root.translation[0] < 0);
+    assert.ok(pane(incoming(), 'N_Letter').alpha > 0);
+    board.advance(7.5);
+    near(incoming().root.translation[0], 0);
+    assert.ok(pane(incoming(), 'N_Letter').alpha > 0);
+    assert.equal(board.presentation().controls[0].disabled, false);
+  });
+
+test('browsing dates does not replay PasteLetter for already posted Memos',
+  sourceTest, () => {
+    const tomorrow = new Date(2026, 8, 18, 12);
+    const board = createBoardMemos(layouts, {
+      date,
+      memos: [
+        { ...record('today'), position: { x: -230, y: -80 } },
+        { ...record('tomorrow', 'Next day', tomorrow),
+          position: { x: 230, y: -80 } },
+      ],
+    });
+    board.advance(20);
+    const card = (id) => layer(board.presentation(), `memo-card-${id}:`);
+    board.setDate(tomorrow);
+    assert.ok(pane(card('tomorrow'), 'N_Letter').alpha > 0);
+    assert.equal(board.presentation().controls[0].disabled, false);
+    board.setDate(date);
+    assert.ok(pane(card('today'), 'N_Letter').alpha > 0);
+    assert.equal(board.presentation().controls[0].disabled, false);
+  });
+
 test('erasing the last older-page memo and posting preserve page boundaries', sourceTest, () => {
   const records = Array.from({ length: 11 }, (_, index) => ({
     ...record(`record-${index}`, `Message ${index}`, new Date(2026, 8, 17, 12, index)),

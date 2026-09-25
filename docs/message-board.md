@@ -165,14 +165,19 @@ the projection width divided by 608. The older and newer handlers pan
 `WIPL_SE_MSG_HOUSE` toward opposite sides. Original `G_TabaL` and `G_TabaR`
 envelope indicators show which direction has further records on the same date.
 
-Paging locks card and footer actions during departure, then presents the next
-group using the original arrival clip. Changing the date resets to its newest
-group. Erasing the final record on an older page clamps to the preceding valid
-page. Posting a Memo returns to the newest group. Browsing does not write or
-reorder the stored collection. Controller regressions cover 23 records, both
-directions, date limits, deletion, posting and preservation of every record.
-The incoming-group scheduling and populated native/browser frame alignment
-remain unverified; the resource and executable evidence does not close that gate.
+Paging locks card and footer actions during departure. The browser keeps the
+incoming group's already posted cards visible as they move in from the opposite
+edge; it does not replay `PasteLetter` for them. A date slide likewise draws
+both the outgoing and incoming day's cards against the two moving Board panes.
+Returning to the Home Menu carries today's cards in with the Board before the
+grid takes ownership. Newly posted cards still use their original arrival clip.
+Changing the date resets to its newest group. Erasing the final record on an
+older page clamps to the preceding valid page. Posting a Memo returns to the
+newest group. Browsing does not write or reorder the stored collection.
+Controller regressions cover 23 records, both directions, date limits, deletion,
+posting and preservation of every record. The incoming-group trajectory and
+populated native/browser frame alignment remain unverified; the resource and
+executable evidence does not close that gate.
 
 ## Integration
 

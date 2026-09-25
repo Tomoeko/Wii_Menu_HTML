@@ -791,6 +791,60 @@ test('Board return restores the current date Memo underlay after browsing anothe
       ['memo-card-today:']);
   });
 
+test('posted Memos travel with incoming date pages and the Home return',
+  { skip: !available }, () => {
+    const today = new Date(2026, 9, 2, 12);
+    for (const aspect of ['4:3', '16:9']) {
+      for (const direction of ['prev', 'next']) {
+        const display = createDisplay(aspect);
+        const other = new Date(2026, 9, direction === 'prev' ? 1 : 3, 12);
+        const scenes = createMenuScenes(layouts, {
+          display,
+          memos: [
+            { id: 'today', text: 'Current Memo', createdAt: today.toISOString(),
+              position: { x: 0, y: 53 } },
+            { id: 'other', text: 'Adjacent Memo', createdAt: other.toISOString(),
+              position: { x: 0, y: 53 } },
+          ],
+        });
+        const card = (id) => scenes.presentation().layers.find(
+          (item) => item.prefix === `memo-card-${id}:`,
+        )?.layout;
+        const x = (id) => card(id)?.root.translation[0];
+        const visible = (id) =>
+          indexLayout(card(id)).panes.get('N_Letter').alpha > 0;
+
+        scenes.open('board', today);
+        scenes.advance(40);
+        scenes.presentation();
+        assert.equal(scenes.activate(direction), true);
+        const incomingStart = x('other');
+        assert.ok(Math.abs(incomingStart) > 600 * display.rootScaleX);
+        assert.ok(visible('other'));
+        scenes.advance(10);
+        assert.ok(Math.abs(x('other')) < Math.abs(incomingStart));
+        assert.ok(visible('other'));
+        scenes.advance(10);
+        assert.ok(Math.abs(x('other')) < 0.0001);
+        assert.ok(visible('other'));
+
+        assert.equal(scenes.back(), true);
+        const returnStart = x('today');
+        assert.ok(Math.abs(returnStart) > 600 * display.rootScaleX);
+        assert.ok(visible('today'));
+        scenes.advance(10);
+        assert.ok(Math.abs(x('today')) < Math.abs(returnStart));
+        assert.ok(visible('today'));
+        scenes.advance(10);
+        assert.ok(Math.abs(x('today')) < 0.0001);
+        assert.ok(visible('today'));
+        scenes.advance(20);
+        assert.ok(Math.abs(scenes.memoReturnLayers()[0].layout.root.translation[0]) < 0.0001);
+        assert.equal(scenes.memoReturnLayers()[0].prefix, 'memo-card-today:');
+      }
+    }
+  });
+
 test(
   'Options opaque bars draw before breadcrumb headings and preserve outgoing fade contents',
   { skip: !available },

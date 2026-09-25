@@ -869,6 +869,14 @@ export function createMenuScenes(
           : 0;
         memoView = memoBoard.presentation({ offsetX });
         layers.push(...memoView.cardLayers);
+        if (boardScroll) {
+          const pageWidth = 608 * (display?.rootScaleX ?? 1);
+          const incomingOffset = offsetX +
+            (boardScroll.direction === 'prev' ? -pageWidth : pageWidth);
+          layers.push(...memoBoard.settledCardsForDate(boardScroll.to, {
+            offsetX: incomingOffset,
+          }));
+        }
         // Main places the ChannelSelect overlay after these native Board layers.
         layers.at(-1).gridOverlayAfter = true;
         if (boardMask) {

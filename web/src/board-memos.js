@@ -310,19 +310,23 @@ export function createBoardMemos(
       })),
     ];
   }
-  function cardLayer(record, index, offsetX = 0, renderAge = age) {
+  function cardLayer(record, index, offsetX = 0, renderAge = age,
+    { settled = false, neutral = false, pageEntry = false } = {}) {
     const id = `memo-open-${record.id}`,
-      motion = focus.get(id);
+      motion = neutral ? null : focus.get(id);
     // USA 4.3 BoardObject::stt_create selects table entry 1 for ordinary
     // incoming Letters (0x8164B4C8), independently of an attached photo.
     const card = cardLayout(record);
-    const clips = [clip(card, 'PasteLetter', renderAge - (arrival.get(record.id) ?? 0))];
+    const pasteFrame = settled
+      ? duration(card, 'PasteLetter')
+      : renderAge - (arrival.get(record.id) ?? 0);
+    const clips = [clip(card, 'PasteLetter', pasteFrame)];
     if (motion) clips.push(clip(card, motion.entering ? 'FocusIn' : 'FocusOut', motion.frame));
-    if (pageTransition) clips.push(clip(card, 'NextPage', pageTransition.frame));
-    const selection = incoming?.snapshot();
+    if (pageTransition && !neutral) clips.push(clip(card, 'NextPage', pageTransition.frame));
+    const selection = neutral ? null : incoming?.snapshot();
     const cardPhase = selection?.readerPhase ?? phase;
     const cardFrame = selection?.readerFrame ?? frame;
-    if (selected?.id === record.id) {
+    if (!neutral && selected?.id === record.id) {
       if (cardPhase === 'close' && cardFrame >= duration(card, 'ExitLetter')) {
         // ExitLetter restores the card at its focused 1.1 scale. The common
         // 26-frame reader close leaves time for its authored six-frame
@@ -373,11 +377,11 @@ export function createBoardMemos(
       }
     }
     const position = memoPosition(record);
-    if (drag?.id === record.id) {
+    if (!neutral && drag?.id === record.id) {
       position[0] += drag.delta.x;
       position[1] += drag.delta.y;
     }
-    if (pageTransition) {
+    if (pageTransition && !neutral) {
       // BoardObject::calc (0x81394134 onward) linearly gathers outgoing
       // records at the opposite arrow while the original NextPage clip plays.
       const progress = clamp(pageTransition.frame, duration(card, 'NextPage')) /
@@ -385,6 +389,12 @@ export function createBoardMemos(
       const targetX = pageTransition.direction === 'prev' ? 304 : -304;
       position[0] += (targetX - position[0]) * progress;
       position[1] += (53 - position[1]) * progress;
+    } else if (pageEntry && pageTransition) {
+      const progress = clamp(pageTransition.frame, duration(card, 'NextPage')) /
+        duration(card, 'NextPage');
+      const startX = pageTransition.direction === 'prev' ? -304 : 304;
+      position[0] = startX + (position[0] - startX) * progress;
+      position[1] = 53 + (position[1] - 53) * progress;
     }
     layout.root.translation = [position[0] * display.rootScaleX + offsetX, position[1], 0];
     return { layout, prefix: prefix(record) };
@@ -506,14 +516,31 @@ export function createBoardMemos(
       const next = dayKey(value);
       if (!next) throw new RangeError('Memo board date must be valid');
       if (next !== selectedDate) {
+        const pending = new Set([...arrival].filter(([, start]) => start === Infinity)
+          .map(([id]) => id));
         selectedDate = next;
         page = 0;
         age = 0;
         resetSelection();
         refreshOrder();
         arrival.clear();
+        for (const record of records) {
+          arrival.set(record.id, pending.has(record.id)
+            ? Infinity : -duration(cardLayout(record), 'PasteLetter'));
+        }
         pinAnimations.clear();
       }
+    },
+    settledCardsForDate(value, { offsetX = 0 } = {}) {
+      const key = dayKey(value);
+      if (!key) throw new RangeError('Memo board date must be valid');
+      return records
+        .filter((record) => dayKey(record.createdAt) === key)
+        .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
+        .slice(0, MEMOS_PER_PAGE)
+        .filter((record) => arrival.get(record.id) !== Infinity)
+        .map((record, index) => cardLayer(record, index, offsetX, age,
+          { settled: true, neutral: true }));
     },
     addMemo(record, { deferAppearance = false } = {}) {
       const normalized = normalize(record, records.length);
@@ -558,12 +585,15 @@ export function createBoardMemos(
       if (pageTransition) {
         pageTransition.frame += frames;
         if (pageTransition.frame >= duration(CARD, 'NextPage')) {
-          const remainder = pageTransition.frame - duration(CARD, 'NextPage');
           page = pageTransition.target;
           resetSelection();
           refreshOrder();
           pinAnimations.clear();
-          for (const record of visible()) arrival.set(record.id, age - remainder);
+          for (const record of visible()) {
+            if (arrival.get(record.id) !== Infinity) {
+              arrival.set(record.id, age - duration(cardLayout(record), 'PasteLetter'));
+            }
+          }
         }
       }
       if (drag && frames > 0) {
@@ -878,7 +908,19 @@ export function createBoardMemos(
             arrival.get(record.id) !== Infinity
               && !((erasePending || incoming?.snapshot().erasing) && record.id === selected?.id),
         )
-        .map((record) => cardLayer(record, items.indexOf(record), offsetX, renderAge));
+        .map((record) => cardLayer(record, items.indexOf(record), offsetX,
+          renderAge, { settled }));
+      if (pageTransition) {
+        const incomingPage = dayRecords.slice(
+          pageTransition.target * MEMOS_PER_PAGE,
+          (pageTransition.target + 1) * MEMOS_PER_PAGE,
+        );
+        for (const [index, record] of incomingPage.entries()) {
+          if (arrival.get(record.id) === Infinity) continue;
+          cardLayers.push(cardLayer(record, index, offsetX, renderAge,
+            { settled: true, neutral: true, pageEntry: true }));
+        }
+      }
       const overlayLayers = [];
       let dialogView = null;
       if (incoming) overlayLayers.push(...incoming.presentation().layers);
