@@ -141,17 +141,39 @@ export async function setChannelEnabled(id, enabled, options = {}) {
   );
 }
 
-function prepare(argumentsList) {
+function prepare(argumentsList, { captureOutput = false } = {}) {
   return new Promise((resolveRun, reject) => {
     const child = spawn(
       process.env.PYTHON || 'python3',
       [join(project, 'tools/assets/prepare.py'), ...argumentsList],
-      { stdio: 'inherit' },
+      { stdio: captureOutput ? ['inherit', 'pipe', 'inherit'] : 'inherit' },
     );
+    let output = '';
+    if (captureOutput) {
+      child.stdout.setEncoding('utf8');
+      child.stdout.on('data', (chunk) => {
+        output += chunk;
+        if (output.length > 4 * 1024 * 1024) {
+          child.kill();
+          reject(new Error('NAND channel plan is too large.'));
+        }
+      });
+    }
     child.on('error', reject);
     child.on('exit', (code, signal) => {
-      if (code === 0) resolveRun();
-      else reject(new Error(`WAD preparation failed (${signal ?? code}).`));
+      if (code !== 0) {
+        reject(new Error(`Channel preparation failed (${signal ?? code}).`));
+        return;
+      }
+      if (!captureOutput) {
+        resolveRun();
+        return;
+      }
+      try {
+        resolveRun(JSON.parse(output));
+      } catch {
+        reject(new Error('Channel preparation returned an invalid NAND plan.'));
+      }
     });
   });
 }
@@ -169,6 +191,9 @@ const help = `Channel management (local files only)
   npm run channels -- disable <id>
   npm run channels -- reset <id>
   npm run channels -- remove <id-or-folder> [<id-or-folder> ...]
+  npm run channels -- nand-plan <nand> [--nand-keys <file>]
+  npm run channels -- nand-import <nand> [<nand> ...] [--nand-policy keep|replace]
+      [--replace-channel <title-id> ...] [--keep-channel <title-id> ...]
 
 init writes animated icon/banner layouts and an original synthesized sound.wav.
 Enable/disable changes config.json only; reset restores that ID's catalog default.
@@ -178,9 +203,13 @@ Install refuses an already installed custom ID; overwrite explicitly replaces
 one or more existing custom channel installations.
 Remove uninstalls the local entry but keeps the source WAD or authoring folder.
 Reload the menu after changes. Disc cannot be disabled or removed.
+NAND import keeps installed titles by default. A replace choice installs that
+NAND title over the older copy; a keep choice preserves or skips it. Run
+nand-plan first to inspect active title versions and content hashes.
 
 Isolated paths: --assets <folder> --config <file> --layout <file> --local-dir <folder>
 WAD options: --common-key-file <file> --common-key-index <number>
+NAND options: --nand-keys <file> --expect-plan <JSON file>
 `;
 
 export async function runChannelCommand(args) {
@@ -198,6 +227,8 @@ export async function runChannelCommand(args) {
       'disable',
       'reset',
       'remove',
+      'nand-plan',
+      'nand-import',
     ].includes(command)
   ) {
     throw new Error(`Unknown channel command: ${command}`);
@@ -214,7 +245,13 @@ export async function runChannelCommand(args) {
     'wad',
     'common-key-file',
     'common-key-index',
+    'nand-keys',
+    'nand-policy',
+    'replace-channel',
+    'keep-channel',
+    'expect-plan',
   ];
+  const repeatable = new Set(['replace-channel', 'keep-channel']);
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (!argument.startsWith('--')) positional.push(argument);
@@ -224,17 +261,21 @@ export async function runChannelCommand(args) {
         !allowed.includes(name) ||
         !rest[index + 1] ||
         rest[index + 1].startsWith('--') ||
-        Object.hasOwn(options, name)
+        (Object.hasOwn(options, name) && !repeatable.has(name))
       ) {
         throw new Error(`Invalid or repeated option: ${argument}`);
       }
-      options[name] = rest[++index];
+      if (repeatable.has(name)) {
+        (options[name] ??= []).push(rest[++index]);
+      } else {
+        options[name] = rest[++index];
+      }
     }
   }
   if (options.wad && command === 'add' && positional.length === 0) positional.push(options.wad);
   else if (options.wad)
     throw new Error('--wad is only supported by add without a positional path.');
-  const acceptsMany = ['install', 'overwrite', 'remove'].includes(command);
+  const acceptsMany = ['install', 'overwrite', 'remove', 'nand-import'].includes(command);
   if (command === 'list' ? positional.length !== 0 : acceptsMany
     ? positional.length < 1
     : positional.length !== 1) {
@@ -251,6 +292,16 @@ export async function runChannelCommand(args) {
     disable: ['assets', 'config', 'layout'],
     reset: ['assets', 'config', 'layout'],
     remove: ['assets', 'config', 'layout', 'local-dir'],
+    'nand-plan': ['assets', 'local-dir', 'nand-keys'],
+    'nand-import': [
+      'assets',
+      'local-dir',
+      'nand-keys',
+      'nand-policy',
+      'replace-channel',
+      'keep-channel',
+      'expect-plan',
+    ],
   };
   for (const name of Object.keys(options)) {
     if (!commandOptions[command].includes(name))
@@ -266,6 +317,28 @@ export async function runChannelCommand(args) {
     if (options[option]) paths[key] = resolve(options[option]);
   }
   if (command === 'list') return readChannelInventory(paths);
+  if (command === 'nand-plan' || command === 'nand-import') {
+    if (options['nand-keys'] && positional.length !== 1) {
+      throw new Error('--nand-keys requires exactly one NAND input.');
+    }
+    if (options['expect-plan'] && positional.length !== 1) {
+      throw new Error('--expect-plan requires exactly one NAND input.');
+    }
+    const nativeArguments = [command === 'nand-plan' ? 'plan' : 'add'];
+    for (const source of positional) nativeArguments.push('--nand', resolve(source));
+    nativeArguments.push('--local-dir', paths.localDirectory, '--output', paths.assets);
+    for (const name of ['nand-keys', 'nand-policy', 'expect-plan']) {
+      if (options[name]) {
+        const value = name === 'nand-policy' ? options[name] : resolve(options[name]);
+        nativeArguments.push(`--${name}`, value);
+      }
+    }
+    for (const name of ['replace-channel', 'keep-channel']) {
+      for (const id of options[name] ?? []) nativeArguments.push(`--${name}`, id);
+    }
+    const plan = await prepare(nativeArguments, { captureOutput: command === 'nand-plan' });
+    return command === 'nand-plan' ? plan : { imported: true };
+  }
   if (command === 'init')
     return initializeCustomChannel(positional[0], { id: options.id, title: options.title });
   if (command === 'validate') {

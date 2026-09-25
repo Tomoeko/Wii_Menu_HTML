@@ -1,4 +1,5 @@
 import { inspectImageHeader } from './image-format.js';
+import { startChannelUpdates } from './channel-updates.js';
 
 export const UPLOAD_LIMITS = Object.freeze({
   mediaBytes: 32 * 1024 * 1024,
@@ -220,7 +221,8 @@ async function startChannelManager() {
     list.setAttribute('aria-busy', String(value));
     for (const control of document.querySelectorAll('button, input, select')) {
       const unusedAudio = control.id === 'audio-file' && element('audio-choice').value !== 'upload';
-      control.disabled = value || control.dataset.fixed === 'true' || unusedAudio;
+      const inactive = control.dataset.inactive === 'true';
+      control.disabled = value || control.dataset.fixed === 'true' || unusedAudio || inactive;
     }
     createForm.setAttribute('aria-busy', String(value));
     importForm.setAttribute('aria-busy', String(value));
@@ -660,6 +662,7 @@ async function startChannelManager() {
       );
   }
   element('refresh').addEventListener('click', refresh);
+  startChannelUpdates({ request, runAction, applySaved });
   window.addEventListener('pagehide', () => {
     if (iconUrl) URL.revokeObjectURL(iconUrl);
   });

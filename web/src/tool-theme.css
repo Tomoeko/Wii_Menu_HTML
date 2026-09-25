@@ -1,28 +1,4 @@
 :root {
-  color-scheme: light;
-  --tool-background: #f5f8fb;
-  --tool-surface: #ffffff;
-  --tool-surface-soft: #edf5f8;
-  --tool-hover: #e2eff5;
-  --tool-ink: #26374a;
-  --tool-muted: #637489;
-  --tool-border: #cddae5;
-  --tool-divider: #e4ebf0;
-  --tool-accent: #007c99;
-  --tool-accent-hover: #006b84;
-  --tool-link: #006f91;
-  --tool-primary-ink: #ffffff;
-  --tool-success: #347759;
-  --tool-success-surface: #e7f4ee;
-  --tool-warning: #856527;
-  --tool-warning-surface: #fff2d9;
-  --tool-error: #a83f35;
-  --tool-error-surface: #fff0ed;
-  --tool-custom: #676c9a;
-  --tool-custom-surface: #edf0fb;
-}
-
-:root[data-tool-theme='dark'] {
   color-scheme: dark;
   --tool-background: #111820;
   --tool-surface: #1b2531;
@@ -46,30 +22,28 @@
   --tool-custom-surface: #31364f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tool-theme='light']):not([data-tool-theme='dark']) {
-    color-scheme: dark;
-    --tool-background: #111820;
-    --tool-surface: #1b2531;
-    --tool-surface-soft: #263443;
-    --tool-hover: #314558;
-    --tool-ink: #e5edf4;
-    --tool-muted: #a5b7c8;
-    --tool-border: #405267;
-    --tool-divider: #304152;
-    --tool-accent: #51c7e4;
-    --tool-accent-hover: #7ad6eb;
-    --tool-link: #77d1e9;
-    --tool-primary-ink: #10242e;
-    --tool-success: #a0ddbc;
-    --tool-success-surface: #203e34;
-    --tool-warning: #f0cd83;
-    --tool-warning-surface: #423721;
-    --tool-error: #ffb5a9;
-    --tool-error-surface: #452a2b;
-    --tool-custom: #c0c5fa;
-    --tool-custom-surface: #31364f;
-  }
+:root[data-tool-palette='light'] {
+  color-scheme: light;
+  --tool-background: #f5f8fb;
+  --tool-surface: #ffffff;
+  --tool-surface-soft: #edf5f8;
+  --tool-hover: #e2eff5;
+  --tool-ink: #26374a;
+  --tool-muted: #637489;
+  --tool-border: #cddae5;
+  --tool-divider: #e4ebf0;
+  --tool-accent: #007c99;
+  --tool-accent-hover: #006b84;
+  --tool-link: #006f91;
+  --tool-primary-ink: #ffffff;
+  --tool-success: #347759;
+  --tool-success-surface: #e7f4ee;
+  --tool-warning: #856527;
+  --tool-warning-surface: #fff2d9;
+  --tool-error: #a83f35;
+  --tool-error-surface: #fff0ed;
+  --tool-custom: #676c9a;
+  --tool-custom-surface: #edf0fb;
 }
 
 .tool-appearance {

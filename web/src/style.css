@@ -1,6 +1,9 @@
 * {
   box-sizing: border-box;
 }
+html {
+  color-scheme: dark;
+}
 html,
 body {
   margin: 0;
@@ -19,7 +22,7 @@ body {
   width: min(100vw, 133.333333vh);
   height: min(100vh, 75vw);
   overflow: hidden;
-  background: #e8e8e8;
+  background: #111820;
   /* The menu is a rendered surface. Browser text selection must never turn
      labels, hit regions, or animated artwork into a highlighted document. */
   user-select: none;
@@ -95,8 +98,8 @@ body:not(.menu-inspector),
   text-align: center;
   white-space: pre-line;
   font-size: 18px;
-  color: #555;
-  background: #eee;
+  color: #e5edf4;
+  background: #111820;
   z-index: 4;
 }
 #status[hidden] {
@@ -105,8 +108,8 @@ body:not(.menu-inspector),
 #status button {
   font: inherit;
   padding: 16px 32px;
-  border: 2px solid #b5c8d0;
+  border: 2px solid #405267;
   border-radius: 40px;
-  color: #555;
-  background: linear-gradient(#fff, #e8eef0);
+  color: #e5edf4;
+  background: #1b2531;
 }

@@ -17,6 +17,18 @@ animation using the menu renderer, with a Replay button for sound. See the
 Existing authored folders can be installed through **Import and install**. WAD
 imports continue to use the preparation command below.
 
+**Compare NAND channels** scans a local extracted NAND directory or BootMii dump.
+An optional path to `keys.bin` supports dumps without an embedded key footer.
+Choose a title to see the currently installed and incoming animated icon and
+banner side by side. TMD title versions and short SHA-256 identifiers help
+distinguish copies. These previews are local and silent; a missing version is
+shown as unavailable rather than inferred from the artwork. Existing and
+previously removed titles default to **Keep**; new titles default to **Install**.
+Choose **Replace** or **Restore from incoming NAND** explicitly, then review the
+selection count and apply it. Scanning does not install anything. If either NAND
+or the installed set changes before Apply, the operation fails and asks for a
+new scan. Reload the Wii Menu after applying selected updates.
+
 Changes take effect when the Wii Menu is reloaded. The manager updates the same
 `config.json` visibility overrides as the CLI. It keeps imported resources and
 custom source packages, so hiding a channel is reversible. It runs through the
@@ -73,6 +85,8 @@ npm run channels -- disable custom-my-channel
 npm run channels -- enable custom-my-channel
 npm run channels -- reset custom-my-channel
 npm run channels -- remove custom-my-channel /path/to/channel-two
+npm run channels -- nand-plan /path/to/newer-nand
+npm run channels -- nand-import /path/to/newer-nand --replace-channel 0001000148414241
 ```
 
 WAD import delegates to the normal preparation command and accepts its optional
@@ -87,6 +101,13 @@ Disc stays in slot zero and cannot be hidden or removed.
 `overwrite` accepts multiple authored folders and explicitly replaces those
 custom installations. `remove` accepts multiple installed IDs or authored
 folders; folders are read for their manifest ID before removal.
+`nand-plan` inspects one NAND without installing it. `nand-import` keeps installed
+IDs by default; use repeatable `--replace-channel ID` and `--keep-channel ID`
+for explicit choices, or `--nand-policy replace` for a bulk replacement with
+individual keep overrides. `--keep-channel` can also skip a new channel. Supply
+`--nand-keys FILE` for a raw dump that requires separate keys. The underlying
+`prepare.py add` command accepts `--expect-plan FILE` to reject a stale reviewed
+selection. These commands change local prepared resources, not the supplied NAND.
 Prepared NAND channels stay ahead of custom channels in the catalog. When a NAND
 save layout becomes available after custom installation, newly introduced NAND
 titles reclaim their saved native slots first and custom titles fill the remaining

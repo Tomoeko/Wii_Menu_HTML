@@ -1,20 +1,29 @@
 (() => {
   const storageKey = 'wii-menu-tools-theme';
-  const options = ['system', 'light', 'dark'];
-  let choice = 'system';
+  const options = ['dark', 'light', 'system'];
+  const systemPrefersLight = window.matchMedia?.('(prefers-color-scheme: light)');
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  let choice = 'dark';
   let selector;
 
   function apply(value) {
-    choice = options.includes(value) ? value : 'system';
+    choice = options.includes(value) ? value : 'dark';
+    const light = choice === 'light' || (choice === 'system' && systemPrefersLight?.matches);
     document.documentElement.dataset.toolTheme = choice;
+    document.documentElement.dataset.toolPalette = light ? 'light' : 'dark';
+    if (themeColor) {
+      themeColor.content = light ? '#f5f8fb' : '#111820';
+    }
     if (selector) selector.value = choice;
   }
 
   try {
     apply(localStorage.getItem(storageKey));
   } catch {
-    apply('system');
+    apply('dark');
   }
+
+  systemPrefersLight?.addEventListener?.('change', () => apply(choice));
 
   function mount() {
     const toolbar = document.querySelector('[data-tool-toolbar]');
@@ -27,7 +36,7 @@
     for (const value of options) {
       const option = document.createElement('option');
       option.value = value;
-      option.textContent = value === 'system' ? 'System' : value === 'dark' ? 'Dark' : 'Light';
+      option.textContent = value[0].toUpperCase() + value.slice(1);
       selector.append(option);
     }
     selector.value = choice;

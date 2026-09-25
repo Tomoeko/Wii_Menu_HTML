@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stdout
 import json
 from pathlib import Path
 import re
@@ -22,11 +23,49 @@ from export_keyboard_dictionary import export_keyboard_dictionary
 from export_outline_fonts import export_outline_fonts
 from export_restart import export_restart_resources
 from formats import u8_files
-from nand_import import has_banner, import_nand, nand_directory
+from nand_import import has_banner, import_nand, nand_directory, plan_nand
 from preparation_transaction import preparation_workspace, publish_preparation, recover_preparation
 from wad import extract_wad, parse_tmd, parse_wad, read_common_key
 
 SYSTEM_MENU = "0000000100000002"
+
+
+def parse_title_id(value):
+    if not re.fullmatch(r"[0-9a-fA-F]{16}", value):
+        raise argparse.ArgumentTypeError("Channel title ID must be 16 hexadecimal characters")
+    return value.lower()
+
+
+def validate_channel_choices(args):
+    replace_ids = set(args.replace_channel)
+    keep_ids = set(args.keep_channel)
+    if replace_ids & keep_ids:
+        raise ValueError("A channel cannot be both kept and replaced")
+    if (replace_ids or keep_ids or args.nand_policy != "keep") and not args.nand:
+        raise ValueError("NAND channel choices require --nand")
+    if args.operation not in ("prepare", "add") and (
+        replace_ids or keep_ids or args.nand_policy != "keep"
+    ):
+        raise ValueError("NAND channel choices are supported by prepare and add only")
+    if args.expect_plan and (args.operation != "add" or len(args.nand) != 1
+                             or args.wad or args.channel_wad):
+        raise ValueError("--expect-plan requires add with exactly one --nand and no WAD input")
+
+
+def read_expected_plan(path):
+    if path.stat().st_size > 4 * 1024 * 1024:
+        raise ValueError("Expected NAND plan is too large")
+    plan = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(plan, dict) or not isinstance(plan.get("rows"), list):
+        raise ValueError("Expected NAND plan must contain rows")
+    ids = []
+    for row in plan["rows"]:
+        if not isinstance(row, dict) or not isinstance(row.get("id"), str):
+            raise ValueError("Expected NAND plan contains an invalid channel")
+        ids.append(row["id"])
+    if len(ids) != len(set(ids)):
+        raise ValueError("Expected NAND plan contains duplicate channel IDs")
+    return plan
 
 
 def load_state(local):
@@ -256,7 +295,8 @@ def prepare_assets(local, state, output, args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "operation", nargs="?", choices=("prepare", "add", "remove", "list"), default="prepare"
+        "operation", nargs="?", choices=("prepare", "add", "remove", "list", "plan"),
+        default="prepare"
     )
     parser.add_argument("title_id", nargs="?", help="Hexadecimal title ID for remove")
     parser.add_argument("--wad", type=Path, help="System Menu WAD for prepare; channel WAD for add")
@@ -276,6 +316,22 @@ def main(argv=None):
     parser.add_argument(
         "--nand-keys", type=Path,
         help="Matching BootMii keys.bin override for one raw NAND; otherwise use sibling or footer",
+    )
+    parser.add_argument(
+        "--nand-policy", choices=("keep", "replace"), default="keep",
+        help="Keep installed title IDs by default, or replace them from the supplied NAND",
+    )
+    parser.add_argument(
+        "--replace-channel", action="append", default=[], type=parse_title_id,
+        help="Import this title ID from the NAND even if an older copy is installed; repeatable",
+    )
+    parser.add_argument(
+        "--keep-channel", action="append", default=[], type=parse_title_id,
+        help="Keep the installed copy or skip a new NAND title ID; repeatable",
+    )
+    parser.add_argument(
+        "--expect-plan", type=Path,
+        help="Reject an add if the NAND or installed channel scan has changed",
     )
     parser.add_argument("--language", choices=LANGUAGES)
     parser.add_argument("--local-dir", type=Path, default=ROOT / ".local")
@@ -297,6 +353,8 @@ def main(argv=None):
     # or a console key. npm install lifecycle scripts are disabled by .npmrc.
     if args.operation == "prepare" and not (
         args.wad or args.nand or args.channel_wad or args.rebuild
+        or args.nand_keys or args.replace_channel or args.keep_channel
+        or args.nand_policy != "keep" or args.expect_plan
     ):
         print(
             "Assets are local-only. Run npm run prepare -- --wad PATH; add --nand or --channel-wad for optional channels."
@@ -306,6 +364,19 @@ def main(argv=None):
     try:
         if args.nand_keys and len(args.nand) != 1:
             raise ValueError("--nand-keys requires exactly one --nand input")
+        validate_channel_choices(args)
+        if args.operation == "plan":
+            if len(args.nand) != 1 or args.wad or args.channel_wad or args.title_id:
+                raise ValueError("plan requires exactly one --nand input and no WAD or title ID")
+            recover_preparation(local, output)
+            state = load_state(local)
+            state["language"] = args.language or state["language"]
+            # Raw NAND extraction reports progress; stdout remains one JSON object.
+            with redirect_stdout(sys.stderr):
+                with nand_directory(args.nand[0], local, args.nand_keys) as nand:
+                    result = plan_nand(nand, state)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
         if args.operation == "list":
             recover_preparation(local, output)
             state = load_state(local)
@@ -315,6 +386,11 @@ def main(argv=None):
         with preparation_workspace(local, output) as (staged_local, staged_output):
             state = load_state(local)
             state["language"] = args.language or state["language"]
+            expected_plan = read_expected_plan(args.expect_plan) if args.expect_plan else None
+            expected_rows = None
+            if expected_plan is not None:
+                expected_rows = {row["id"]: row for row in expected_plan["rows"]}
+            seen_ids = set()
             if args.operation == "remove":
                 title_id = (args.title_id or "").lower()
                 if title_id not in state["channels"]:
@@ -340,7 +416,26 @@ def main(argv=None):
                     raise ValueError("add requires --wad, --channel-wad, or --nand")
                 for source in args.nand:
                     with nand_directory(source, staged_local, args.nand_keys) as nand:
-                        import_nand(nand, state, staged_local)
+                        if expected_plan is not None and plan_nand(nand, state) != expected_plan:
+                            raise ValueError(
+                                "NAND or installed channels changed since scan; scan again"
+                            )
+                        import_nand(
+                            nand, state, staged_local,
+                            policy=args.nand_policy,
+                            replace_ids=args.replace_channel,
+                            keep_ids=args.keep_channel,
+                            seen_ids=seen_ids,
+                            expected_rows=expected_rows,
+                        )
+                if expected_rows is not None and seen_ids != set(expected_rows):
+                    raise ValueError("NAND channel list changed since scan; scan again")
+                missing_choices = (set(args.replace_channel) | set(args.keep_channel)) - seen_ids
+                if missing_choices:
+                    raise ValueError(
+                        "Selected channel title IDs were not found in the supplied NAND: "
+                        + ", ".join(sorted(missing_choices))
+                    )
                 for path in args.channel_wad:
                     title, descriptor = import_wad(path, staged_local, key, args.common_key_index)
                     state["channels"][title] = descriptor

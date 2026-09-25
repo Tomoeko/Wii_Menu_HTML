@@ -9,6 +9,11 @@ import { mergeChannelCatalog, readCustomChannelCatalog } from './channel-catalog
 import { createDisplay, prepareAspectLayout } from './display.js';
 import { normalizeConfig } from './config.js';
 import { languageMask } from './language.js';
+import {
+  candidateAssetBase,
+  candidateAssetUrl,
+  rebaseCandidateLayout,
+} from './channel-update-preview.js';
 
 const element = (id) => document.getElementById(id);
 const status = element('status');
@@ -301,16 +306,24 @@ window.addEventListener('pageshow', (event) => {
 });
 
 async function initialize() {
+  const query = new URLSearchParams(location.search);
+  const candidate = query.get('candidate');
+  const comparison = query.get('compare') === '1';
+  const candidateBase = candidate ? candidateAssetBase(candidate) : null;
+  if (comparison) document.documentElement.dataset.comparePreview = 'true';
   const [manifest, imported, custom, rawConfig, sounds] = await Promise.all([
     readJson('/assets/manifest.json'),
-    readJson('/assets/channels.json', { channels: [], defaultOrder: [] }),
-    readCustomChannelCatalog(),
+    readJson(candidateBase ? `${candidateBase}channels.json` : '/assets/channels.json', {
+      channels: [],
+      defaultOrder: [],
+    }),
+    candidate ? Promise.resolve(null) : readCustomChannelCatalog(),
     readJson('/config.json', {}),
-    readJson('/assets/audio.json', {}),
+    comparison || candidate ? Promise.resolve({}) : readJson('/assets/audio.json', {}),
   ]);
   if (disposed) return;
   const config = normalizeConfig(rawConfig);
-  const id = new URLSearchParams(location.search).get('channel');
+  const id = query.get('channel');
   const catalog = mergeChannelCatalog(imported, custom);
   channel =
     id === 'disc'
@@ -328,7 +341,9 @@ async function initialize() {
         ? manifest.layouts?.[kind === 'icon' ? 'my_DiskCh_b' : 'my_DiskCh_a']?.url
         : channel[`${kind}Layout`];
     if (!descriptor) throw new Error(`This channel's ${kind} is missing. Prepare it again.`);
-    const layout = await readJson('/assets/' + descriptor);
+    const layout = await readJson(
+      candidate ? candidateAssetUrl(candidate, descriptor) : '/assets/' + descriptor,
+    );
     if (disposed) return;
     if (layout.artwork && !layout.imageAnimations?.length) {
       element(kind).setAttribute('aria-label', `Stationary channel ${kind}`);
@@ -336,25 +351,39 @@ async function initialize() {
         element('icon-note').textContent = 'This artwork stays stationary on the Wii Menu.';
       }
     }
-    surfaces.push(await createSurface(kind, layout, display, manifest));
+    surfaces.push(
+      await createSurface(
+        kind,
+        candidate ? rebaseCandidateLayout(layout, candidate) : layout,
+        display,
+        manifest,
+      ),
+    );
   }
   if (disposed) return;
   const entries = sounds.audio ?? sounds.sounds ?? sounds;
-  sound = channel.audio || (id === 'disc' ? entries.discPreview : null);
+  sound = null;
+  if (!comparison && !candidate) {
+    sound = channel.audio || (id === 'disc' ? entries.discPreview : null);
+  }
   if (typeof sound === 'string') sound = { src: sound };
   // This page never needs menu BGM or other channels' effects. Decode only the
   // selected preview sound, and only after the explicit Replay gesture.
-  audio = createAudio({ manifest: sound ? { preview: sound } : {} });
-  audio.setVolume(config.audio.volume);
-  audio.setMuted(config.audio.muted);
+  if (!comparison) {
+    audio = createAudio({ manifest: sound ? { preview: sound } : {} });
+    audio.setVolume(config.audio.volume);
+    audio.setMuted(config.audio.muted);
+  }
   ready = true;
   replay.textContent = sound ? 'Replay opening and sound' : 'Replay opening';
-  replay.disabled = false;
-  pause.disabled = false;
+  replay.disabled = comparison;
+  pause.disabled = comparison;
   showStatus(
-    sound
-      ? 'Animation is playing. Choose Replay to hear the sound.'
-      : 'Animation is playing. This channel has no preview sound.',
+    comparison
+      ? 'Icon and banner animation preview. Sound is off in comparison view.'
+      : sound
+        ? 'Animation is playing. Choose Replay to hear the sound.'
+        : 'Animation is playing. This channel has no preview sound.',
   );
   setPlaying(true);
 }

@@ -43,6 +43,8 @@ explicitly instead of silently rolling back to an older filesystem state.
 npm run prepare -- --wad /path/to/menu.wad --nand /path/to/nand.bin
 npm run prepare -- --rebuild --nand /path/to/extracted-nand --nand /path/to/another/nand.bin
 npm run prepare -- add --nand /path/to/nand.bin --nand-keys /path/to/keys.bin
+npm run prepare -- plan --nand /path/to/newer-nand
+npm run prepare -- add --nand /path/to/newer-nand --replace-channel 0001000148414241
 ```
 
 The System Menu WAD remains required for preparing the menu itself. Raw channel
@@ -50,11 +52,28 @@ import extracts title content, optional title metadata and the channel layout
 into scoped private scratch space. Only selected channel resources, each original TMD, allocation accounting and
 the saved layout are retained for rebuilds; the raw NAND's other user data and keys are not installed.
 
-Title IDs identify channels. Existing imports win over repeated NAND inputs,
-regardless of input order; distinct title IDs are added. Explicit channel WADs
-can replace an existing title. Titles excluded by the `remove` operation stay
-excluded during NAND imports. Existing browser arrangement configuration is
-preserved, and the first usable original layout is kept as the default layout.
+Title IDs identify channels. By default, existing imports win over repeated NAND
+inputs and distinct title IDs are added. Use repeatable `--replace-channel ID`
+to select individual NAND replacements, or `--nand-policy replace` to replace
+all installed IDs present in the supplied NAND. Repeatable `--keep-channel ID`
+overrides that bulk policy and also skips a new title. Both flags reject IDs not
+present in the supplied NAND. An explicitly removed title stays excluded until
+its ID is chosen with `--replace-channel`. Explicit channel WADs can also replace
+an existing title. Existing browser arrangement configuration is preserved, and
+the first usable original layout is kept as the default layout.
+
+`plan` reads one NAND without installing it and reports title IDs, available TMD
+versions, active banner and TMD SHA-256 hashes, and whether each title is new,
+unchanged, different or previously removed. A missing TMD version remains unknown. For a
+reviewed command-line selection, save that JSON and pass `--expect-plan FILE` to
+`add`; import rejects the operation if the NAND or installed channel comparison
+has changed before publication. The [Channel Manager](channel-management.md)
+uses the same guard for its visual comparison. It stages only active icon and
+banner resources for previews; the source NAND and keys stay local.
+
+Replacing a title originally imported from a WAD switches the active descriptor
+to the selected NAND content. The old decrypted WAD cache under `.local/titles/`
+is retained as private data; it is no longer referenced by that title.
 
 Preparation stages resources, new imported content and state. It publishes only
 after conversion succeeds. A private `.local/.prepare-transaction.json` journal

@@ -147,3 +147,52 @@ button:disabled {
     max-width: 340px;
   }
 }
+
+html[data-compare-preview='true'] main {
+  padding: 16px;
+}
+
+html[data-compare-preview='true'] nav,
+html[data-compare-preview='true'] .actions,
+html[data-compare-preview='true'] .note,
+html[data-compare-preview='true'] header > p {
+  display: none;
+}
+
+html[data-compare-preview='true'] header {
+  margin: 0 0 16px;
+}
+
+html[data-compare-preview='true'] h1 {
+  font-size: 1.1rem;
+}
+
+html[data-compare-preview='true'] .previews {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+html[data-compare-preview='true'] section {
+  padding: 14px;
+  border-radius: 10px;
+}
+
+html[data-compare-preview='true'] h2 {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+html[data-compare-preview='true'] .icon-frame {
+  max-width: 220px;
+  margin: 0;
+  padding: 6px;
+}
+
+html[data-compare-preview='true'] .icon-panel p {
+  display: none;
+}
+
+html[data-compare-preview='true'] #status {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+}

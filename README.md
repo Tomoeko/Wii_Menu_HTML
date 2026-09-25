@@ -23,7 +23,10 @@ Open <http://127.0.0.1:5173/>. Generated files and private inputs stay in ignore
 
 ## Channels
 
-Open <http://127.0.0.1:5173/channels.html> to manage installed channels.
+Open <http://127.0.0.1:5173/channels.html> to manage installed channels. Choose
+**Compare NAND channels** to scan another local NAND, view the installed and
+incoming icon and banner side by side, and select which titles to keep, replace,
+restore or install. Existing titles stay unchanged by default.
 
 ```sh
 npm run prepare -- --wad /path/to/menu.wad --channel-wad /path/to/channel.wad
@@ -33,7 +36,14 @@ npm run channels -- add --wad /path/to/channel.wad
 npm run channels -- install /path/to/custom-channel-one /path/to/custom-channel-two
 npm run channels -- overwrite /path/to/custom-channel-one /path/to/custom-channel-two
 npm run channels -- remove CHANNEL_ID custom-channel-folder
+npm run channels -- nand-plan /path/to/newer-nand
+npm run channels -- nand-import /path/to/newer-nand --replace-channel 0001000148414241
 ```
+
+Use `--nand-keys /path/to/keys.bin` when a raw BootMii dump needs a separate
+key file. `nand-import` also accepts repeatable `--keep-channel ID` selections
+and `--nand-policy replace` to replace every installed title found in that NAND.
+See [NAND import](docs/nand-import.md) for the full selection rules.
 
 Custom channel packages can be created with:
 
@@ -49,6 +59,10 @@ object layout. The shared formatter is also used by channel and state writers.
 ## Configuration and controls
 
 Edit [config.json](config.json), then reload. It controls display ratio, audio, startup behavior, Wii Remote fixtures, SD-card fixtures, and channel layout.
+
+Local tools and browser-owned loading screens start in Dark appearance. The
+appearance menu on each tool page can save Light or System instead. Original Wii
+Menu artwork retains its source colors.
 
 - Point and click the menu. Tab and Enter expose keyboard-accessible controls.
 - Home or H opens HOME. Escape or Backspace returns. M toggles mute.

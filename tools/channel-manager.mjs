@@ -17,6 +17,7 @@ import {
 } from './custom-channels.mjs';
 import { relativeResource, validateChannelManifest } from './custom-channel-schema.mjs';
 import { purgeChannel, recoverPendingChannelPurge } from './channel-purge.mjs';
+import { createChannelUpdateService } from './channel-updates.mjs';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
 const format = formatJson;
@@ -215,8 +216,9 @@ export function createChannelManager(options = {}) {
   };
   let pending = Promise.resolve();
   let startup;
+  const updates = createChannelUpdateService(paths);
   function ready() {
-    startup ??= recoverPendingChannelPurge(paths).catch((error) => {
+    startup ??= recoverPendingChannelPurge(paths).then(() => updates.initialize()).catch((error) => {
       startup = undefined;
       throw error;
     });
@@ -367,6 +369,28 @@ export function createChannelManager(options = {}) {
         });
       });
     },
+    scanUpdates(value) {
+      return mutate(async () => {
+        object(value, ['nandPath', 'nandKeysPath'], 'NAND comparison');
+        try {
+          return await updates.scan(value);
+        } catch (error) {
+          if (/^Enter a valid local/.test(error.message)) throw error;
+          throw new ChannelManagerError(
+            400,
+            'NAND_SCAN_FAILED',
+            'Could not scan this NAND. Check the path, keys and source files, then try again.',
+          );
+        }
+      });
+    },
+    applyUpdates(value) {
+      return mutate(async () => {
+        object(value, ['sessionId', 'replaceIds', 'installNewIds'], 'NAND selection');
+        const result = await updates.apply(value);
+        return { ...result, inventory: await inventory() };
+      });
+    },
   };
 }
 
@@ -428,7 +452,11 @@ export async function handleChannelManagerRequest(
     const create = ['custom', 'example', 'import'].find(
       (route) => pathname === `/api/channels/${route}`,
     );
-    if (!(enabled && req.method === 'PUT') && !((create || recovery) && req.method === 'POST')) {
+    const update = ['scan', 'apply'].find(
+      (route) => pathname === `/api/channels/updates/${route}`,
+    );
+    if (!(enabled && req.method === 'PUT') &&
+        !((create || recovery || update) && req.method === 'POST')) {
       throw new ChannelManagerError(
         405,
         'METHOD_NOT_ALLOWED',
@@ -444,15 +472,19 @@ export async function handleChannelManagerRequest(
     }
     const body = await readRequest(
       req,
-      enabled || recovery || create === 'example' ? Math.min(4096, bodyLimit) : bodyLimit,
+      enabled || recovery || create === 'example' || update
+        ? Math.min(update ? 16 * 1024 : 4096, bodyLimit)
+        : bodyLimit,
     );
     let result;
     if (enabled) result = await manager.setEnabled(enabled[1], body);
     else if (recovery) result = await manager[recovery[2]](recovery[1], body);
+    else if (update === 'scan') result = await manager.scanUpdates(body);
+    else if (update === 'apply') result = await manager.applyUpdates(body);
     else if (create === 'custom') result = await manager.create(body);
     else if (create === 'example') result = await manager.installExample(body);
     else result = await manager.importFolder(body);
-    send(enabled || recovery || result.installed === false ? 200 : 201, result);
+    send(enabled || recovery || update || result.installed === false ? 200 : 201, result);
   } catch (error) {
     const failure = publicError(error);
     send(failure.status, { error: { code: failure.code, message: failure.message } });

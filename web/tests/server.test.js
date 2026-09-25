@@ -34,6 +34,7 @@ async function fixture(t) {
     'tools/format-json.mjs',
     'tools/message-service.mjs',
     'tools/channel-manager.mjs',
+    'tools/channel-updates.mjs',
     'tools/channel-recovery.mjs',
     'tools/channel-purge.mjs',
     'tools/channel-image.mjs',

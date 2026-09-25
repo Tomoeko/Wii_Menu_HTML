@@ -452,6 +452,30 @@ test('HTTP filesystem errors disclose no private paths and do not mutate local s
   await assert.rejects(readFile(join(paths.assets, 'custom-channels.json')), { code: 'ENOENT' });
 });
 
+test('NAND comparison routes require the local origin and an active selection', async (t) => {
+  const { request } = await httpFixture(t);
+  assert.equal((await request('/api/channels/updates/scan')).status, 405);
+  assert.equal((await request('/api/channels/updates/apply', {
+    method: 'POST',
+    body: { sessionId: 'missing', replaceIds: [], installNewIds: [] },
+    headers: { Origin: 'https://foreign.invalid' },
+  })).status, 403);
+  assert.equal((await request('/api/channels/updates/scan', {
+    method: 'POST', body: { nandPath: '' },
+  })).status, 400);
+  const missing = await request('/api/channels/updates/scan', {
+    method: 'POST', body: { nandPath: '/private/missing-nand-source' },
+  });
+  assert.equal(missing.status, 400);
+  assert.equal(missing.body.error.code, 'NAND_SCAN_FAILED');
+  assert.ok(!JSON.stringify(missing).includes('/private/missing-nand-source'));
+  const stale = await request('/api/channels/updates/apply', {
+    method: 'POST', body: { sessionId: 'missing', replaceIds: [], installNewIds: [] },
+  });
+  assert.equal(stale.status, 400);
+  assert.match(stale.body.error.message, /expired/);
+});
+
 test('custom creation and example repair respect the shared preparation lock without removing it', async (t) => {
   const { manager, paths } = await fixture(t);
   const created = await manager.installExample();
