@@ -36,6 +36,10 @@ const persistentControlIds = new Set([
   'settings-keyboard-key-symbols-prev',
   'settings-keyboard-key-symbols-next',
 ]);
+// G_ArwRoop moves the footer arrow hit panes by almost three logical pixels
+// while the pointer can stay still. One extra pixel covers CSS rounding at a
+// scaled viewport, so a held focus cannot leave and re-enter on that loop.
+const footerArrowExitMargin = 4;
 
 /** The application's hit regions use these explicit controller prefixes.
  * Text-scroll buttons also retain focus through pointer-capture release and
@@ -64,10 +68,11 @@ export function shouldActivateArrowPointerDown({ id, button = 0, disabled = fals
  */
 export function pointerRemainsInPersistentControl(controls, point, id) {
   if (!point || point.visible === false || !isPersistentArrowControl(id)) return false;
+  const margin = isArrowId(id) ? footerArrowExitMargin : 0;
   return controls.some((control) => {
     const rect = control.id === id && control.rect;
-    return rect && point.x >= rect.x && point.x <= rect.x + rect.w &&
-      point.y >= rect.y && point.y <= rect.y + rect.h;
+    return rect && point.x >= rect.x - margin && point.x <= rect.x + rect.w + margin &&
+      point.y >= rect.y - margin && point.y <= rect.y + rect.h + margin;
   });
 }
 
@@ -94,8 +99,9 @@ export function resolveDragArrowHover(controls, point) {
  * Resolve them with the same source geometry as per-frame arrow reconciliation,
  * so an overlapping sibling cannot repeatedly restart the arrow's focus cue.
  */
-export function resolvePointerHover(controls, point, requested = null) {
+export function resolvePointerHover(controls, point, requested = null, held = null) {
   if (!point || point.visible === false) return requested;
+  if (pointerRemainsInPersistentControl(controls, point, held)) return held;
   const resolved = controls.findLast((control) => {
     const rect = control.rect;
     return isPersistentArrowControl(control.id) && rect &&

@@ -229,6 +229,53 @@ test('animated arrow hover survives sibling DOM boundary events without repeated
   }
 });
 
+test('a grazing pointer retains a held footer arrow through its moving hit edge', sourceTest, () => {
+  for (const aspect of ['4:3', '16:9']) {
+    for (const direction of ['prev', 'next']) {
+      const sounds = [];
+      const footer = createFooterController(source, balloonSource, measure, {
+        onSound: (sound) => sounds.push(sound),
+      });
+      const renderer = Object.create(Renderer.prototype);
+      renderer.display = createDisplay(aspect);
+      renderer.bounds = new Map();
+      renderer.quad = () => {};
+      renderer.window = () => {};
+      const pane = direction === 'prev' ? 'B_ArwL' : 'B_ArwR';
+      const arrow = () => {
+        renderer.draw(footer.pose());
+        return { id: direction, rect: renderer.rect(pane) };
+      };
+      const idle = arrow().rect;
+      const point = {
+        x: direction === 'next' ? idle.x - 2 : idle.x + idle.w + 2,
+        y: idle.y + idle.h / 2,
+        visible: true,
+      };
+      assert.equal(resolvePointerHover([arrow()], point), null,
+        'an unheld arrow does not acquire focus outside its source hit pane');
+      footer.hover(direction);
+      let hovered = direction;
+      let entrances = 1;
+      for (let frame = 0; frame < 60; frame++) {
+        // Before the next render expands the bubble, a DOM sibling can report
+        // an exit as the source loop shifts the idle pane under a still pointer.
+        const target = resolvePointerHover([arrow()], point, 'neighbor', hovered);
+        if (target === direction && hovered !== direction) entrances++;
+        footer.hover(target);
+        hovered = target;
+        footer.advance(1);
+      }
+      assert.equal(hovered, direction);
+      assert.equal(entrances, 1, `${aspect} ${direction}: focus sound plays once`);
+      assert.deepEqual(sounds, ['buttonHover']);
+      point.x = renderer.display.width / 2;
+      assert.equal(resolvePointerHover([arrow()], point, null, hovered), null,
+        'moving away still releases the held arrow');
+    }
+  }
+});
+
 test('disabled persistent arrows cannot reacquire hover from stale DOM events', () => {
   const point = { x: 10, y: 10, visible: true };
   const controls = [{ id: 'scene-storage-prev', rect: { x: 0, y: 0, w: 20, h: 20 },

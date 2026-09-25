@@ -971,8 +971,9 @@ function syncControls(state) {
       b.addEventListener('pointerenter', () => setPointerHover(item.id));
       b.addEventListener('pointerleave', () => {
         if (
-          (isPersistentArrowControl(item.id) || heldTextArrow?.controlId === item.id) &&
-          pointInside(pointer, interactive.find((entry) => entry.id === item.id)?.rect)
+          pointerRemainsInPersistentControl(interactive, pointer, item.id) ||
+          (heldTextArrow?.controlId === item.id &&
+            pointInside(pointer, interactive.find((entry) => entry.id === item.id)?.rect))
         )
           return;
         setPointerHover(null);
@@ -1110,18 +1111,15 @@ function updateArrowHover(state = menu.getState()) {
     }
     return;
   }
-  const target = resolvePointerHover(interactive, pointer);
+  const target = resolvePointerHover(interactive, pointer, null, hover);
   if (target) setHover(target);
-  else if (pointerRemainsInPersistentControl(interactive, pointer, hover)) return;
   else if (isPersistentArrowControl(hover)) setHover(null);
 }
 
 function setPointerHover(requested) {
   if (suppressSceneMemoHover && requested?.startsWith('scene-memo-')) return;
   const target = menu.getState().overlay
-    ? requested : resolvePointerHover(interactive, pointer, requested);
-  if (!target && requested === null &&
-      pointerRemainsInPersistentControl(interactive, pointer, hover)) return;
+    ? requested : resolvePointerHover(interactive, pointer, requested, hover);
   setHover(target);
 }
 
