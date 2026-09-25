@@ -935,7 +935,7 @@ export function createBoardCreate(
           ? ['L', 'R'].map((side) => sample(footer(10110, 10110, `G_Arw${side}_End`), 0))
           : []),
       ]);
-      if (!addressView?.modal && !miiDialog) layers.push({
+      if (!addressView?.modal) layers.push({
         layout: setText(footerLayout, {
           T_CalExit: text(79, 'Back'),
           T_Add: text(79, 'Back'),

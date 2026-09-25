@@ -349,10 +349,29 @@ test('Memo Mii uses the authored icon focus and an original empty-Mii notice',
     assert.equal(icon().scale[0], 1);
     assert.equal(create.activate('memo-mii'), true);
     assert.equal(create.snapshot().miiDialog, true);
-    assert.deepEqual(view().controls.map((control) => control.id), ['address-mii-ok']);
-    assert.equal(view().layers.some((layer) => layer.prefix === 'scene-create-footer:'), false);
-    create.advance(30);
+    const assertModalBackdrop = () => {
+      const presentation = view();
+      assert.deepEqual(presentation.controls.map((control) => control.id), ['address-mii-ok']);
+      const layerNames = presentation.layers.map((layer) => layer.prefix);
+      assert.ok(layerNames.includes('scene-create-body:'));
+      assert.ok(layerNames.includes('scene-create-footer:'));
+      assert.ok(layerNames.indexOf('scene-create-footer:') < layerNames.indexOf('address-dialog:'));
+      const footer = indexLayout(
+        presentation.layers.find((layer) => layer.prefix === 'scene-create-footer:').layout,
+      ).panes;
+      assert.equal(footer.get('T_CalExit').text, 'Back');
+      assert.equal(footer.get('T_CalAdd_R').text, 'Post');
+    };
+    assertModalBackdrop();
+    create.advance(15);
+    assertModalBackdrop();
+    create.advance(15);
+    assertModalBackdrop();
+    assert.equal(create.activate('back'), false);
+    assert.equal(create.activate('submit'), false);
     assert.equal(create.activate('address-mii-ok'), true);
+    create.advance(10);
+    assertModalBackdrop();
     create.advance(40);
     assert.equal(create.snapshot().miiDialog, false);
   });
