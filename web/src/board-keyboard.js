@@ -183,6 +183,7 @@ export function createBoardKeyboard(
   let phoneMode = inputProfile.numeric ? 3 : savedPreferences.phoneMode;
   let phonePending = null;
   let phonePrediction = null;
+  let pressedPhoneHover = null;
   let symbols = false;
   let symbolPage = savedPreferences.symbolPage;
   let symbolPhase = null;
@@ -1315,7 +1316,11 @@ export function createBoardKeyboard(
       keytopHold.hover(id);
       const leavingPhoneKey = /^key-phone-\d+$/.test(focused || '') &&
         id !== focused && !id?.startsWith('key-candidate-');
-      if (leavingPhoneKey && !compositionBoundary) finishPhoneKey();
+      // Crossing a phone key after hovering dictionary text must not commit
+      // a key that was never pressed.
+      if (leavingPhoneKey && pressedPhoneHover === focused && !compositionBoundary)
+        finishPhoneKey();
+      if (id !== focused) pressedPhoneHover = null;
       if (locked()) {
         // A page click keeps its arrow bubble through the twenty-update
         // scroll, but a real pointer departure must still clear that bubble
@@ -1475,6 +1480,7 @@ export function createBoardKeyboard(
         phonePending = null;
         sound('SK_SWITCHING_02');
       } else if (id.startsWith('key-phone-')) {
+        pressedPhoneHover = focused === id ? id : null;
         enterPhone(Number(id.slice(10)), secondary && !primary);
       } else {
         insert(character(Number(id.slice(4))));

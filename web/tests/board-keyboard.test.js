@@ -409,6 +409,38 @@ test(
 );
 
 test(
+  'crossing unpressed phone keys after dictionary hover keeps composition active',
+  { skip: !available },
+  () => {
+    const sounds = [];
+    const predict = () => ['hello', 'help', 'held'];
+    const keyboard = createBoardKeyboard(layouts, {
+      initialPredictionEnabled: true,
+      initialPreferences: { layoutMode: 'phone' },
+      predict,
+      onSound: (name) => sounds.push(name),
+    });
+    keyboard.hover('key-phone-5');
+    keyboard.activate('key-phone-5');
+    assert.deepEqual(keyboard.snapshot().composition, { start: 0, end: 1 });
+
+    for (const index of [0, 1, 2]) {
+      keyboard.hover(`key-candidate-${index}`);
+      sounds.length = 0;
+      keyboard.hover('key-phone-2');
+      keyboard.hover(null);
+      assert.deepEqual(keyboard.snapshot().composition, { start: 0, end: 1 });
+      assert.equal(keyboard.snapshot().candidateStrip.entries.length, 3);
+      assert.equal(sounds.includes('WIPL_SE_CHAR_DECIDE'), false);
+    }
+
+    keyboard.activate('key-candidate-1');
+    assert.equal(keyboard.snapshot().text, 'Help');
+    assert.equal(keyboard.snapshot().composition, null);
+  },
+);
+
+test(
   'every secondary telephone key marks the active character and finalizes on departure',
   { skip: !available },
   () => {
