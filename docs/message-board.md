@@ -181,6 +181,15 @@ executable evidence does not close that gate.
 
 ## Integration
 
+The Memo composer displays the imported `Nigaoe` Mii placeholder and runs its
+six-update source focus animation with one targeting cue per pointer entry.
+Selecting it opens the original no-Miis notice because this local fixture has
+no populated Mii collection. Blank Post still displays its common-button
+hover, but cannot create an empty local record. The software keyboard uses
+the existing 30-update source fade and vertical movement on entry and exit.
+The sheet's gray rulings come from the 42-unit `N_Body` strip in the original
+layout; identifying any extra line needs a matching native/browser frame.
+
 `createMenuScenes({memos, onMemos, onSound, ...})` receives loaded records and emits
 the complete new collection on post, position change, opening an unread Memo or
 erasure. The host loads/saves asynchronously. `getMemos()`, `setMemos(records)`

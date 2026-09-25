@@ -323,6 +323,99 @@ test(
   },
 );
 
+test('Memo Mii uses the authored icon focus and an original empty-Mii notice',
+  { skip: !available }, () => {
+    const sounds = [];
+    const create = createBoardCreate(layouts, { onSound: (sound) => sounds.push(sound) });
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    const view = () => create.presentation();
+    const icon = () => indexLayout(
+      view().layers.find((layer) => layer.prefix === 'scene-create-body:').layout,
+    ).panes.get('Nigaoe');
+    assert.equal(view().controls.find((control) => control.id === 'memo-mii').pane, 'B_Nigaoe');
+    assert.equal(icon().alpha, 255);
+    assert.equal(icon().scale[0], 1);
+    assert.equal(create.hover('memo-mii'), true);
+    assert.equal(create.hover('memo-mii'), false);
+    create.advance(3);
+    assert.ok(icon().scale[0] > 1 && icon().scale[0] < 1.1);
+    create.advance(3);
+    assert.ok(Math.abs(icon().scale[0] - 1.1) < 0.001);
+    assert.deepEqual(sounds.slice(-1), ['WIPL_SE_BT_TARGETTING']);
+    create.hover(null);
+    create.advance(6);
+    assert.equal(icon().scale[0], 1);
+    assert.equal(create.activate('memo-mii'), true);
+    assert.equal(create.snapshot().miiDialog, true);
+    assert.deepEqual(view().controls.map((control) => control.id), ['address-mii-ok']);
+    assert.equal(view().layers.some((layer) => layer.prefix === 'scene-create-footer:'), false);
+    create.advance(30);
+    assert.equal(create.activate('address-mii-ok'), true);
+    create.advance(40);
+    assert.equal(create.snapshot().miiDialog, false);
+  });
+
+test('blank Memo Post remains hoverable without sending, and Back retargets smoothly',
+  { skip: !available }, () => {
+    const sounds = [];
+    const create = createBoardCreate(layouts, { onSound: (sound) => sounds.push(sound) });
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    const footerScale = (name) => indexLayout(
+      create.presentation().layers.find((layer) => layer.prefix === 'scene-create-footer:').layout,
+    ).panes.get(name).scale[0];
+    assert.equal(create.presentation().controls.find((control) => control.id === 'submit').disabled,
+      false);
+    assert.equal(create.activate('submit'), false);
+    assert.equal(create.hover('submit'), true);
+    create.advance(6);
+    assert.ok(footerScale('N_BtnL_a7_Add_R') > 1.09);
+    assert.deepEqual(sounds.slice(-1), ['WIPL_SE_BT_TARGETTING']);
+    create.hover('back');
+    create.advance(3);
+    const partlyEntered = footerScale('N_BtnL_a3_Cal');
+    assert.ok(partlyEntered > 1 && partlyEntered < 1.1);
+    create.hover(null);
+    assert.ok(Math.abs(footerScale('N_BtnL_a3_Cal') - partlyEntered) < 0.001);
+    create.advance(2);
+    const partlyExited = footerScale('N_BtnL_a3_Cal');
+    assert.ok(partlyExited < partlyEntered);
+    create.hover('back');
+    assert.ok(Math.abs(footerScale('N_BtnL_a3_Cal') - partlyExited) < 0.001);
+    create.advance(2);
+    assert.ok(footerScale('N_BtnL_a3_Cal') > partlyExited);
+  });
+
+test('Memo software keyboard fades through both thirty-update motions',
+  { skip: !available }, () => {
+    const create = createBoardCreate(layouts);
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    assert.equal(create.activate('memo-edit'), true);
+    const keyboard = () => create.presentation().layers.find(
+      (layer) => layer.prefix === 'keyboard-ascii:',
+    );
+    assert.equal(keyboard().alpha, 0);
+    assert.equal(keyboard().layout.root.translation[1], -200);
+    create.advance(15);
+    assert.ok(keyboard().alpha > 0.49 && keyboard().alpha < 0.51);
+    assert.equal(keyboard().layout.root.translation[1], -100);
+    create.advance(15);
+    assert.equal(keyboard().alpha, 1);
+    assert.equal(keyboard().layout.root.translation[1], 0);
+    assert.equal(create.activate('key-back'), true);
+    assert.equal(keyboard().alpha, 1);
+    create.advance(15);
+    assert.ok(keyboard().alpha > 0.49 && keyboard().alpha < 0.51);
+    assert.equal(keyboard().layout.root.translation[1], -100);
+    create.advance(15);
+    assert.equal(keyboard(), undefined);
+  });
+
 test(
   'offline Letter and Register use native dialogs and distinct settings destinations',
   { skip: !available },

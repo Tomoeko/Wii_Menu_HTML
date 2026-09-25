@@ -1,4 +1,4 @@
-import { indexLayout, poseLayout } from './animation.js';
+import { indexLayout, poseLayout, sampleTrack } from './animation.js';
 import { KEYBOARD_LAYOUTS, createBoardKeyboard } from './board-keyboard.js';
 import { isPrimaryKeyboardTrigger } from './keyboard-activation.js';
 import { ADDRESS_LAYOUTS, createBoardAddress } from './board-address.js';
@@ -10,6 +10,8 @@ import { arrangeMessageBody, keyboardTransitionLayers } from './board-message-vi
 import { keyboardCaretAtPoint } from './keyboard-text-hit.js';
 import { createTextScrollRepeat } from './text-scroll-repeat.js';
 import { commonArrowDefinitions, createArrowInteraction } from './arrow-interaction.js';
+import { createPaneAnimationBinding } from './pane-animation-binding.js';
+import { createContactDialog } from './board-contact-dialog.js';
 
 export const CREATE_LAYOUTS = [
   'my_Mail_a',
@@ -78,6 +80,30 @@ export function createBoardCreate(
   };
   const memoScroll = createMemoEditorScroll(() => onSound('WIPL_SE_LINE_SCROLL'));
   const memoArrows = createMemoScrollArrows(memoTemplate);
+  const bindMemoPane = createPaneAnimationBinding(memoTemplate);
+  const miiFocus = createArrowInteraction({
+    'memo-mii': {
+      focusIn: {
+        animation: bindMemoPane(memoTemplate.animations.my_Memo_a_NigaoeFoucusIn, 'Nigaoe'),
+        from: 0,
+        to: 6,
+      },
+      focusOut: {
+        animation: bindMemoPane(memoTemplate.animations.my_Memo_a_NigaoeFoucusOut, 'Nigaoe'),
+        from: 0,
+        to: 6,
+      },
+    },
+  });
+  const footerAnimation = layouts.my_IplTop_e.animations.my_IplTop_e;
+  const footerFocusPane = { back: 'N_BtnL_a3_Cal', submit: 'N_BtnL_a7_Add_R' };
+  const footerFocusTrack = Object.fromEntries(
+    Object.entries(footerFocusPane).map(([id, paneName]) => [
+      id,
+      footerAnimation.targets.find((target) => target.name === paneName)
+        .tracks.find((track) => track.kind === 'RLPA' && track.target === 6),
+    ]),
+  );
   const scrollRepeat = createTextScrollRepeat({
     advance: (frames) => api.advance(frames, true),
     activate: (id) => api.activate(id),
@@ -91,6 +117,7 @@ export function createBoardCreate(
   let keyboard = null,
     keyboardProgress = 0,
     address = null;
+  let miiDialog = null;
   let letter = null;
   let recipientPicker = null;
   const letterDrafts = new Map();
@@ -142,6 +169,7 @@ export function createBoardCreate(
     scrollRepeat.release();
     commit(focusClips, focusAge);
     addressArrows.hover(null);
+    miiFocus.hover(null);
     focus = null;
     focusClips = [];
     phase = {
@@ -170,7 +198,21 @@ export function createBoardCreate(
   };
   const dialogClip = (suffix, group) =>
     clip('my_DialogWindow_a2', `my_DialogWindow_a2_${suffix}`, group);
-  const hoverClips = (id, enter) => {
+  const footerFocusStart = (id, enter, layout) => {
+    const track = footerFocusTrack[id];
+    const current = indexLayout(layout).panes.get(footerFocusPane[id]).scale[0];
+    let low = enter ? 2900 : 2930;
+    let high = enter ? 2906 : 2938;
+    // A quick leave and re-entry resumes the original focus curve at the
+    // current pose. Restarting its first frame would snap a partly scaled Back.
+    for (let index = 0; index < 14; index++) {
+      const middle = (low + high) / 2;
+      if ((sampleTrack(track, middle) < current) === enter) low = middle;
+      else high = middle;
+    }
+    return (low + high) / 2;
+  };
+  const hoverClips = (id, enter, layout) => {
     if (id === 'memo-scroll-up' || id === 'memo-scroll-down') return [];
     if (addressDirection(id)) return [];
     if (networkDialog)
@@ -180,15 +222,19 @@ export function createBoardCreate(
           `G_FocusBtn${id === 'network-quit' ? 'A' : 'B'}`,
         ),
       ];
-    if (id === 'submit') return [footer(enter ? 2900 : 2930, enter ? 2906 : 2938, 'G_Cmn_R')];
+    if (id === 'submit')
+      return [footer(footerFocusStart(id, enter, layout), enter ? 2906 : 2938, 'G_Cmn_R')];
     const button = CHOICES.find((button) => button.id === id);
     if (button)
       return [select(`${button.stem}Foucus${enter ? 'In' : 'Out'}`, `G_${button.stem}Foucus`)];
-    return id === 'back' ? [footer(enter ? 2900 : 2930, enter ? 2906 : 2938, 'G_CalExit')] : [];
+    return id === 'back'
+      ? [footer(footerFocusStart(id, enter, layout), enter ? 2906 : 2938, 'G_CalExit')]
+      : [];
   };
   const controls = (addressState) => {
     if (letter) return letter.controls();
     if (recipientPicker) return recipientPicker.controls();
+    if (miiDialog) return miiDialog.presentation().controls;
     if (keyboard) return [...keyboard.controls(), ...(!phase ? memoArrows.controls() : [])];
     if (networkDialog)
       return [
@@ -220,6 +266,12 @@ export function createBoardCreate(
               prefix: 'scene-create-body:',
               label: 'Write a memo',
             },
+            {
+              id: 'memo-mii',
+              pane: 'B_Nigaoe',
+              prefix: 'scene-create-body:',
+              label: text(139, 'Add a Mii'),
+            },
             // The text hit pane spans the sheet. Arrow buttons must follow it
             // in DOM order so their overlap dispatches scroll, not text entry.
             ...memoArrows.controls(),
@@ -235,10 +287,8 @@ export function createBoardCreate(
               pane: 'B_Add_R',
               prefix: 'scene-create-footer:',
               label: page === 'address' ? addressState?.rightLabel : text(36, 'Post'),
-              disabled:
-                page === 'address'
-                  ? !addressState?.rightLabel || addressState.rightDisabled
-                  : !memoText.trim(),
+              disabled: page === 'address' &&
+                (!addressState?.rightLabel || addressState.rightDisabled),
             },
           ]
         : []),
@@ -257,8 +307,10 @@ export function createBoardCreate(
       memoText,
       memoScroll: memoScroll.snapshot(),
       networkDialog,
+      miiDialog: Boolean(miiDialog),
       locked: Boolean(phase) || Boolean(addressState?.locked) ||
-        Boolean(letterState?.locked) || Boolean(recipientState?.locked),
+        Boolean(letterState?.locked) || Boolean(recipientState?.locked) ||
+        Boolean(miiDialog && miiDialog.snapshot().phase !== 'idle'),
       phase: phase ? 'transition' : letterState?.phase ?? null,
       frame: phase?.frame ?? 0,
       duration: phase?.frames ?? 0,
@@ -327,6 +379,7 @@ export function createBoardCreate(
       letter?.dispose();
       recipientPicker?.dispose();
       keyboard = null;
+      miiDialog = null;
       address = null;
       letter = null;
       recipientPicker = null;
@@ -336,6 +389,7 @@ export function createBoardCreate(
       editing = false;
       networkDialog = false;
       focus = null;
+      miiFocus.reset();
     },
     holdControl(id) {
       if (letter) return letter.holdControl(id);
@@ -383,10 +437,12 @@ export function createBoardCreate(
       memoLeaving = false;
       editing = false;
       networkDialog = false;
+      miiDialog = null;
       letter = null;
       focus = null;
       focusAge = 0;
       focusClips = [];
+      miiFocus.reset();
       // The common footer inherits the board's completed entry before transition.
       commit([footer(1040, 1040)], 0);
       commit(
@@ -410,6 +466,7 @@ export function createBoardCreate(
       if (page === 'closed') return;
       if (!repeated) return scrollRepeat.advance(frames);
       keyboard?.advance(frames);
+      miiDialog?.advance(frames);
       const advancingLetter = letter;
       address?.advance(frames);
       const advancingPhase = phase;
@@ -417,6 +474,7 @@ export function createBoardCreate(
       advancingLetter?.advance(frames);
       addressArrows.advance(frames);
       memoArrows.advance(frames);
+      miiFocus.advance(frames);
       if (page === 'memo') {
         const input = keyboard?.snapshot();
         memoScroll.measure(
@@ -453,6 +511,7 @@ export function createBoardCreate(
     hover(id) {
       if (letter) return letter.hover(id);
       if (recipientPicker) return recipientPicker.hover(id);
+      if (miiDialog) return miiDialog.hover(id);
       scrollRepeat.hover(id);
       const memoArrowChanged = !phase && memoArrows.hover(id);
       if (keyboard && !phase) {
@@ -479,10 +538,12 @@ export function createBoardCreate(
       )
         return childChanged;
       addressArrows.hover(addressDirection(parentTarget));
+      miiFocus.hover(parentTarget);
+      const focusLayout = posed('my_IplTop_e', focusClips, focusAge);
       commit(focusClips, focusAge);
       focusClips = [
-        ...(focus ? hoverClips(focus, false) : []),
-        ...(parentTarget ? hoverClips(parentTarget, true) : []),
+        ...(focus ? hoverClips(focus, false, focusLayout) : []),
+        ...(parentTarget ? hoverClips(parentTarget, true, focusLayout) : []),
       ];
       focus = parentTarget;
       focusAge = 0;
@@ -493,12 +554,16 @@ export function createBoardCreate(
       if (letter) return letter.activate(id, triggers);
       if (recipientPicker)
         return isPrimaryKeyboardTrigger(triggers) && recipientPicker.activate(id);
+      if (miiDialog) return isPrimaryKeyboardTrigger(triggers) && miiDialog.activate(id);
       if (
         phase ||
         page === 'closed' ||
         !controls().some((control) => control.id === id && !control.disabled)
       )
         return false;
+      // The empty Post button still accepts pointer focus, but cannot send a
+      // blank local record. Keep activation separate from its visual state.
+      if (id === 'submit' && page === 'memo' && !memoText.trim()) return false;
       if (!isPrimaryKeyboardTrigger(triggers)) {
         if (networkDialog) return false;
         if (keyboard) return keyboard.activate(id, triggers);
@@ -514,6 +579,14 @@ export function createBoardCreate(
         return true;
       }
       if (keyboard) return keyboard.activate(id, triggers);
+      if (id === 'memo-mii') {
+        miiFocus.hover(null);
+        miiDialog = createContactDialog(layouts, {
+          kind: 'no-mii', messages, onSound,
+          onDone() { miiDialog = null; },
+        });
+        return true;
+      }
       if (address && (id.startsWith('address-') || id.startsWith('key-'))) {
         const activated = address.activate(id, triggers);
         if (activated && (id === 'address-prev' || id === 'address-next')) {
@@ -695,6 +768,7 @@ export function createBoardCreate(
     back() {
       if (letter) return letter.back();
       if (recipientPicker) return recipientPicker.back();
+      if (miiDialog) return miiDialog.back();
       if (phase || page === 'closed') return false;
       if (networkDialog) {
         closeNetwork(false);
@@ -823,9 +897,9 @@ export function createBoardCreate(
               };
         const body = setText(working(bodyKey()), values);
         if (page === 'memo') {
-          const arrowPose = poseLayout(body, memoArrows.clips());
-          body.root = arrowPose.root;
-          body.materials = arrowPose.materials;
+          const focusedBody = poseLayout(body, [...miiFocus.clips(), ...memoArrows.clips()]);
+          body.root = focusedBody.root;
+          body.materials = focusedBody.materials;
           let editorOpacity = 0;
           if (keyboard && keyboardProgress === 1)
             editorOpacity = phase ? Math.max(0, 1 - phase.frame / 30) : 1;
@@ -861,7 +935,7 @@ export function createBoardCreate(
           ? ['L', 'R'].map((side) => sample(footer(10110, 10110, `G_Arw${side}_End`), 0))
           : []),
       ]);
-      if (!addressView?.modal) layers.push({
+      if (!addressView?.modal && !miiDialog) layers.push({
         layout: setText(footerLayout, {
           T_CalExit: text(79, 'Back'),
           T_Add: text(79, 'Back'),
@@ -904,6 +978,7 @@ export function createBoardCreate(
           }),
           prefix: 'create-network:',
         });
+      if (miiDialog) layers.push(...miiDialog.presentation().layers);
       return {
         ...snapshot(addressView),
         layers,
