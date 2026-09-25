@@ -752,7 +752,9 @@ export function createBoardCreate(
         });
       start(
         [
-          select(`${choice.stem}In`, 'G_AdressInOut'),
+          // Memo and Address author reciprocal mask fades alongside their
+          // three-card motion. Letter owns a separate picker/writer route.
+          select(`${choice.stem}In`, id === 'letter' ? 'G_AdressInOut' : undefined),
           // SceneManager consumes the child-creation queue after calculating
           // the parent. Prepared Address begins on the next update; its
           // frame-zero pose must remain applied while that update is pending.
@@ -808,7 +810,7 @@ export function createBoardCreate(
             // The parent common-before layout has already calculated when
             // Address starts this animation. The child common-after advances
             // this update; the selector begins advancing on the next one.
-            select('AdressOut', 'G_AdressInOut', 1),
+            select('AdressOut', undefined, 1),
             ...bodyClip('MailOut'),
             // Back starts arrow operations 25/26 before the footer queue
             // (0x81385754/60). Do not hold the appeared endpoint until exit.
@@ -835,7 +837,7 @@ export function createBoardCreate(
               page = 'selector';
               memoLeaving = false;
               address = null;
-              start([select(`${choice.stem}Out`, 'G_AdressInOut')], () => {});
+              start([select(`${choice.stem}Out`)], () => {});
             },
           );
         });

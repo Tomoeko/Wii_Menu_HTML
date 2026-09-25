@@ -183,6 +183,12 @@ executable evidence does not close that gate.
 
 The Memo composer displays the imported `Nigaoe` Mii placeholder and runs its
 six-update source focus animation with one targeting cue per pointer entry.
+The Create selector's Memo entry plays the complete 17-update `MailIn` track:
+the selected card enlarges and fades, Letter and Address Book move away, and
+the selector mask fades from alpha 100 to zero. The reciprocal `MailOut` restores
+those panes after the Memo sheet and common footer depart. Address Book uses
+the same mask ownership in its authored `AdressIn`/`AdressOut` tracks. The
+Letter picker remains on its distinct selector route.
 Selecting it opens the original no-Miis notice because this local fixture has
 no populated Mii collection. Blank Post still displays its common-button
 hover, but cannot create an empty local record. The software keyboard uses

@@ -323,6 +323,44 @@ test(
   },
 );
 
+test('Memo selector retires all three cards and its mask before the editor settles',
+  { skip: !available }, () => {
+    const create = createBoardCreate(layouts);
+    create.advance(39);
+    const selector = () => indexLayout(
+      create.presentation().layers.find((layer) => layer.prefix === 'scene-create:').layout,
+    ).panes;
+    assert.equal(selector().get('mask').alpha, 100);
+    create.hover('memo');
+    create.advance(6);
+    assert.equal(create.activate('memo'), true);
+    assert.equal(selector().get('mask').alpha, 100);
+    create.advance(8);
+    assert.ok(selector().get('mask').alpha > 0 && selector().get('mask').alpha < 100);
+    assert.ok(selector().get('N_MailB').alpha > 0 && selector().get('N_MailB').alpha < 255);
+    assert.ok(selector().get('N_LetterB').translation[0] > 0);
+    assert.ok(selector().get('N_AdressB').translation[0] > 0);
+    create.advance(8);
+    assert.equal(selector().get('mask').alpha, 0);
+    assert.equal(selector().get('N_MailB').alpha, 0);
+    assert.equal(selector().get('N_LetterB').translation[0], 1000);
+    assert.equal(selector().get('N_AdressB').translation[0], 500);
+    create.advance(10);
+    assert.equal(create.snapshot().page, 'memo');
+    assert.ok(!create.presentation().controls.some((control) =>
+      ['memo', 'letter', 'address'].includes(control.id)));
+
+    assert.equal(create.back(), true);
+    create.advance(20);
+    create.advance(26);
+    assert.equal(selector().get('mask').alpha, 0);
+    create.advance(8);
+    assert.ok(selector().get('mask').alpha > 0 && selector().get('mask').alpha < 100);
+    create.advance(9);
+    assert.equal(selector().get('mask').alpha, 100);
+    assert.equal(selector().get('N_MailB').alpha, 255);
+  });
+
 test('Memo Mii uses the authored icon focus and an original empty-Mii notice',
   { skip: !available }, () => {
     const sounds = [];
