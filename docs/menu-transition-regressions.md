@@ -200,3 +200,33 @@ and checks every hover frame. The later isolated browser click failures were
 caused by automation viewport drift and do not establish an additional app
 input defect. Physical-pointer validation of the reported angle-sensitive
 chatter remains required after this host event-routing correction.
+
+## Disc preview zoom and browser capture work
+
+The fresh isolated Dolphin 2512 Metal capture `channel-zoom-20260925-c` uses the
+USA 4.3 WAD, SHA-256
+`bf814c6eb13cf71ab4afe1a1464f3ae27c5a16767030c693abf05e14724f2bbb`.
+It retains ordered 1668 × 912 presented-XFB images. Disc entry changes across
+images 437–463 (Home baseline 436; full preview by 463/464), and return changes
+across 735–762 (preview baseline 734; Home by 761/762). At half resolution,
+thresholded selected bright-component bounds are `[65,33,228,128]` at entry
+446 and `[65,33,228,128]` at return 751; entry 450 and return 747 are
+`[59,30,296,166]` and `[59,31,296,165]`. Six matched entry/return ordinal
+pairs sum to 1197, supporting a symmetric pose path. These are visible-content
+bounds, not the complete preview rectangle. The user-controlled capture has no
+verified emulated-update stamps, so presented-image ordinals and recording
+wall-clock stalls cannot establish exact transition duration or frame cadence.
+
+The browser retains the source-derived 28-update Hermite zoom. Its preview
+shader variants and offscreen target are prepared before input; unchanged
+frame-zero anchors and background are posed once. During browser idle time,
+hovering a channel can compose its frame-zero preview into that same target.
+SELECT reuses it only while slot, channel object, date, display and raster
+dimensions match. An immediate click captures normally, and Back still
+recomposes every update so its outgoing banner remains animated. In one
+same-server headless Chrome A/B at a 1280 × 720 viewport, first-entry capture
+work fell from 11.6 to 5.0 ms and click-time shader compilation from three
+programs to zero. A hovered Disc capture took 4.8 ms in idle time with a
+maximum 18.0 ms frame interval; the following SELECT used no capture and had
+a maximum 19.8 ms interval. These host measurements show a reduced browser
+click hitch, not native timing or GPU-wide performance equivalence.

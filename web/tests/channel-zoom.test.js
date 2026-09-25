@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { channelZoom, drawChannelZoom, sourceAnchorMatrices } from '../src/channel-zoom.js';
+import {
+  channelZoom,
+  channelZoomCenters,
+  drawChannelZoom,
+  sourceAnchorMatrices,
+} from '../src/channel-zoom.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { poseLayout } from '../src/animation.js';
 import { Renderer } from '../src/renderer.js';
@@ -63,6 +68,31 @@ test('native zoom starts at the thumbnail and ends at the complete preview', () 
   assert.equal(end.alpha, 1);
   assert.equal(end.bannerStarts, true);
 });
+
+test('cached zoom centers retain all twelve source anchors in both aspect modes',
+  { skip: !manifest }, () => {
+    const source = JSON.parse(readFileSync(new URL(manifest.layouts.my_IplTop_a.url, manifestUrl)));
+    for (const [aspect, columns] of [
+      ['4:3', [-192, -64, 64, 192]],
+      ['16:9', [
+        -262.7368421052632,
+        -87.57894736842105,
+        87.57894736842105,
+        262.7368421052632,
+      ]],
+    ]) {
+      const display = createDisplay(aspect);
+      const centers = channelZoomCenters(prepareAspectLayout(source, display), display);
+      assert.equal(centers.length, 12);
+      for (let row = 0; row < 3; row++) {
+        for (let column = 0; column < 4; column++) {
+          const center = centers[row * 4 + column];
+          close(center[0], columns[column]);
+          close(center[1], 145 - row * 96);
+        }
+      }
+    }
+  });
 test('return is the exact reverse camera and capture fade, including widescreen', () => {
   const options = {
     center: [-240, 145],

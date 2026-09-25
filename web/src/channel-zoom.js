@@ -1,7 +1,27 @@
-import { identity, multiply, paneMatrix } from './animation.js';
+import { identity, multiply, paneMatrix, poseLayout, transform } from './animation.js';
+import { paneForDisplay } from './display.js';
 
 export const CHANNEL_ZOOM_FRAMES = 28;
 const mix = (a, b, amount) => a + (b - a) * amount;
+
+/** ChannelSelect::initChanZoomParam samples the twelve center-page anchors
+ * from the frame-zero WAD pose. The camera reuses these centers for every
+ * update of the enter and return animation. */
+export function channelZoomCenters(source, display) {
+  const names = Array.from({ length: 12 }, (_, index) =>
+    `N_Ch_c${String(index + 1).padStart(2, '0')}`);
+  const layout = poseLayout(source, [{
+    animation: source.animations.my_IplTop_a,
+    frame: 0,
+    loop: false,
+  }]);
+  const anchors = sourceAnchorMatrices(layout, names, {
+    mapPane: (pane, root) => paneForDisplay(pane, display, { root }),
+  });
+  if (anchors.length !== names.length)
+    throw new Error('Channel zoom anchors are incomplete.');
+  return anchors.map((anchor) => transform(anchor.matrix, 0, 0));
+}
 
 /** Native draw order: ChannelSelect's full-screen ChMask, captured preview,
  * then ChannelTitle's black outside rectangles. The two independent fades

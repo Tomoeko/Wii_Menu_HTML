@@ -43,7 +43,13 @@ import {
 import { createChannelDrag } from './channel-drag.js';
 import { dragAudioParameters } from './drag-audio.js';
 import { createHealthScreen } from './health-screen.js';
-import { channelZoom, drawChannelZoom, sourceAnchorMatrices } from './channel-zoom.js';
+import {
+  channelZoom,
+  channelZoomCenters,
+  drawChannelZoom,
+  sourceAnchorMatrices,
+} from './channel-zoom.js';
+import { createChannelZoomCapture, warmChannelZoomPrograms } from './channel-zoom-capture.js';
 import { createMenuScenes, MENU_SCENE_LAYOUTS } from './menu-scenes.js';
 import { activateSceneControl } from './menu-scene-actions.js';
 import { menuEntranceSample } from './native-fader.js';
@@ -155,6 +161,9 @@ const pointer = pointerInput.pointer;
 let restart, entranceHealthShown;
 let zoomCapture = null,
   pendingZoomCapture = false,
+  hoverPreviewRequest = null,
+  zoomCenters = [],
+  backgroundLayout,
   slotRects = [];
 let grabPointerId = null,
   scenes,
@@ -322,7 +331,7 @@ function authoredLabels(layout) {
 }
 
 function drawBackground(matrix = identity) {
-  const layout = pose('my_IplTop_c');
+  const layout = backgroundLayout;
   const date = sceneDate;
   const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
   renderer.draw(layout, {
@@ -341,6 +350,77 @@ function drawBackground(matrix = identity) {
       ),
   });
 }
+
+function channelCaptureKey(state, index) {
+  return {
+    index,
+    channel: state.channels[index],
+    date: sceneDate.toDateString(),
+    rasterWidth: renderer.rasterWidth,
+    rasterHeight: renderer.rasterHeight,
+    displayWidth: display.width,
+    displayHeight: display.height,
+  };
+}
+
+function captureChannelPreview(state, index, { initial, key = null } = {}) {
+  const savedControls = interactive;
+  try {
+    zoomCapture.update(
+      () => {
+        drawBackground();
+        drawPreview(
+          { ...state, selectedIndex: index, transition: null, locked: true },
+          { capture: true, initial },
+        );
+      },
+      { refresh: true, key },
+    );
+  } finally {
+    interactive = savedControls;
+  }
+}
+
+function cancelHoverPreviewCapture() {
+  if (hoverPreviewRequest === null) return;
+  cancelIdleCallback(hoverPreviewRequest);
+  hoverPreviewRequest = null;
+}
+
+function scheduleHoverPreviewCapture(index) {
+  cancelHoverPreviewCapture();
+  // A browser without idle callbacks keeps the exact synchronous SELECT path.
+  if (index === null || typeof requestIdleCallback !== 'function') return;
+  const prepare = () => {
+    hoverPreviewRequest = null;
+    const state = menu.getState();
+    if (
+      state.screen !== 'grid' ||
+      state.locked ||
+      state.overlay ||
+      !state.channels[index] ||
+      state.channels[index].disabled ||
+      hover !== `channel-${index}` ||
+      drag.getState() ||
+      sceneFader.active ||
+      settingsDialog?.active ||
+      settingsKeyboard?.active ||
+      (settingsFrame && !settingsFrame.hidden) ||
+      restart?.active ||
+      notice
+    ) return;
+    const key = channelCaptureKey(state, index);
+    if (zoomCapture.matches(key)) return;
+    try {
+      captureChannelPreview(state, index, { initial: true, key });
+    } catch (error) {
+      zoomCapture.invalidate();
+      console.warn('Could not prepare a hovered channel preview.', error);
+    }
+  };
+  hoverPreviewRequest = requestIdleCallback(prepare);
+}
+
 function drawSDButton(visible, input = false, locked = false, matrix = identity) {
   renderer.draw(
     sdButton.pose({ frame: (sceneNow - startedAt) * 0.06, hovered: hover === 'sd', visible }),
@@ -479,32 +559,22 @@ function drawGrid(
   if (layoutFrame !== undefined) sourceFrame = layoutFrame;
   if (zooming) {
     const index = transition.to.selectedIndex ?? transition.from.selectedIndex;
-    const anchorName = `N_Ch_c${String((index % 12) + 1).padStart(2, '0')}`;
-    const [anchor] = sourceAnchorMatrices(pose('my_IplTop_a'), [anchorName], {
-      mapPane: (pane, root) => paneForDisplay(pane, display, { root }),
-    });
+    const captureKey = transition.kind === 'select' ? channelCaptureKey(state, index) : null;
     zoom = channelZoom({
       frame: transition.progress * 28,
       direction: transition.kind === 'select' ? 'in' : 'out',
-      center: transform(anchor.matrix, 0, 0),
+      center: zoomCenters[index % 12],
       wide: display.wide,
       projection: display.projection,
     });
     matrix = zoom.cameraMatrix;
     sourceFrame = zoom.layoutFrame;
-    if (pendingZoomCapture || !zoomCapture || transition.kind === 'back') {
-      const savedControls = interactive;
-      zoomCapture = renderer.capture(
-        () => {
-          drawBackground();
-          drawPreview(
-            { ...state, selectedIndex: index, transition: null, locked: true },
-            { capture: true, initial: transition.kind === 'select' },
-          );
-        },
-        { reuse: zoomCapture },
-      );
-      interactive = savedControls;
+    if (pendingZoomCapture || !zoomCapture.current || transition.kind === 'back') {
+      if (transition.kind !== 'select' || !zoomCapture.matches(captureKey))
+        captureChannelPreview(state, index, {
+          initial: transition.kind === 'select',
+          key: captureKey,
+        });
       pendingZoomCapture = false;
     }
   }
@@ -646,7 +716,7 @@ function drawGrid(
   // The carried channel stays below the arrow panes; the pointer draws last.
   if (footer) drawFooter({ ...state, locked: state.locked || Boolean(dragState) }, matrix);
   if (zoom) {
-    drawChannelZoom(renderer, layout, zoom, zoomCapture, (rect, alpha) => {
+    drawChannelZoom(renderer, layout, zoom, zoomCapture.current, (rect, alpha) => {
       box(rect.x, rect.y, rect.w, rect.h, [0, 0, 0, Math.round(alpha * 255)]);
     });
   }
@@ -1150,13 +1220,18 @@ function playSceneSound(name, options = {}) {
 function setHover(value) {
   if (suppressSceneMemoHover && value?.startsWith('scene-memo-')) return;
   if (menu?.getState().overlay) {
+    cancelHoverPreviewCapture();
     home.hover(value);
     hover = value;
     hoverAt = now;
     return;
   }
-  if (settingsDialog?.active) return;
+  if (settingsDialog?.active) {
+    cancelHoverPreviewCapture();
+    return;
+  }
   if (settingsKeyboard?.active) {
+    cancelHoverPreviewCapture();
     settingsKeyboard.hover(value?.startsWith('settings-keyboard-') ? value.slice(18) : null);
     hover = value;
     hoverAt = now;
@@ -1173,9 +1248,12 @@ function setHover(value) {
     ? (footer.hover(value), true)
     : routeFooterHover(footer, value, state, scenes?.snapshot(), sceneFader.active);
   if (hover === value) return;
+  cancelHoverPreviewCapture();
   hover = value;
   hoverAt = now;
   const index = value?.startsWith('channel-') ? Number(value.slice(8)) : null;
+  if (index !== null && state.screen === 'grid' && !state.locked)
+    scheduleHoverPreviewCapture(index);
   focus.target(index);
   balloon.target(index);
   const activeScene = value?.startsWith('scene-') ? scenes.snapshot() : null;
@@ -1425,10 +1503,6 @@ function render(timestamp) {
       settingsKeyboard?.active ||
       settingsDialog?.active,
     );
-  if (!['select', 'back'].includes(state.transition?.kind) && zoomCapture) {
-    renderer.releaseCapture(zoomCapture);
-    zoomCapture = null;
-  }
   if (state.locked || sceneFader.active || scenes.snapshot().transition) {
     balloon.clear();
     // A page scroll locks activation, but the original arrow hover remains
@@ -1592,6 +1666,8 @@ async function init() {
     // Channel transitions use their own retained offscreen capture texture.
     preserveDrawingBuffer: Boolean(inspection),
   });
+  zoomCapture = createChannelZoomCapture(renderer);
+  zoomCapture.prewarm();
   homeUnderlayCache = createHomeUnderlayCache(renderer);
   const names = new Set([
     'my_IplTop_a',
@@ -1625,6 +1701,10 @@ async function init() {
       await renderer.load(layouts[name]);
     }),
   );
+  // These frame-zero source poses do not change during a zoom. Prepare them
+  // before input so the 28-frame camera path only samples its moving clips.
+  backgroundLayout = pose('my_IplTop_c');
+  zoomCenters = channelZoomCenters(layouts.my_IplTop_a, display);
   const loadedFonts = new Map();
   for (const [name, descriptor] of Object.entries(manifest.fonts)) {
     let face = loadedFonts.get(descriptor.url);
@@ -1680,6 +1760,18 @@ async function init() {
       channelWarnings.push(`${channel.id}: ${error.message}`);
     }
   }
+  warmChannelZoomPrograms(
+    renderer,
+    [
+      layouts.my_IplTop_c,
+      layouts.my_ChTop_a,
+      layouts.my_DiskCh_a,
+      layouts.my_IplTop_e,
+      ...channels.map((channel) => channel.banner),
+    ],
+    (error, layout, material) =>
+      console.warn(`Could not prepare preview shader ${layout}/${material}.`, error),
+  );
   channelPlacement = config.channels.persistLayout ? await readChannelPlacement() : null;
   const defaultIds = catalog.savedLayout?.slots?.map((slot) => slot.id) ?? [
     'disc',
@@ -1994,6 +2086,7 @@ async function init() {
       previewButtonHover?.reset();
     }
     if (state.locked) {
+      cancelHoverPreviewCapture();
       focus.clear();
       balloon.clear();
     } else if (wasLocked && state.screen === 'grid' && hover?.startsWith('channel-')) {
@@ -2226,6 +2319,10 @@ function installInput() {
     drag.cancel();
     audio.stopLoop('drag');
     grabPointerId = null;
+  });
+  window.addEventListener('pagehide', () => {
+    cancelHoverPreviewCapture();
+    zoomCapture.release();
   });
   window.addEventListener('blur', () => {
     releaseTextArrow();
