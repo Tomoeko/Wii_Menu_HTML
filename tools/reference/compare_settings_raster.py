@@ -14,8 +14,7 @@ import hashlib
 import json
 from pathlib import Path
 
-import numpy as np
-from PIL import Image
+from raster import read_png
 
 # These regions exclude the Calendar hover and pointer in the fresh native
 # reference. They intentionally describe page 1, not arbitrary Settings pages.
@@ -30,13 +29,13 @@ REGIONS = {
 
 
 def compare(native_path, browser_path):
-    native_image = Image.open(native_path).convert("RGB")
-    browser_image = Image.open(browser_path).convert("RGB")
+    native_image = read_png(native_path)
+    browser_image = read_png(browser_path)
     if browser_image.size != (832, 456) or native_image.height != 456:
         raise ValueError("Use the 832×456 browser canvas and a 456-pixel-high native capture.")
 
-    native = np.asarray(native_image.resize((832, 456), Image.Resampling.BILINEAR))
-    browser = np.asarray(browser_image)
+    native = native_image.resize((832, 456), "bilinear")
+    browser = browser_image
     report = {
         "nativeFrame": native_path.name,
         "browserFrame": browser_path.name,
@@ -45,35 +44,40 @@ def compare(native_path, browser_path):
         "nativeSize": list(native_image.size),
         "comparisonSize": [832, 456],
         "normalization": (
-            "Native width resampled to 832 with Pillow bilinear filtering; "
+            "Native width resampled to 832 with the first-party bilinear filter; "
             "browser pixels unchanged. Calendar hover and native cursor excluded."
         ),
+        "rasterSha256": hashlib.sha256((Path(__file__).parent / "raster.py").read_bytes()).hexdigest(),
         "regions": {},
     }
     for name, (x0, y0, x1, y1) in REGIONS.items():
-        reference = native[y0:y1, x0:x1]
-        candidate = browser[y0:y1, x0:x1]
-        difference = np.abs(reference.astype(float) - candidate)
+        difference_sum = 0
+        matching_pixels = 0
+        bounds = {"nativeTextBounds": [], "browserTextBounds": []}
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                reference = native.getpixel((x, y))
+                candidate = browser.getpixel((x, y))
+                difference_sum += sum(abs(left - right)
+                                      for left, right in zip(reference, candidate))
+                matching_pixels += reference == candidate
+                if name != "left-side":
+                    if max(reference) < 120:
+                        bounds["nativeTextBounds"].append((x, y))
+                    if max(candidate) < 120:
+                        bounds["browserTextBounds"].append((x, y))
+        pixel_count = (x1 - x0) * (y1 - y0)
         metrics = {
             "rectangle": [x0, y0, x1, y1],
-            "meanAbsoluteRgbDifference": float(difference.mean()),
-            "equalPixelFraction": float((reference == candidate).all(axis=2).mean()),
+            "meanAbsoluteRgbDifference": difference_sum / (pixel_count * 3),
+            "equalPixelFraction": matching_pixels / pixel_count,
         }
         if name != "left-side":
-            for label, pixels in (
-                ("nativeTextBounds", reference),
-                ("browserTextBounds", candidate),
-            ):
-                ys, xs = np.where(pixels.max(axis=2) < 120)
+            for label, points in bounds.items():
                 metrics[label] = (
-                    None
-                    if not len(xs)
-                    else [
-                        int(xs.min() + x0),
-                        int(ys.min() + y0),
-                        int(xs.max() + x0),
-                        int(ys.max() + y0),
-                    ]
+                    [min(x for x, _ in points), min(y for _, y in points),
+                     max(x for x, _ in points), max(y for _, y in points)]
+                    if points else None
                 )
         report["regions"][name] = metrics
     return report

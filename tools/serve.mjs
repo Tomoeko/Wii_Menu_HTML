@@ -3,7 +3,6 @@ import { readFile, stat, realpath, mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDictionaryService } from './dictionary-service.mjs';
 import { formatJson } from './format-json.mjs';
 import { createChannelManager, handleChannelManagerRequest } from './channel-manager.mjs';
 import { readStorageState, writeStorageState, readStorageFixture } from './storage-state.mjs';
@@ -31,9 +30,7 @@ const remoteStateFile = fileURLToPath(new URL('../.local/remote-state.json', imp
 const messageFixtureFile = fileURLToPath(new URL('../.local/message-fixture.json', import.meta.url));
 const letterOutboxFile = fileURLToPath(new URL('../.local/letter-outbox.json', import.meta.url));
 const configFile = fileURLToPath(new URL('../config.json', import.meta.url));
-const dictionary = createDictionaryService();
 const channelManager = createChannelManager();
-process.on('exit', () => dictionary.close());
 const mime = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -79,16 +76,29 @@ http
       res.setHeader('X-Content-Type-Options', 'nosniff');
       // Settings runs in an opaque-origin sandbox. CORP same-origin would
       // prevent that engine from loading its own original scripts and images.
-      // Host/origin checks and the content policy enforce local-only access.
+      // Also sandbox a direct navigation to the exported HTML, including the
+      // unmodified source copy, so WAD scripts cannot acquire local API access.
       const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
       const originalSettingsPage = pathname.startsWith('/assets/settings/');
+      const rawSettingsPage = pathname.startsWith('/assets/settings-raw/');
+      const settingsDocument = /\.html?$/i.test(pathname) && (
+        originalSettingsPage || rawSettingsPage
+      );
+      const svgResource = /\.svg$/i.test(pathname);
+      // An SVG opened as a document must stay inert even if it was placed in
+      // ignored assets outside the validated channel importer.
+      const scriptSources = [svgResource ? `script-src 'none'` : `script-src 'self'`];
+      if (!svgResource) {
+        if (originalSettingsPage || rawSettingsPage) scriptSources.push(`'unsafe-inline'`);
+        if (originalSettingsPage) scriptSources.push(`'unsafe-eval'`);
+      }
       res.setHeader(
         'Content-Security-Policy',
         [
           "default-src 'self'",
-          // The original Settings scripts use string callbacks in timers.
-          // Permit those only within the separately sandboxed Settings engine.
-          `script-src 'self' 'unsafe-inline'${originalSettingsPage ? " 'unsafe-eval'" : ''}`,
+          // Authored pages use external scripts. Original Settings pages need
+          // inline handlers, and the bridged copy also uses string timers.
+          scriptSources.join(' '),
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob:",
           "font-src 'self' data:",
@@ -98,6 +108,8 @@ http
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'none'",
+          ...(settingsDocument ? ['sandbox allow-scripts'] : []),
+          ...(svgResource ? ['sandbox'] : []),
         ].join('; '),
       );
       if (
@@ -108,25 +120,6 @@ http
         })
       )
         return;
-      if (pathname === '/api/dictionary' && req.method === 'POST') {
-        if (req.headers.origin !== `http://127.0.0.1:${port}`) throw new Error('Invalid origin');
-        const body = await readRequestText(req, 2048);
-        try {
-          const result = await dictionary.query(JSON.parse(body));
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-          res.end(JSON.stringify(result));
-        } catch {
-          // Do not expose worker diagnostics, input text, or private local paths.
-          res.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-          res.end(
-            JSON.stringify({
-              error:
-                'Original dictionary is unavailable. Check local preparation and runtime dependencies.',
-            }),
-          );
-        }
-        return;
-      }
       if (['/api/message-board/erase-letter', '/api/message-board/erase-memo'].includes(pathname)) {
         if (req.headers.origin !== `http://${req.headers.host}`) {
           res.writeHead(403, { 'Content-Type': 'application/json' });

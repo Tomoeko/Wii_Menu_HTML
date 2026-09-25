@@ -16,13 +16,15 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import csv
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 from pathlib import Path
 import struct
 
-import numpy as np
-from PIL import Image, ImageDraw
+from raster import RgbImage, read_png
+
+RASTER_SHA256 = hashlib.sha256((Path(__file__).parent / "raster.py").read_bytes()).hexdigest()
 
 
 def frame_path(capture: Path, number: int) -> Path:
@@ -30,20 +32,41 @@ def frame_path(capture: Path, number: int) -> Path:
 
 
 def contact_sheet(capture: Path, frames: list[int], output: Path, columns: int = 5) -> None:
-    source_width, source_height = Image.open(frame_path(capture, frames[0])).size
+    source_width, source_height = read_png(frame_path(capture, frames[0])).size
     width = 256
     image_height = round(width * source_height / source_width)
     height = image_height + 20
-    sheet = Image.new(
-        "RGB", (width * columns, height * math.ceil(len(frames) / columns)), (24, 24, 24)
-    )
-    draw = ImageDraw.Draw(sheet)
+    sheet = RgbImage.new((width * columns, height * math.ceil(len(frames) / columns)),
+                         (24, 24, 24))
     for index, number in enumerate(frames):
-        image = Image.open(frame_path(capture, number)).convert("RGB").resize((width, image_height))
+        image = read_png(frame_path(capture, number)).resize((width, image_height), "bicubic")
         x, y = index % columns * width, index // columns * height
         sheet.paste(image, (x, y))
-        draw.text((x + 5, y + image_height + 3), f"Captured image {number}", fill="white")
+        sheet.draw_text((x + 5, y + image_height + 3), f"Captured image {number}", "white")
     sheet.save(output)
+
+
+def frame_change_metrics(current: RgbImage, previous: RgbImage | None) -> dict:
+    pixels = current.pixels
+    earlier = previous.pixels if previous is not None else None
+    red = green = blue = absolute_delta = changed = 0
+    for offset in range(0, len(pixels), 3):
+        red += pixels[offset]
+        green += pixels[offset + 1]
+        blue += pixels[offset + 2]
+        if earlier is not None:
+            deltas = [abs(pixels[offset + channel] - earlier[offset + channel])
+                      for channel in range(3)]
+            absolute_delta += sum(deltas)
+            changed += int(max(deltas) > 2)
+    pixel_count = current.width * current.height
+    return {
+        "mean_rgb_delta": round(absolute_delta / (pixel_count * 3), 6),
+        "fraction_changed_gt_2": round(changed / pixel_count, 6),
+        "mean_red": round(red / pixel_count, 6),
+        "mean_green": round(green / pixel_count, 6),
+        "mean_blue": round(blue / pixel_count, 6),
+    }
 
 
 def scan_frames(capture: Path, output: Path, end: int) -> list[dict]:
@@ -58,10 +81,7 @@ def scan_frames(capture: Path, output: Path, end: int) -> list[dict]:
     start = rows[-1]["frame"] + 1 if rows else 1
     previous = None
     if start > 1:
-        previous = np.asarray(
-            Image.open(frame_path(capture, start - 1)).convert("RGB").resize((80, 60)),
-            dtype=np.int16,
-        )
+        previous = read_png(frame_path(capture, start - 1)).resize((80, 60), "bicubic")
     with path.open("a", newline="") as file:
         writer = csv.DictWriter(
             file,
@@ -77,16 +97,7 @@ def scan_frames(capture: Path, output: Path, end: int) -> list[dict]:
         if not rows:
             writer.writeheader()
         for number, pixels in decoded_frames(capture, start, end):
-            delta = np.abs(pixels - previous) if previous is not None else np.zeros_like(pixels)
-            means = pixels.mean(axis=(0, 1))
-            row = {
-                "frame": number,
-                "mean_rgb_delta": round(float(delta.mean()), 6),
-                "fraction_changed_gt_2": round(float((delta.max(axis=2) > 2).mean()), 6),
-                "mean_red": round(float(means[0]), 6),
-                "mean_green": round(float(means[1]), 6),
-                "mean_blue": round(float(means[2]), 6),
-            }
+            row = {"frame": number, **frame_change_metrics(pixels, previous)}
             writer.writerow(row)
             rows.append(row)
             previous = pixels
@@ -98,9 +109,7 @@ def scan_frames(capture: Path, output: Path, end: int) -> list[dict]:
 
 def decoded_frames(capture: Path, start: int, end: int):
     def decode(number):
-        pixels = np.asarray(
-            Image.open(frame_path(capture, number)).convert("RGB").resize((80, 60)), dtype=np.int16
-        )
+        pixels = read_png(frame_path(capture, number)).resize((80, 60), "bicubic")
         return number, pixels
 
     # Independent PNG decoding can run concurrently; measurements stay in frame order.
@@ -132,22 +141,29 @@ def audio_energy(path: Path, output: Path) -> dict:
     if pcm is None or pcm[0] != 1 or pcm[5] != 16:
         raise ValueError(f"Only native PCM16 dumps are supported: {path}")
     _, channels, rate, _, alignment, _ = pcm
+    if channels not in (1, 2) or rate <= 0 or alignment != channels * 2:
+        raise ValueError(f"Invalid native PCM16 format: {path}")
     available = path.stat().st_size - data_offset
     count = available // alignment
-    audio = np.memmap(path, mode="r", dtype="<i2", offset=data_offset, shape=(count, channels))
     window = max(1, round(rate * 0.05))
     records = []
-    for start in range(0, count, window):
-        block = np.asarray(audio[start : start + window], dtype=np.float32) / 32768
-        rms = float(np.sqrt(np.mean(block * block)))
-        peak = float(np.max(np.abs(block)))
-        records.append(
-            {
-                "seconds": round(start / rate, 6),
-                "rms_dbfs": max(-120, 20 * math.log10(max(rms, 1e-6))),
-                "peak_dbfs": max(-120, 20 * math.log10(max(peak, 1e-6))),
-            }
-        )
+    with path.open("rb") as file:
+        file.seek(data_offset)
+        for start in range(0, count, window):
+            frames = min(window, count - start)
+            block = file.read(frames * alignment)
+            if len(block) != frames * alignment:
+                raise ValueError(f"Native PCM data changed during analysis: {path}")
+            samples = [sample for (sample,) in struct.iter_unpack("<h", block)]
+            rms = math.sqrt(sum(sample * sample for sample in samples) / len(samples)) / 32768
+            peak = max(abs(sample) for sample in samples) / 32768
+            records.append(
+                {
+                    "seconds": round(start / rate, 6),
+                    "rms_dbfs": max(-120, 20 * math.log10(max(rms, 1e-6))),
+                    "peak_dbfs": max(-120, 20 * math.log10(max(peak, 1e-6))),
+                }
+            )
     filename = path.stem + "-energy.csv"
     with (output / filename).open("w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=["seconds", "rms_dbfs", "peak_dbfs"])
@@ -226,7 +242,7 @@ def main() -> None:
         finish = min(segment.get("end", end), end)
         start = segment["start"]
         choices = [start + offset for offset in (0, 10, 20, 40, 80, 160, 320)]
-        choices += [int(number) for number in np.linspace(start, finish, 8)]
+        choices += [int(start + (finish - start) * index / 7) for index in range(8)]
         selected = sorted(set(number for number in choices if start <= number <= finish))
         filename = f"preview-{segment['id']}.png"
         contact_sheet(capture, selected, output / filename)
@@ -251,23 +267,23 @@ def main() -> None:
         overview_files.append(filename)
     audio = [audio_energy(path, output) for path in sorted((capture / "Audio").glob("*.wav"))]
     if audio:
-        graph = Image.new("RGB", (1600, 80 + len(audio) * 230), "white")
-        draw = ImageDraw.Draw(graph)
-        draw.text(
+        graph = RgbImage.new((1600, 80 + len(audio) * 230), "white")
+        graph.draw_text(
             (12, 12),
-            "Native audio energy: independent sample-clock seconds. No frame-ordinal/time alignment is assumed.",
-            fill="black",
+            "Native audio energy: independent sample-clock seconds. "
+            "No frame-ordinal/time alignment is assumed.",
+            "black",
         )
         duration = max(item["seconds"] for item in audio)
         for index, item in enumerate(audio):
             top = 55 + index * 230
-            draw.text(
-                (12, top), f"{Path(item['source']).name} ({item['sampleRate']} Hz)", fill="black"
+            graph.draw_text(
+                (12, top), f"{Path(item['source']).name} ({item['sampleRate']} Hz)", "black"
             )
             for db in (-90, -60, -30, 0):
                 y = top + 190 - (db + 90) / 90 * 150
-                draw.line((65, y, 1580, y), fill=(220, 220, 220))
-                draw.text((10, y - 5), str(db), fill="black")
+                graph.draw_line((65, y, 1580, y), (220, 220, 220))
+                graph.draw_text((10, round(y - 5)), str(db), "black")
             points = [
                 (
                     65 + row["seconds"] / max(duration, 1) * 1515,
@@ -276,10 +292,11 @@ def main() -> None:
                 for row in item["records"]
             ]
             if len(points) > 1:
-                draw.line(points, fill=(0, 140, 190), width=1)
+                graph.draw_line(points, (0, 140, 190))
             for seconds in range(0, math.ceil(duration), 60):
-                draw.text(
-                    (65 + seconds / max(duration, 1) * 1515, top + 196), f"{seconds}s", fill="black"
+                graph.draw_text(
+                    (round(65 + seconds / max(duration, 1) * 1515), top + 196),
+                    f"{seconds}s", "black"
                 )
         graph.save(output / "audio-energy.png")
     for item in audio:
@@ -289,7 +306,15 @@ def main() -> None:
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "sourceCapture": capture.name,
         "lastFrameAnalyzed": end,
-        "semantics": f"Native presented-XFB image ordinals and independent audio sample seconds. Duplicate-XFB skipping {duplicate_skipping}; exact audio/frame alignment is unverified.",
+        "rasterDecoder": "first-party RGB PNG",
+        "rasterSha256": RASTER_SHA256,
+        "frameScanResampling": "bicubic 80x60",
+        "contactSheetResampling": "bicubic",
+        "semantics": (
+            "Native presented-XFB image ordinals and independent audio sample seconds. "
+            f"Duplicate-XFB skipping {duplicate_skipping}; exact audio/frame alignment is "
+            "unverified."
+        ),
         "duplicateXfbSkipping": duplicate_skipping,
         "notes": annotations.get("notes", []),
         "segments": segments,
@@ -302,9 +327,18 @@ def main() -> None:
     lines = [
         "# Original menu session capture",
         "",
-        f"Indexed through captured image **{end}**. This recording uses original local USA4.3 software in the RecompCore Dolphin fork with ARM64 JIT.",
+        (
+            f"Indexed through captured image **{end}**. This recording uses original local "
+            "USA 4.3 software in the RecompCore Dolphin fork with ARM64 JIT."
+        ),
         "",
-        f"Frame numbers are ordered presented-XFB images. Duplicate-XFB skipping was **{duplicate_skipping}**. Audio uses its independent PCM sample clock; onset candidates include UI sounds and have not been aligned to named channel boundaries. Image ordinals are not wall-clock timestamps. Live WAV headers may be unfinished; only complete PCM samples physically present in the file were analyzed.",
+        (
+            "Frame numbers are ordered presented-XFB images. Duplicate-XFB skipping was "
+            f"**{duplicate_skipping}**. Audio uses its independent PCM sample clock; onset "
+            "candidates include UI sounds and have not been aligned to named channel boundaries. "
+            "Image ordinals are not wall-clock timestamps. Live WAV headers may be unfinished; "
+            "only complete PCM samples physically present in the file were analyzed."
+        ),
         "",
     ]
     lines += [f"- {note}" for note in annotations.get("notes", [])]
@@ -314,12 +348,20 @@ def main() -> None:
         "|---|---:|---:|---|",
     ]
     lines += [
-        f"| {segment['title']} | {segment['start']} | {segment['end']} | [Original frames]({segment['contactSheet']}) |"
+        (
+            f"| {segment['title']} | {segment['start']} | {segment['end']} | "
+            f"[Original frames]({segment['contactSheet']}) |"
+        )
         for segment in segments
     ]
     lines += [
         "",
-        "The named intervals were reviewed against captured images. A preview interval includes its own opening animation; its first image may be mostly blank. A contact sheet samples both the opening and later animation without substituting browser renders.",
+        (
+            "The named intervals were reviewed against captured images. A preview interval "
+            "includes its own opening animation; its first image may be mostly blank. A "
+            "contact sheet samples both the opening and later animation without substituting "
+            "browser renders."
+        ),
         "",
         "## Transitions",
         "",
@@ -338,16 +380,15 @@ def main() -> None:
         "",
         "![Independent audio-energy timeline](audio-energy.png)",
         "",
-        "`session-index.json` records source paths, selected frame ordinals, PCM metadata and abrupt-rise candidates. The energy CSVs contain50ms windows. `frame-change.csv` measures adjacent images after an80×60 analysis downsample; the original PNGs and displayed references remain untouched.",
+        (
+            "`session-index.json` records source paths, selected frame ordinals, PCM metadata "
+            "and abrupt-rise candidates. The energy CSVs contain 50 ms windows. "
+            "`frame-change.csv` measures adjacent images after an 80×60 analysis downsample; "
+            "the original PNGs and displayed references remain untouched."
+        ),
         "",
     ]
-    (output / "README.md").write_text(
-        "\n".join(lines)
-        .replace("USA4.3", "USA 4.3")
-        .replace("by60", "by 60")
-        .replace("contain50ms", "contain 50ms")
-        .replace("an80×60", "an 80×60")
-    )
+    (output / "README.md").write_text("\n".join(lines))
     print(f"Wrote {output / 'session-index.json'}", flush=True)
 
 

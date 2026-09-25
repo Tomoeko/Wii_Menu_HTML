@@ -10,7 +10,7 @@ import { DEFAULT_CONFIG } from '../web/src/config.js';
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const rootFiles = new Set([
-  '.gitignore', '.editorconfig', '.prettierrc.json',
+  '.gitignore', '.editorconfig', '.prettierrc.json', '.npmrc',
   'AGENTS.md', 'README.md', 'package.json', 'config.json',
   'LICENSE', 'NOTICE',
 ]);
@@ -28,9 +28,10 @@ const historicalDocuments = new Set([
   'docs/implementation-history.md', 'docs/historical-fidelity-notes.md',
 ]);
 const requiredFiles = [
-  '.gitignore', 'AGENTS.md', 'README.md', 'LICENSE', 'package.json', 'config.json',
+  '.gitignore', '.npmrc', 'AGENTS.md', 'README.md', 'LICENSE', 'package.json', 'config.json',
   'defaults/channel-layout.json', 'defaults/message-board.json',
-  'web/index.html', 'web/src/main.js', 'tools/serve.mjs', 'tools/init-state.mjs',
+  'web/index.html', 'web/src/main.js', 'tools/serve.mjs', 'tools/start.mjs',
+  'tools/init-state.mjs',
   'tools/assets/prepare.py', 'tools/audit-privacy.mjs',
 ];
 const maximumSourceBytes = 4 * 1024 * 1024;

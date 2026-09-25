@@ -38,7 +38,7 @@ test('silent keyboard disposal closes once and rejects late telephone prediction
     assert.equal(keyboard.dispose(), true);
     assert.equal(keyboard.dispose(), false);
     assert.equal(sessions[0].closeCalls, 1);
-    sessions[0].requests.at(-1).resolve({ engine: 'original-zi8', candidates: ['native'] });
+    sessions[0].requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: ['native'] });
     await flushDictionary();
     keyboard.advance(100);
     assert.equal(keyboard.snapshot().text, before.text);
@@ -863,8 +863,8 @@ test('held candidate arrows follow original scalar/counter requests without text
       keyboard.hover('key-candidates-next');
       assert.equal(keyboard.holdControl('key-candidates-next'), true);
       for (update = 1; update <= 100; update++) keyboard.advance(1);
-      // Executed original Scalar::calc + button counter + candidate callback:
-      // tools/dictionary/audit-candidate-input.py, both original directions.
+      // Earlier original-code probe covered Scalar::calc, button counter and
+      // candidate callback in both directions.
       assert.deepEqual(pages, [0, 16, 32, 48, 64, 81, 97], aspect);
       assert.equal(sounds.filter((name) => name === 'WIPL_SE_CHAR_FOCUS').length, 1);
       keyboard.releaseControl();
@@ -1145,15 +1145,15 @@ test(
     keyboard.keyInput('e');
     keyboard.snapshot();
     assert.equal(requests.length, 2);
-    requests[0].resolve({ engine: 'original-zi8', candidates: ['stale'] });
+    requests[0].resolve({ engine: 'synthetic-predictor', candidates: ['stale'] });
     await Promise.resolve();
     assert.equal(
       keyboard.controls().some((item) => item.label === 'stale'),
       false,
     );
-    requests[1].resolve({ engine: 'original-zi8', candidates: ['he', 'here', 'help'] });
+    requests[1].resolve({ engine: 'synthetic-predictor', candidates: ['he', 'here', 'help'] });
     await Promise.resolve();
-    assert.equal(keyboard.snapshot().dictionary.engine, 'original-zi8');
+    assert.equal(keyboard.snapshot().dictionary.engine, 'synthetic-predictor');
     assert.equal(keyboard.controls().find((item) => item.id === 'key-candidate-0').label, 'he');
     keyboard.keyInput('l');
     keyboard.snapshot();
@@ -1187,11 +1187,11 @@ test(
     keyboard.snapshot();
     const request = requests.at(-1);
     assert.equal(request.options.digits, '666');
-    request.resolve({ engine: 'original-zi8', candidates: ['mom', 'mon', 'moo'] });
+    request.resolve({ engine: 'synthetic-predictor', candidates: ['mom', 'mon', 'moo'] });
     await Promise.resolve();
     assert.equal(keyboard.snapshot().text, 'xmom tail');
     assert.equal(keyboard.snapshot().caret, 4);
-    assert.equal(keyboard.snapshot().dictionary.engine, 'original-zi8');
+    assert.equal(keyboard.snapshot().dictionary.engine, 'synthetic-predictor');
   },
 );
 
@@ -1721,7 +1721,7 @@ test('each keyboard owns a dictionary session and sends literal selection and li
       const calls = [];
       const predict = (text, options) => {
         calls.push(['query', text, options]);
-        return { engine: 'original-zi8', candidates: ['>', 'm', 'n', 'o', '6'] };
+        return { engine: 'synthetic-predictor', candidates: ['>', 'm', 'n', 'o', '6'] };
       };
       predict.accept = (index) => calls.push(['accept', index]);
       predict.reset = () => calls.push(['reset']);
@@ -2083,10 +2083,10 @@ test('async boundary waits only at unit 33 and replays ordered typing around a r
     keyboard.keyInput('d');
     assert.equal(keyboard.snapshot().caret, 33, 'only the boundary waits for prediction');
     assert.equal(requests.length, 32, 'shorter input stays immediate while requests are pending');
-    requests[0].resolve({ engine: 'original-zi8', candidates: ['obsolete'] });
+    requests[0].resolve({ engine: 'synthetic-predictor', candidates: ['obsolete'] });
     await flushDictionary();
     assert.equal(keyboard.snapshot().caret, 33, 'an earlier request cannot release the boundary');
-    requests.at(-1).resolve({ engine: 'original-zi8', candidates: [`${'a'.repeat(32)}ghost`] });
+    requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: [`${'a'.repeat(32)}ghost`] });
     await flushDictionary();
     const state = keyboard.snapshot();
     assert.equal(state.text, `x${'a'.repeat(32)}ghostbcd tail`);
@@ -2133,7 +2133,7 @@ test('pending boundary preserves accepted typing before editing, mode changes an
           assert.equal(keyboard.keyInput('z'), false, 'a dismissed editor accepts no later input');
           assert.equal(keyboard.activate('key-delete'), false);
         }
-        boundaryResolve({ engine: 'original-zi8', candidates: [`${'a'.repeat(32)}ghost`] });
+        boundaryResolve({ engine: 'synthetic-predictor', candidates: [`${'a'.repeat(32)}ghost`] });
         await flushDictionary();
         const deleted = name === 'backspace' || name === 'deleteKeytop';
         const expected = `${'a'.repeat(32)}ghost${deleted ? '' : 'a'}`;
@@ -2163,7 +2163,7 @@ test('Backspace after accepted unit 33 removes that unit, while disposal cancels
       for (const character of 'a'.repeat(33)) keyboard.keyInput(character);
       if (dispose) keyboard.dispose();
       else keyboard.keyInput('Backspace');
-      resolve({ engine: 'original-zi8', candidates: ['a'.repeat(32)] });
+      resolve({ engine: 'synthetic-predictor', candidates: ['a'.repeat(32)] });
       await flushDictionary();
       assert.equal(keyboard.snapshot().text, 'a'.repeat(32));
       assert.equal(changes.length, dispose ? 32 : 35,
@@ -2187,11 +2187,11 @@ test('queued commands retain order through another async segment and a later clo
     keyboard.keyInput('z');
     keyboard.back();
     assert.deepEqual(closes, []);
-    requests.at(-1).resolve({ engine: 'original-zi8', candidates: ['a'.repeat(32)] });
+    requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: ['a'.repeat(32)] });
     await flushDictionary();
     assert.equal(keyboard.snapshot().text, 'a'.repeat(64));
     assert.deepEqual(closes, [], 'normal close waits behind the second accepted boundary');
-    requests.at(-1).resolve({ engine: 'original-zi8', candidates: ['a'.repeat(32)] });
+    requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: ['a'.repeat(32)] });
     await flushDictionary();
     assert.deepEqual(closes, [`az${'a'.repeat(64)}`]);
     assert.equal(keyboard.snapshot().caret, 2);
@@ -2241,7 +2241,7 @@ test('telephone boundary owns the pending prediction and applies new digits afte
     for (let index = 0; index < 34; index++) keyboard.activate('key-phone-1');
     assert.equal(keyboard.snapshot().text, `x${'a'.repeat(32)} tail`);
     assert.equal(requests.at(-1).options.digits, '2'.repeat(32));
-    requests.at(-1).resolve({ engine: 'original-zi8', candidates: [`${'a'.repeat(32)}ghost`] });
+    requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: [`${'a'.repeat(32)}ghost`] });
     await flushDictionary();
     assert.equal(keyboard.snapshot().text, `x${'a'.repeat(32)}ghostaa tail`);
     assert.equal(requests.at(-1).options.digits, '22');
@@ -2283,7 +2283,7 @@ test('a stale candidate cannot replace accepted typing between result and bounda
     for (const character of 'a'.repeat(32)) keyboard.keyInput(character);
     keyboard.keyInput('b');
     assert.equal(keyboard.activate('key-candidate-0'), false, 'pending choices cannot activate');
-    resolve({ engine: 'original-zi8', candidates: ['a'.repeat(32), `${'a'.repeat(32)}choice`] });
+    resolve({ engine: 'synthetic-predictor', candidates: ['a'.repeat(32), `${'a'.repeat(32)}choice`] });
     await Promise.resolve();
     assert.equal(keyboard.controls().find((item) => item.id === 'key-candidate-1').disabled, true);
     assert.equal(keyboard.hover('key-candidate-1'), false);
@@ -2311,7 +2311,7 @@ test('boundary replay stops if its commit callback disposes the editor',
     keyboard.keyInput('b');
     keyboard.keyInput('c');
     closeOnCommit = true;
-    resolve({ engine: 'original-zi8', candidates: [`${'a'.repeat(32)}ghost`] });
+    resolve({ engine: 'synthetic-predictor', candidates: [`${'a'.repeat(32)}ghost`] });
     await flushDictionary();
     assert.equal(keyboard.snapshot().text, `${'a'.repeat(32)}ghost`);
     assert.equal(values.length, 33, 'commit was the final edit; no queued input ran after disposal');
@@ -2333,7 +2333,7 @@ test('an oversized boundary completion rejects its insertion but preserves subse
     for (const character of 'a'.repeat(33)) keyboard.keyInput(character);
     keyboard.keyInput('Backspace');
     keyboard.back();
-    resolve({ engine: 'original-zi8', candidates: [`${'a'.repeat(32)}ghost`] });
+    resolve({ engine: 'synthetic-predictor', candidates: [`${'a'.repeat(32)}ghost`] });
     await flushDictionary();
     assert.deepEqual(closes, ['a'.repeat(31)]);
     assert.equal(sounds.filter((sound) => sound === 'WIPL_SE_CHAR_DELETE_ERROR').length, 1);

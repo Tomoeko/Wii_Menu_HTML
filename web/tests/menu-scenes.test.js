@@ -164,7 +164,7 @@ test('forced scene entry disposes an active Memo dictionary before accepting lat
     const savedDrafts = [...drafts];
     scenes.open('options');
     assert.equal(sessions[0].closeCalls, 1);
-    sessions[0].requests.at(-1).resolve({ engine: 'original-zi8', candidates: ['stale'] });
+    sessions[0].requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: ['stale'] });
     await flushDictionary();
     scenes.advance(100);
     assert.deepEqual(drafts, savedDrafts);

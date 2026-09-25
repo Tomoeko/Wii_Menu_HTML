@@ -128,7 +128,7 @@
                   <input
                     id="icon-file"
                     type="file"
-                    accept="image/png,image/jpeg,image/gif,.png,.jpg,.jpeg,.gif"
+                    accept="image/png,image/jpeg,image/gif,image/svg+xml,.png,.jpg,.jpeg,.gif,.svg"
                     aria-describedby="image-help icon-details"
                   />
                   <button
@@ -149,7 +149,7 @@
                   <input
                     id="banner-file"
                     type="file"
-                    accept="image/png,image/jpeg,image/gif,.png,.jpg,.jpeg,.gif"
+                    accept="image/png,image/jpeg,image/gif,image/svg+xml,.png,.jpg,.jpeg,.gif,.svg"
                     aria-describedby="image-help banner-details"
                   />
                   <button
@@ -164,7 +164,8 @@
                 </div>
                 <p id="banner-details" class="file-details" aria-live="polite"></p>
                 <p id="image-help" class="field-help">
-                  PNG, JPEG or GIF, up to 4096 × 4096 pixels. Recommended for 16:9: icon 680 × 394;
+                  PNG, JPEG, GIF or static SVG, up to 4096 × 4096 pixels. Recommended for 16:9:
+                  icon 680 × 394;
                   banner 1280 × 720. Other sizes stay proportional and centered, with your
                   background/accent around uncovered areas. Still images stay fixed; GIFs play their
                   own animation. Up to 128 GIF frames; 128 MiB total decoded artwork per channel.
@@ -228,7 +229,8 @@
                 aria-describedby="folder-help"
               />
               <p id="folder-help" class="field-help">
-                JSON, PNG, JPEG, GIF, WAV and Markdown files are included. Other files are ignored.
+                JSON, PNG, JPEG, GIF, SVG, WAV and Markdown files are included. Other files are
+                ignored.
               </p>
               <p id="folder-details" class="file-details"></p>
               <button class="button button-secondary button-full" type="submit">

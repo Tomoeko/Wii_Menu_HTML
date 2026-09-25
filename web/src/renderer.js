@@ -634,11 +634,16 @@ export class Renderer {
   async loadTexture(url) {
     if (this.textures.has(url)) return;
     if (this.textureLoads.has(url)) return this.textureLoads.get(url);
+    const assets = new URL('/assets/', location.href);
+    const source = new URL(url, assets);
+    if (source.origin !== assets.origin || !source.pathname.startsWith(assets.pathname)) {
+      throw new Error('Texture resources must remain in local assets.');
+    }
     // Startup loads layouts concurrently. Share decoding and GPU allocation,
     // including when font aliases or animated textures refer to the same URL.
     const pending = (async () => {
       const img = new Image();
-      img.src = new URL(url, new URL('/assets/', location.href));
+      img.src = source.href;
       await img.decode();
       const gl = this.gl,
         texture = gl.createTexture();

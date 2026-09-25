@@ -105,7 +105,7 @@ test('Create disposal releases nested Address and Letter dictionaries and can re
       create.dispose();
       create.dispose();
       assert.equal(sessions[0].closeCalls, 1, child);
-      sessions[0].requests.at(-1)?.resolve({ engine: 'original-zi8', candidates: ['stale'] });
+      sessions[0].requests.at(-1)?.resolve({ engine: 'synthetic-predictor', candidates: ['stale'] });
       await flushDictionary();
       create.advance(100);
       assert.deepEqual(events, before, child);

@@ -67,4 +67,24 @@ test('SVG preflight accepts viewBox dimensions and rejects executable content', 
     () => inspectImageHeader(Buffer.from('<svg width="12" height="9"><script>alert(1)</script></svg>')),
     /local, static artwork/,
   );
+  for (const content of [
+    '<svg width="12" height="9" onload="alert(1)"></svg>',
+    '<svg width="12" height="9"><rect style="fill:url(https://host.test/a)"/></svg>',
+    '<svg width="12" height="9"><rect fill="url(https://host.test/a)"/></svg>',
+    '<svg width="12" height="9"><rect fill="u&#114;l(https://host.test/a)"/></svg>',
+    '<svg width="12" height="9"><a href="javascript:alert(1)">x</a></svg>',
+    '<svg width="12" height="9"><animate attributeName="href"/></svg>',
+    '<svg width="12" height="9"><image href="file:///private/data"/></svg>',
+    '<svg width="12" height="9"><foreignObject/></svg>',
+    '<svg width="12" height="9"><rect fill="url(#paint)"/></svg>',
+    '<svg width="12" height="9"><rect fill="u\\72l(https://host.test/a)"/></svg>',
+    '<svg width="12" height="9"><rect custom="unused"/></svg>',
+    '<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///private/data">]>' +
+      '<svg width="12" height="9">&x;</svg>',
+  ]) {
+    assert.throws(
+      () => inspectImageHeader(Buffer.from(content)),
+      /local, static artwork|Artwork must be a PNG/,
+    );
+  }
 });

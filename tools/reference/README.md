@@ -36,8 +36,11 @@ were deleted; no historical image number is a currently available reference.
 
 ## Every-frame icon analysis
 
-Pillow and NumPy are required. Review a contiguous idle range first, including
-its first/last images, channel order and absence of pointer/tooltips.
+The analyzers use the repository's bounded, first-party RGB PNG reader and
+resampler in `raster.py`; no Python packages need to be installed. It accepts
+the static 8-bit PNG formats used by the capture pipeline and rejects unsupported
+encodings explicitly. Review a contiguous idle range first, including its
+first/last images, channel order and absence of pointer/tooltips.
 
 ~~~sh
 python3 tools/reference/analyze_capture.py /path/to/capture \
@@ -156,8 +159,11 @@ Every native image must match the recorded `sourceSize`. Heights must match and
 widths must differ. Allowed filters are `nearest`, `bilinear`, `bicubic` and
 `lanczos`; the tool never guesses a filter or source geometry. Regions and
 exclusions use the resulting comparison coordinates. The report records source
-and comparison sizes, horizontal scale, filter, pixel-center mapping and library
-versions, while input hashes continue to identify the untouched source files.
+and comparison sizes, horizontal scale, filter, pixel-center mapping and the
+raster implementation hash, while input hashes continue to identify the
+untouched source files. The first-party resampler may round pixels differently
+from earlier Pillow-based reports. Re-run comparisons with the same analysis
+tool before comparing numeric errors across reports.
 
 This option assumes a reviewed presentation-width difference; it does not prove
 matching projection, aspect ratio or original-pixel geometry. Filter footprints
@@ -173,6 +179,9 @@ one simulation update. Static holds also make some correspondences ambiguous.
 `comparison.json` preserves input hashes and every matched pair;
 `alignment.csv` contains per-update regional error. Keep the original sidecars,
 native evidence and complete input sequences beside these outputs.
+The redacted contact sheet includes every fourth browser update and the final
+update. Large comparisons split it into numbered PNGs; `comparison.json` lists
+each file and its included updates under `contactSheets`.
 
 Record authored file hashes when exporting, particularly when the source has
 uncommitted changes. The optional `--authored-source-snapshot` accepts that saved

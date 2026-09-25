@@ -226,8 +226,12 @@ test('invalid uploads leave catalog, authoring source, native data and configura
   const config = await readFile(paths.configFile);
   const brokenPng = png();
   brokenPng[brokenPng.length - 1] ^= 1;
+  const unsafeSvg = Buffer.from(
+    '<svg width="32" height="32"><text onload="alert(1)">x</text></svg>',
+  );
   for (const request of [
     { title: 'Broken PNG', icon: { base64: brokenPng.toString('base64') } },
+    { title: 'Active SVG', icon: { base64: unsafeSvg.toString('base64') } },
     {
       title: 'Broken WAV',
       audio: { kind: 'upload', base64: Buffer.from('not audio').toString('base64') },
@@ -275,6 +279,12 @@ test('declarative folder import retains notes and nested artwork, and rejects ho
     { path: 'CHANNEL.json', base64: 'e30=' },
     { path: 'code.js', base64: 'YQ==' },
     { path: '/absolute.md', base64: 'YQ==' },
+    {
+      path: 'active.svg',
+      base64: Buffer.from(
+        '<svg width="32" height="32"><image href="https://example.invalid/track.png"/></svg>',
+      ).toString('base64'),
+    },
   ])
     await assert.rejects(manager.importFolder({ files: [...files, extra] }), { status: 400 });
   assert.deepEqual(await readdir(join(paths.localDirectory, 'custom-channels')), ['custom-folder']);
@@ -351,7 +361,9 @@ async function httpFixture(t) {
       );
       req.on('error', reject);
       req.end(
-        body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
+        body === undefined || typeof body === 'string' || Buffer.isBuffer(body)
+          ? body
+          : JSON.stringify(body),
       );
     });
   return { ...data, request, origin, port };
@@ -391,6 +403,9 @@ test('HTTP routes enforce same-origin JSON mutations, byte limits and non-destru
     413,
   );
   assert.equal((await request('/api/channels/custom', { method: 'POST', body: '{' })).status, 400);
+  assert.equal((await request('/api/channels/custom', {
+    method: 'POST', body: Buffer.from([0x7b, 0x22, 0x78, 0x22, 0x3a, 0x22, 0xff, 0x22, 0x7d]),
+  })).status, 400);
   const created = await request('/api/channels/custom', {
     method: 'POST',
     body: { id: 'custom-http', title: 'HTTP' },

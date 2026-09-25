@@ -12,11 +12,85 @@ function svgLength(value) {
   return Number.isFinite(length) && length > 0 ? length : null;
 }
 
-function svgAttribute(source, name) {
-  const match = new RegExp(`\\b${name}\\s*=\\s*[\\\"']([^\\\"']+)[\\\"']`, 'i').exec(
-    source,
-  );
-  return match?.[1];
+const SVG_ELEMENTS = new Set([
+  'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon',
+  'text', 'tspan', 'title', 'desc',
+]);
+const SVG_ATTRIBUTES = new Set([
+  'id', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry',
+  'width', 'height', 'viewBox', 'preserveAspectRatio', 'd', 'points', 'dx', 'dy',
+  'transform', 'opacity', 'fill', 'fill-opacity', 'fill-rule', 'stroke',
+  'stroke-opacity', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+  'stroke-miterlimit', 'stroke-dasharray', 'stroke-dashoffset', 'paint-order',
+  'font-family', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline',
+  'xmlns',
+]);
+const XML_ENTITY = /&(?:amp|lt|gt|quot|apos|#\d+|#x[\da-fA-F]+);/g;
+
+function validXmlEntities(value) {
+  return !value.replace(XML_ENTITY, '').includes('&');
+}
+
+/** Parse the small static drawing vocabulary used by local channel artwork.
+ * A closed vocabulary is safer than trying to blacklist every SVG feature that
+ * can run code, navigate, or fetch a resource when the file is opened directly. */
+function staticSvgRoot(source) {
+  let position = 0;
+  if (source.charCodeAt(0) === 0xfeff) position++;
+  const declaration = /^<\?xml\s+version=(['"])1\.0\1(?:\s+encoding=(['"])UTF-8\2)?\s*\?>/i
+    .exec(source.slice(position));
+  if (declaration) position += declaration[0].length;
+  const stack = [];
+  let root = null;
+  while (position < source.length) {
+    const nextTag = source.indexOf('<', position);
+    const textEnd = nextTag < 0 ? source.length : nextTag;
+    const content = source.slice(position, textEnd);
+    if (!validXmlEntities(content) || (!stack.length && content.trim())) {
+      invalid('SVG images must contain only local, static artwork.');
+    }
+    position = textEnd;
+    if (nextTag < 0) break;
+    const closing = /^<\/([A-Za-z][A-Za-z0-9]*)\s*>/.exec(source.slice(position));
+    if (closing) {
+      if (stack.pop() !== closing[1]) invalid('Invalid SVG image.');
+      position += closing[0].length;
+      continue;
+    }
+    const opening = /^<([A-Za-z][A-Za-z0-9]*)([^<>]*?)>/.exec(source.slice(position));
+    if (!opening || !SVG_ELEMENTS.has(opening[1]) || (!stack.length && root)) {
+      invalid('SVG images must contain only local, static artwork.');
+    }
+    if (!root && opening[1] !== 'svg') invalid('Invalid SVG image.');
+    const name = opening[1];
+    const selfClosing = /\/\s*$/.test(opening[2]);
+    const attributeSource = selfClosing ? opening[2].replace(/\/\s*$/, '') : opening[2];
+    const attributeLength = attributeSource.trimEnd().length;
+    const attributes = new Map();
+    const attribute = /\s+([A-Za-z][A-Za-z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/y;
+    let offset = 0;
+    while (offset < attributeLength) {
+      attribute.lastIndex = offset;
+      const match = attribute.exec(attributeSource);
+      if (!match || !SVG_ATTRIBUTES.has(match[1]) || attributes.has(match[1])) {
+        invalid('SVG images must contain only local, static artwork.');
+      }
+      const value = match[2] ?? match[3];
+      // No entity references in attributes: encoded CSS URL functions must
+      // not evade the resource check after XML decoding in a browser.
+      if (value.includes('&') || /[\\\x00-\x1f]|url\s*\(/i.test(value) ||
+          (match[1] === 'xmlns' && (name !== 'svg' || value !== 'http://www.w3.org/2000/svg'))) {
+        invalid('SVG images must contain only local, static artwork.');
+      }
+      attributes.set(match[1], value);
+      offset = attribute.lastIndex;
+    }
+    if (!root) root = attributes;
+    if (!selfClosing) stack.push(name);
+    position += opening[0].length;
+  }
+  if (!root || stack.length || !/<\/svg>\s*$/.test(source)) invalid('Invalid SVG image.');
+  return root;
 }
 
 /** Read dimensions from a static, same-file SVG without executing its markup. */
@@ -27,21 +101,13 @@ function svgDimensions(bytes) {
   } catch {
     invalid('Invalid SVG image encoding.');
   }
-  if (
-    /<!doctype|<!entity|<script\b|<foreignobject\b|<iframe\b|<object\b|<embed\b|<image\b|(?:href|xlink:href)\s*=\s*[\"'](?:https?:|data:|\/\/)/i.test(
-      source,
-    )
-  ) {
-    invalid('SVG images must contain only local, static artwork.');
-  }
-  const root = /<svg\b([^>]*)>/i.exec(source)?.[1];
-  if (!root || !/<\/svg>\s*$/i.test(source)) invalid('Invalid SVG image.');
-  const viewBox = svgAttribute(root, 'viewBox')
+  const root = staticSvgRoot(source);
+  const viewBox = root.get('viewBox')
     ?.trim()
-    .split(/\s+/)
+    .split(/[\s,]+/)
     .map(Number);
-  const width = svgLength(svgAttribute(root, 'width') ?? '') ?? viewBox?.[2];
-  const height = svgLength(svgAttribute(root, 'height') ?? '') ?? viewBox?.[3];
+  const width = svgLength(root.get('width') ?? '') ?? viewBox?.[2];
+  const height = svgLength(root.get('height') ?? '') ?? viewBox?.[3];
   if (
     !Number.isFinite(width) ||
     !Number.isFinite(height) ||

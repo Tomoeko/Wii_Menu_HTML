@@ -18,13 +18,10 @@ import hashlib
 import json
 from pathlib import Path
 
-import numpy as np
-from PIL import Image, __version__ as pillow_version
+from raster import RESAMPLING, RgbImage, read_png
 
-RESAMPLING = {
-    name: getattr(Image.Resampling, name.upper())
-    for name in ("nearest", "bilinear", "bicubic", "lanczos")
-}
+
+RASTER_SHA256 = hashlib.sha256((Path(__file__).parent / "raster.py").read_bytes()).hexdigest()
 
 
 def region_arg(value: str) -> tuple[str, tuple[int, int, int, int]]:
@@ -50,35 +47,49 @@ def sample_arg(value: str) -> tuple[int, int]:
         raise argparse.ArgumentTypeError("Use nonnegative X,Y") from error
 
 
-def metrics(reference: np.ndarray, candidate: np.ndarray) -> dict:
-    difference = candidate.astype(np.int16) - reference.astype(np.int16)
-    absolute = np.abs(difference)
-    maximum = absolute.max(axis=2)
+def metrics(reference: RgbImage, candidate: RgbImage, rectangle: tuple[int, int, int, int]) -> dict:
+    x, y, width, height = rectangle
+    signed_sums = [0, 0, 0]
+    absolute_sums = [0, 0, 0]
+    maximum = [0, 0, 0]
+    changed = 0
+    within_one = 0
+    for row in range(y, y + height):
+        for column in range(x, x + width):
+            offset = (row * reference.width + column) * 3
+            differences = [candidate.pixels[offset + channel] - reference.pixels[offset + channel]
+                           for channel in range(3)]
+            absolute = [abs(value) for value in differences]
+            changed += any(absolute)
+            within_one += max(absolute) <= 1
+            for channel in range(3):
+                signed_sums[channel] += differences[channel]
+                absolute_sums[channel] += absolute[channel]
+                maximum[channel] = max(maximum[channel], absolute[channel])
+    pixel_count = width * height
     return {
-        "pixelCount": int(maximum.size),
-        "changedPixelCount": int(np.count_nonzero(maximum)),
-        "pixelsWithinOneRGBValue": int(np.count_nonzero(maximum <= 1)),
-        "meanSignedRGB": difference.mean(axis=(0, 1)).tolist(),
-        "meanAbsoluteRGB": absolute.mean(axis=(0, 1)).tolist(),
-        "maxAbsoluteRGB": absolute.max(axis=(0, 1)).tolist(),
+        "pixelCount": pixel_count,
+        "changedPixelCount": changed,
+        "pixelsWithinOneRGBValue": within_one,
+        "meanSignedRGB": [total / pixel_count for total in signed_sums],
+        "meanAbsoluteRGB": [total / pixel_count for total in absolute_sums],
+        "maxAbsoluteRGB": maximum,
     }
 
 
 def compare(
-    reference: Image.Image, candidate: Image.Image, regions: list, samples: list, resampling: str
+    reference: RgbImage, candidate: RgbImage, regions: list, samples: list, resampling: str
 ) -> dict:
-    reference, candidate = reference.convert("RGB"), candidate.convert("RGB")
     rw, rh = reference.size
     width, height = candidate.size
     if rw * height != rh * width:
         raise ValueError(
             "Aspect ratios differ; do not stretch or crop a candidate to conceal geometry differences"
         )
-    normalized = reference.resize(candidate.size, RESAMPLING[resampling])
-    raw, expected, actual = np.asarray(reference), np.asarray(normalized), np.asarray(candidate)
+    normalized = reference.resize(candidate.size, resampling)
     result = {
         "normalization": {
-            "operation": "Pillow Image.resize of reference to candidate dimensions; candidate remains unchanged",
+            "operation": "First-party RGB resize of reference to candidate dimensions; candidate remains unchanged",
             "resampling": resampling,
             "referenceRawSize": reference.size,
             "candidateRawSize": candidate.size,
@@ -87,8 +98,8 @@ def compare(
             "colorSpace": "Decoded 8-bit RGB values, without ICC/gamma correction",
             "pixelCenterMapping": "nativeCenter=((candidateIndex+0.5)*nativeSize/candidateSize)-0.5",
             "nearestPixelMapping": "nativeIndex=floor((candidateIndex+0.5)*nativeSize/candidateSize)",
-            "pillowVersion": pillow_version,
-            "numpyVersion": np.__version__,
+            "rasterImplementation": "tools/reference/raster.py",
+            "rasterSha256": RASTER_SHA256,
         },
         "regions": [],
         "samples": [],
@@ -106,13 +117,16 @@ def compare(
                     (x + w) * rw / width,
                     (y + h) * rh / height,
                 ],
-                **metrics(expected[y : y + h, x : x + w], actual[y : y + h, x : x + w]),
+                **metrics(normalized, candidate, (x, y, w, h)),
             }
         )
     for x, y in samples:
         if x >= width or y >= height:
             raise ValueError(f"Sample {(x, y)} extends outside the candidate")
         nx, ny = int((x + 0.5) * rw / width), int((y + 0.5) * rh / height)
+        raw = reference.getpixel((nx, ny))
+        expected = normalized.getpixel((x, y))
+        actual = candidate.getpixel((x, y))
         result["samples"].append(
             {
                 "candidatePixel": [x, y],
@@ -121,10 +135,10 @@ def compare(
                     (y + 0.5) * rh / height - 0.5,
                 ],
                 "referenceNearestPixel": [nx, ny],
-                "referenceNearestRGB": raw[ny, nx].tolist(),
-                "normalizedReferenceRGB": expected[y, x].tolist(),
-                "candidateRGB": actual[y, x].tolist(),
-                "signedDifferenceRGB": (actual[y, x].astype(np.int16) - expected[y, x]).tolist(),
+                "referenceNearestRGB": list(raw),
+                "normalizedReferenceRGB": list(expected),
+                "candidateRGB": list(actual),
+                "signedDifferenceRGB": [left - right for left, right in zip(actual, expected)],
             }
         )
     return result
@@ -147,7 +161,7 @@ def markdown(report: dict) -> str:
         f"Reference: `{report['reference']['path']}` ({method['referenceRawSize'][0]} × {method['referenceRawSize'][1]}).",
         f"Candidate: `{report['candidate']['path']}` ({method['candidateRawSize'][0]} × {method['candidateRawSize'][1]}).",
         "",
-        f"Normalize only the reference to the candidate dimensions using Pillow `{method['resampling']}` resampling. "
+        f"Normalize only the reference to the candidate dimensions using the local `{method['resampling']}` resampler. "
         "No alignment, cropping, gamma correction, or candidate resizing is applied. "
         "JSON retains hashes, raw dimensions, region bounds, sample coordinates, and raw/normalized RGB values.",
         "",
@@ -203,8 +217,9 @@ def main() -> None:
     )
     options = parser.parse_args()
     try:
-        with Image.open(options.reference) as reference, Image.open(options.candidate) as candidate:
-            report = compare(reference, candidate, options.roi, options.sample, options.resampling)
+        reference = read_png(options.reference)
+        candidate = read_png(options.candidate)
+        report = compare(reference, candidate, options.roi, options.sample, options.resampling)
     except ValueError as error:
         parser.error(str(error))
     report.update(

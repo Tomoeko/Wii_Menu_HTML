@@ -266,7 +266,7 @@ test('Memo Back preserves accepted boundary typing before closing and reopening 
     assert.equal(memo.snapshot().editing, true, 'the pending edit still owns its keyboard');
     assert.equal(sessions[0].closeCalls, 0);
     sessions[0].requests.at(-1).resolve({
-      engine: 'original-zi8', candidates: [`${'a'.repeat(32)}ghost`],
+      engine: 'synthetic-predictor', candidates: [`${'a'.repeat(32)}ghost`],
     });
     await flushDictionary();
     const expected = `${'a'.repeat(32)}ghostb`;

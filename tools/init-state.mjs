@@ -2,8 +2,8 @@
  * Initialize local runtime state from tracked defaults.
  *
  * Creates `.local/` and copies any missing state files from `defaults/`.
- * Existing user files are never overwritten. Run automatically via the
- * `prestart` npm script or manually with `node tools/init-state.mjs`.
+ * Existing user files are never overwritten. Run before the server from
+ * `tools/start.mjs`, or manually with `node tools/init-state.mjs`.
  */
 
 import { cp, copyFile, mkdir, readdir } from 'node:fs/promises';

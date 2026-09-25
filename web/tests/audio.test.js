@@ -35,6 +35,21 @@ test('audio loads a reconnect speaker cue when an older manifest omits it', asyn
   await audio.destroy();
 });
 
+test('audio refuses an external asset URL before making a request', async (t) => {
+  const { urls } = environment(t);
+  const errors = [];
+  const audio = createAudio({
+    manifest: { cue: { src: 'https://other.example/cue.wav' } },
+    baseUrl: 'http://localhost/assets/',
+    onError: (name, error) => errors.push([name, error.message]),
+  });
+  await audio.unlock();
+  assert.equal(await audio.play('cue'), false);
+  assert.deepEqual(urls, []);
+  assert.match(errors[0][1], /local host/);
+  await audio.destroy();
+});
+
 function environment(t, { resume, decode, fetch: fetchOverride } = {}) {
   const previousContext = globalThis.AudioContext,
     previousFetch = globalThis.fetch;

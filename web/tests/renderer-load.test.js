@@ -78,6 +78,15 @@ test('concurrent layouts share static, animated and aliased texture loading', as
   assert.equal(calls.created.length, 3);
 });
 
+test('texture loading rejects external and non-asset resources before decoding', async (t) => {
+  const { renderer, decodes } = loaderFixture(t);
+  for (const url of ['https://other.example/icon.png', '//other.example/icon.png',
+    'data:image/png;base64,AAAA', '../private.png']) {
+    await assert.rejects(renderer.loadTexture(url), /local assets/);
+  }
+  assert.equal(decodes.length, 0);
+});
+
 test('a shared decode failure rejects every caller and a later load can retry', async (t) => {
   const { renderer, decodes, calls } = loaderFixture(t);
   const layout = { textures: [{ url: 'retry.png' }] };

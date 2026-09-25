@@ -3,10 +3,11 @@
 The verified USA 4.3 Latin path does not establish a durable learned-word
 feature. Its observed mutable dictionary data is runtime working memory; the
 identified native keyboard save record contains eight bytes of preferences.
-The browser keeps original-code editor sessions in isolated RAM and persists
-its validated keyboard preferences separately. It does not serialize guest
-pointers, dump the engine context into a save file, or invent a learned-word
-format.
+The browser keeps first-party predictor state per editor and persists its
+validated keyboard preferences separately. It does not serialize native
+engine context or invent a learned-word format. The former optional native
+emulator and its third-party runtime have been removed; the memory findings
+below are bounded historical source analysis, not an active browser feature.
 
 This finding concerns the supplied executable with SHA-256
 `47b9c1bb0ba1890256fb368b1b3272e33ea2467feadf39d20ce469d6de6e6c43` and its
@@ -137,8 +138,8 @@ prediction preserves the saved toggle when another supported preference is
 changed. Hardware Shift and Caps Lock remain independent transient input
 state; they do not rewrite the selected telephone tab.
 
-Each browser editor also owns its dictionary session for its entire lifetime.
-Normal dismissal and forced Settings or Board removal release that session once.
+Each browser editor owns predictor state for its lifetime. Normal dismissal and
+forced Settings or Board removal release that state once.
 Forced removal is silent: it does not accept/cancel a form, play a dismissal cue,
 or persist another edit. Memo, Address and Letter owners dispose their child
 keyboards before dropping them, and late prediction responses cannot update the
@@ -146,8 +147,7 @@ removed editor or a newly opened one. This isolation is a browser adaptation:
 native input buffers retain their context until manager destruction, and
 scene entry performs a full dictionary reset. Behavioral equivalence across
 keyboard dismissal and reopening within the same Memo or Letter scene remains
-an acceptance check. The browser's ordered local request queue sends its close
-command after any request already in flight.
+an acceptance check.
 Deferred-response regressions exercise these ownership boundaries. A removed
 Letter owner also ignores late local-save completion/error callbacks; a write
 already dispatched to local storage can still complete there.
@@ -225,51 +225,42 @@ or extra character-validation rule for this call. Unsupported regional mode
 semantics remain outside this implementation. Native/browser field captures
 and the remaining native preference bits remain fidelity gaps.
 
-## Reproducible execution probe
+## Earlier execution probe
 
-Run against the locally prepared original inputs:
+The optional emulator probe was removed with its third-party dependency.
 
-```sh
-.local/dictionary-runtime/bin/python tools/dictionary/audit-state.py \
-  --state .local/prepare.json --assets web/public/assets \
-  --output artifacts/zi8-state-audit.json
-```
-
-The probe uses synthetic queries and synthetic save-manager memory. It never
-loads or changes a console save. A guest memory-write hook observes executed
+The probe used synthetic queries and synthetic save-manager memory. It never
+loaded or changed a console save. A guest memory-write hook observed executed
 stores during English/French/Spanish query, selection, reopen, and telephone
-selection sequences. Host setup and session-restoration copies are excluded.
+selection sequences. Host setup and session-restoration copies were excluded.
 The retained run found no writes outside wrapper memory, wrapper globals,
 engine context, output, stack and the explicitly allocated synthetic save
 fixtures. In particular, the six dictionary resources were never written.
 The highlighted word was inside context memory and was cleared by executing
 the original initializer. Original getters/setters copied exactly eight
 preference bytes; the original MD5 functions matched the host digest over the
-synthetic `0x4B0`-byte prefix. The native regression repeats these checks.
+synthetic `0x4B0`-byte prefix. These execution checks are no longer part of the
+repository's test suite.
 
 A reopened host session returning the same candidates is only evidence about
 this bounded harness. It is not a substitute for rebooting the native menu.
-The report records that limitation and the exact executable hash.
+The earlier report recorded that limitation and the exact executable hash.
 
 ### Same-scene context comparison
 
-The separate lifetime probe compares two original-code memory snapshots:
+The separate lifetime probe compared two original-code memory snapshots:
 retained RAM after the identified native Latin dismissal operation, and the
 fresh context used when the browser creates another keyboard session. It does
 not equate host session recreation with a native close/reopen sequence.
 
-```sh
-.local/dictionary-runtime/bin/python tools/dictionary/audit-lifetime.py \
-  --state .local/prepare.json --assets web/public/assets \
-  --output artifacts/zi8-lifetime-audit.json
-```
+The optional lifetime probe was removed with the emulator.
 
-Twelve synthetic histories cover typed corrections, candidate acceptance,
+Twelve synthetic histories covered typed corrections, candidate acceptance,
 telephone input and mixed input in English, French and Spanish. Each history
-ends with the original `clearCandidates` routine; every subsequent comparison
-starts from an independent snapshot. The probe compares full candidate order
+ended with the original `clearCandidates` routine; every subsequent comparison
+started from an independent snapshot. The probe compared full candidate order
 and candidate acceptance across lower, title and uppercase text/telephone
-queries. Its retained contexts contain different working bytes from a fresh
+queries. Its retained contexts contained different working bytes from a fresh
 context, making it a comparison of distinct states rather than two resets of
 the same state.
 

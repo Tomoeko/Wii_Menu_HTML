@@ -16,12 +16,11 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import struct
 import sys
 import wave
-
-import numpy as np
 
 from reference_paths import PACKAGE_ROOT as ROOT
 
@@ -47,6 +46,38 @@ def native_tick_frames(ticks):
             tick += 1
         frame += 1
     return found
+
+
+def rms_envelope(pcm: memoryview, start: int, window_samples: int = 32,
+                 max_windows: int | None = None) -> list[float]:
+    """Measure stereo PCM16 energy without changing the recorded samples."""
+    complete_windows = (len(pcm) - start * 4) // (window_samples * 4)
+    if max_windows is not None:
+        complete_windows = min(complete_windows, max_windows)
+    result = []
+    for index in range(complete_windows):
+        offset = (start + index * window_samples) * 4
+        samples = struct.iter_unpack("<h", pcm[offset : offset + window_samples * 4])
+        squared = math.fsum(sample[0] ** 2 for sample in samples)
+        result.append(math.sqrt(squared / (window_samples * 2)) / 32768)
+    return result
+
+
+def correlation(first: list[float], second: list[float]) -> float | None:
+    """Pearson correlation of two equal-length energy windows."""
+    if len(first) != len(second) or not first:
+        raise ValueError("Correlation requires equally sized, nonempty windows")
+    first_mean = math.fsum(first) / len(first)
+    second_mean = math.fsum(second) / len(second)
+    centered = ((left - first_mean, right - second_mean)
+                for left, right in zip(first, second))
+    cross, first_square, second_square = 0.0, 0.0, 0.0
+    for left, right in centered:
+        cross += left * right
+        first_square += left * left
+        second_square += right * right
+    denominator = math.sqrt(first_square * second_square)
+    return cross / denominator if denominator else None
 
 
 def main():
@@ -88,7 +119,8 @@ def main():
     fmt = struct.unpack_from("<HHIIHH", prefix, 20)
     if fmt != (1, 2, 32000, 128000, 4, 16):
         parser.error(f"Expected original stereo 32 kHz PCM16, got {fmt}")
-    pcm = np.frombuffer(prefix[44 : 44 + (len(prefix) - 44) // 4 * 4], dtype="<i2").reshape(-1, 2)
+    pcm = memoryview(prefix)[44 : 44 + (len(prefix) - 44) // 4 * 4]
+    sample_count = len(pcm) // 4
     archive = Archive(options.sound_archive)
     _, ideal = archive.sequence(archive.sounds["WIPL_BGM_MENU"], include_tracks=False)
     ticks = [round(ideal[name] * 114 * 48 / 60) for name in ("loopStart", "loopEnd")]
@@ -101,36 +133,33 @@ def main():
     loop_start = canonical_start + options.phase_offset_samples
     loop_end = canonical_end + options.phase_offset_samples
     begin, end = options.start_sample, options.start_sample + loop_end
-    if begin < 0 or begin % 96 or loop_start < 0 or end + 1024 > len(pcm):
+    if begin < 0 or begin % 96 or loop_start < 0 or end + 1024 > sample_count:
         parser.error(
             "BGM start must align with a 96-sample AX block and the complete loop/join must lie within the quiet prefix"
         )
     first_join, second_join = begin + loop_start, end
-    before = pcm[first_join - 1024 : first_join + 1024]
-    after = pcm[second_join - 1024 : second_join + 1024]
-    if not np.array_equal(before, after):
+    before = pcm[(first_join - 1024) * 4 : (first_join + 1024) * 4]
+    after = pcm[(second_join - 1024) * 4 : (second_join + 1024) * 4]
+    if before != after:
         parser.error(
             "Loop does not have the required matching 64 ms PCM neighborhood. Inspect another phase; no smoothing or crossfade is applied."
         )
     # Independently compare the musical envelope across the proposed repeat.
-    remaining = np.asarray(pcm[begin:], dtype=np.float64) / 32768
-    envelope = np.sqrt(
-        np.mean(remaining[: len(remaining) // 32 * 32].reshape(-1, 32, 2) ** 2, axis=(1, 2))
-    )
     lag_ms = round((loop_end - loop_start) / 32)
+    envelope = rms_envelope(pcm, begin, max_windows=50000 + lag_ms + 2)
     comparison_end = min(50000, len(envelope) - lag_ms - 2)
-    correlation = None
+    repeat_correlation = None
     if comparison_end > 15000:
         first = envelope[5000:comparison_end]
         second = envelope[5000 + lag_ms : comparison_end + lag_ms]
-        correlation = float(np.corrcoef(first, second)[0, 1])
+        repeat_correlation = correlation(first, second)
     assets = options.assets.resolve()
     directory = assets / "audio"
     directory.mkdir(parents=True, exist_ok=True)
     destination = directory / "background-native.wav"
     with wave.open(str(destination), "wb") as output:
         output.setparams((2, 2, 32000, 0, "NONE", "not compressed"))
-        output.writeframes(pcm[begin:end].tobytes())
+        output.writeframes(pcm[begin * 4 : end * 4])
     entry = {
         "src": "/assets/audio/background-native.wav",
         "sourceSymbol": "WIPL_BGM_MENU",
@@ -161,9 +190,9 @@ def main():
         "axFrameSamples": 96,
         "loopMatchingNeighborhoodSamples": 2048,
         "loopMatchingNeighborhoodMaxDifference": 0,
-        "repeatEnvelopeCorrelation": correlation,
+        "repeatEnvelopeCorrelation": repeat_correlation,
         "repeatEnvelopeWindowSeconds": (
-            [5, comparison_end / 1000] if correlation is not None else None
+            [5, comparison_end / 1000] if repeat_correlation is not None else None
         ),
         "runtime": "Supplied System Menu executed in the recorded native emulator",
         "limitations": "Emulator capture, not a physical Wii recording. Repeating PCM preserves one recorded loop; it does not execute the live sequencer's subsequent random/modulator state.",

@@ -73,10 +73,10 @@ test('forced Settings reset releases its pending dictionary without affecting th
     controller.advance(30);
     controller.activate('key-phone-5');
     controller.getSnapshot();
-    sessions[1].requests.at(-1).resolve({ engine: 'original-zi8', candidates: ['mom'] });
+    sessions[1].requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: ['mom'] });
     await flushDictionary();
     assert.equal(controller.getSnapshot().keyboard.text, 'M');
-    sessions[0].requests.at(-1).resolve({ engine: 'original-zi8', candidates: ['stale'] });
+    sessions[0].requests.at(-1).resolve({ engine: 'synthetic-predictor', candidates: ['stale'] });
     await flushDictionary();
     assert.equal(controller.getSnapshot().keyboard.text, 'M');
     assert.deepEqual(callbacks, []);

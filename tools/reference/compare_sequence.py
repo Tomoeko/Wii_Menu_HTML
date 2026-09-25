@@ -19,16 +19,15 @@ import argparse
 import csv
 import hashlib
 import json
+import math
+import mmap
 from pathlib import Path
+import tempfile
 
-import numpy as np
-from PIL import Image, ImageDraw, __version__ as pillow_version
+from raster import MAX_PIXELS, RESAMPLING, RgbImage, read_png
 
 
-RESAMPLING = {
-    name: getattr(Image.Resampling, name.upper())
-    for name in ("nearest", "bilinear", "bicubic", "lanczos")
-}
+RASTER_SHA256 = hashlib.sha256((Path(__file__).parent / "raster.py").read_bytes()).hexdigest()
 
 
 def read_sequence(sidecar, project):
@@ -63,36 +62,47 @@ def read_sequence(sidecar, project):
 
 def region_mask(size, regions, exclusions=()):
     width, height = size
-    mask = np.zeros((height, width), dtype=bool)
-    for rectangles, value in ((regions, True), (exclusions, False)):
+    mask = bytearray(width * height)
+    for rectangles, value in ((regions, 1), (exclusions, 0)):
         for rectangle in rectangles:
             if len(rectangle) != 4 or any(type(x) is not int for x in rectangle):
                 raise ValueError("Rectangles require four integer coordinates.")
             x0, y0, x1, y1 = rectangle
             if not (0 <= x0 < x1 <= width and 0 <= y0 < y1 <= height):
                 raise ValueError("Rectangle is empty or outside the image.")
-            mask[y0:y1, x0:x1] = value
-    if not mask.any():
+            row = bytes((value,)) * (x1 - x0)
+            for y in range(y0, y1):
+                mask[y * width + x0:y * width + x1] = row
+    if not any(mask):
         raise ValueError("The selected region contains no pixels after exclusions.")
     return mask
 
 
 def monotonic_alignment(cost):
     """Minimum-cost nondecreasing native indices; duplicate/skipped XFBs allowed."""
-    if cost.ndim != 2 or not cost.size or not np.isfinite(cost).all():
+    if not isinstance(cost, (list, tuple)) or not cost:
         raise ValueError("Alignment needs a finite, nonempty cost matrix.")
-    total = cost[0].copy()
-    previous = np.zeros(cost.shape, dtype=int)
+    columns = len(cost[0]) if isinstance(cost[0], (list, tuple)) else 0
+    if columns == 0:
+        raise ValueError("Alignment needs a finite, nonempty cost matrix.")
+    for row in cost:
+        if (not isinstance(row, (list, tuple)) or len(row) != columns
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       for value in row)):
+            raise ValueError("Alignment needs a finite, nonempty cost matrix.")
+    total = list(cost[0])
+    previous = [[0] * len(total) for _ in cost]
     for row in range(1, len(cost)):
         best = 0
-        for column in range(cost.shape[1]):
+        for column in range(len(total)):
             if total[column] < total[best]:
                 best = column
-            previous[row, column] = best
-        total = cost[row] + total[previous[row]]
-    indices = [int(total.argmin())]
+            previous[row][column] = best
+        total = [value + total[previous[row][column]]
+                 for column, value in enumerate(cost[row])]
+    indices = [min(range(len(total)), key=total.__getitem__)]
     for row in range(len(cost) - 1, 0, -1):
-        indices.append(int(previous[row, indices[-1]]))
+        indices.append(previous[row][indices[-1]])
     return list(reversed(indices))
 
 
@@ -126,23 +136,62 @@ def presentation_normalization(configuration):
         "scale": [size[0] / source_size[0], 1],
         "pixelCenterMapping": "nativeX=((comparisonX+0.5)*sourceWidth/comparisonWidth)-0.5; nativeY=comparisonY",
         "colorSpace": "Decoded 8-bit RGB without ICC or gamma correction.",
-        "pillowVersion": pillow_version,
-        "numpyVersion": np.__version__,
+        "rasterImplementation": "tools/reference/raster.py",
+        "rasterSha256": RASTER_SHA256,
     }
 
 
-def load_images(paths, size, normalization=None):
-    images = []
-    for path in paths:
-        with Image.open(path) as image:
-            if image.size != tuple(size):
-                raise ValueError(f"Unexpected image dimensions: {path.name}")
-            pixels = image.convert("RGB")
-            if normalization is not None:
-                pixels = pixels.resize(tuple(normalization["comparisonSize"]),
-                                       RESAMPLING[normalization["resample"]])
-            images.append(np.asarray(pixels))
-    return images
+def load_image(path, size, normalization=None):
+    image = read_png(path)
+    if image.size != tuple(size):
+        raise ValueError(f"Unexpected image dimensions: {path.name}")
+    if normalization is not None:
+        image = image.resize(tuple(normalization["comparisonSize"]),
+                             normalization["resample"])
+    return image
+
+
+def mask_runs(mask):
+    """Return contiguous selected pixel spans for repeat sampling and redaction."""
+    runs = []
+    start = None
+    for index, selected in enumerate(mask):
+        if selected and start is None:
+            start = index
+        elif not selected and start is not None:
+            runs.append((start, index))
+            start = None
+    if start is not None:
+        runs.append((start, len(mask)))
+    return runs
+
+
+def masked_rgb(image: RgbImage, runs) -> bytes:
+    return b"".join(image.pixels[start * 3:end * 3] for start, end in runs)
+
+
+def redacted_image(image: RgbImage, runs) -> RgbImage:
+    result = RgbImage.new(image.size, (24, 24, 24))
+    for start, end in runs:
+        result.pixels[start * 3:end * 3] = image.pixels[start * 3:end * 3]
+    return result
+
+
+def sample_metrics(browser: bytes, native: bytes) -> dict:
+    pixels = len(browser) // 3
+    absolute = 0
+    equal = 0
+    for index in range(0, len(browser), 3):
+        red = abs(browser[index] - native[index])
+        green = abs(browser[index + 1] - native[index + 1])
+        blue = abs(browser[index + 2] - native[index + 2])
+        absolute += red + green + blue
+        equal += red == green == blue == 0
+    return {
+        "pixels": pixels,
+        "meanAbsoluteRgbDifference": absolute / (pixels * 3),
+        "equalPixelFraction": equal / pixels,
+    }
 
 
 def file_digest(path):
@@ -180,8 +229,6 @@ def compare(sidecar, project, native_directory, first, last, configuration, outp
         }
     native_paths = [native_directory / f"framedump_{frame}.png" for frame in range(first, last + 1)]
     native_size = normalization["sourceSize"] if normalization is not None else size
-    native = load_images(native_paths, native_size, normalization)
-    browser = load_images(browser_paths, size)
     exclusions = configuration.get("exclusions", [])
     alignment_mask = region_mask(size, configuration["alignmentRegions"], exclusions)
     masks = {
@@ -190,35 +237,72 @@ def compare(sidecar, project, native_directory, first, last, configuration, outp
     }
     if not masks:
         raise ValueError("At least one measurement region is required.")
-    native_samples = [image[alignment_mask].astype(np.int16) for image in native]
-    browser_samples = [image[alignment_mask].astype(np.int16) for image in browser]
-    costs = np.array([
-        [
-            float(np.abs(image - sample).mean())
-            for sample in native_samples
-        ]
-        for image in browser_samples
-    ])
+    alignment_runs = mask_runs(alignment_mask)
+    sample_length = sum(end - start for start, end in alignment_runs) * 3
+    costs = []
+    # The full decoded image sequence can exceed a gigabyte. Keep only the
+    # selected native bytes in a temporary file and decode browser frames once
+    # per alignment row. Metrics and sheet images are reloaded after alignment.
+    with tempfile.TemporaryFile() as sample_file:
+        for path in native_paths:
+            image = load_image(path, native_size, normalization)
+            sample_file.write(masked_rgb(image, alignment_runs))
+        sample_file.flush()
+        with mmap.mmap(sample_file.fileno(), 0, access=mmap.ACCESS_READ) as samples:
+            for path in browser_paths:
+                browser_sample = masked_rgb(load_image(path, size), alignment_runs)
+                row = []
+                for index in range(len(native_paths)):
+                    offset = index * sample_length
+                    with memoryview(samples)[offset:offset + sample_length] as native_sample:
+                        absolute = sum(abs(left - right) for left, right
+                                       in zip(browser_sample, native_sample))
+                    row.append(absolute / sample_length)
+                costs.append(row)
     alignment = monotonic_alignment(costs)
+    selected = sorted(set(range(0, len(browser_paths), 4)) | {len(browser_paths) - 1})
+    width, height = size
+    pixels_per_sheet_row = width * 2 * (height + 24)
+    page_capacity = MAX_PIXELS // pixels_per_sheet_row
+    if page_capacity < 1:
+        raise ValueError("A contact-sheet pair exceeds the first-party raster pixel limit.")
+    pages = [selected[index:index + page_capacity]
+             for index in range(0, len(selected), page_capacity)]
+    contact_sheets = []
+    for index, updates in enumerate(pages):
+        filename = ("contact-sheet.png" if len(pages) == 1
+                    else f"contact-sheet-{index + 1:02d}.png")
+        contact_sheets.append({
+            "file": filename,
+            "browserUpdates": updates,
+            "nativeOrdinals": [first + alignment[update] for update in updates],
+        })
+    measurement_runs = {name: mask_runs(mask) for name, mask in masks.items()}
     pairs = []
+    previous_native_index = None
+    native_image = None
     for update, ordinal_index in enumerate(alignment):
-        difference = np.abs(browser[update].astype(np.int16) - native[ordinal_index])
+        browser_image = load_image(browser_paths[update], size)
+        if ordinal_index != previous_native_index:
+            native_image = load_image(native_paths[ordinal_index], native_size, normalization)
+            previous_native_index = ordinal_index
         pairs.append({
             "browserUpdate": update,
             "nativeOrdinal": first + ordinal_index,
-            "alignmentMeanAbsoluteRgbDifference": float(costs[update, ordinal_index]),
+            "alignmentMeanAbsoluteRgbDifference": costs[update][ordinal_index],
             "regions": {
-                name: {
-                    "pixels": int(mask.sum()),
-                    "meanAbsoluteRgbDifference": float(difference[mask].mean()),
-                    "equalPixelFraction": float((difference[mask] == 0).all(axis=1).mean()),
-                }
-                for name, mask in masks.items()
+                name: sample_metrics(
+                    masked_rgb(browser_image, runs), masked_rgb(native_image, runs)
+                )
+                for name, runs in measurement_runs.items()
             },
         })
     report = {
         "schemaVersion": 1,
         "analysisTool": {"file": Path(__file__).name, "sha256": file_digest(Path(__file__))},
+        "rasterImplementation": {"file": "tools/reference/raster.py", "sha256": RASTER_SHA256},
+        "alignmentStorage": "Selected native RGB bytes in an anonymous local temporary file.",
+        "contactSheets": contact_sheets,
         "browserSidecar": str(sidecar.resolve().relative_to(project.resolve())),
         "browserSidecarSha256": file_digest(sidecar),
         "browserFrameConvention": metadata["comparison"].get("frameConvention"),
@@ -238,6 +322,8 @@ def compare(sidecar, project, native_directory, first, last, configuration, outp
             "Unchanging regions cannot uniquely determine alignment; ties choose the earliest native ordinal.",
             "Excluded pixels do not contribute to alignment, metrics, or the redacted contact sheet.",
             "Low regional error does not establish full-frame or interaction equivalence.",
+            "Alignment time grows with browser updates, native images and selected RGB bytes.",
+            "Contact sheets include every fourth browser update and split at the raster pixel limit.",
         ],
         "nativeFrames": [
             {"ordinal": first + i, "sha256": file_digest(path)}
@@ -268,7 +354,6 @@ def compare(sidecar, project, native_directory, first, last, configuration, outp
             "Metrics compare unchanged browser pixels with normalized native pixels, not original native-pixel equality. Input file hashes identify the unmodified images.",
         ])
     output.mkdir(parents=True, exist_ok=True)
-    (output / "comparison.json").write_text(format_json(report))
     with (output / "alignment.csv").open("w", newline="") as stream:
         writer = csv.writer(stream)
         writer.writerow(["browser_update", "native_ordinal", "alignment_rgb_mae", *masks])
@@ -279,22 +364,28 @@ def compare(sidecar, project, native_directory, first, last, configuration, outp
                 pair["alignmentMeanAbsoluteRgbDifference"],
                 *[pair["regions"][name]["meanAbsoluteRgbDifference"] for name in masks],
             ])
-    visible = alignment_mask.copy()
+    visible = alignment_mask[:]
     for mask in masks.values():
-        visible |= mask
-    selected = sorted(set(range(0, len(browser), 4)) | {len(browser) - 1})
-    width, height = size
-    sheet = Image.new("RGB", (width * 2, (height + 24) * len(selected)), "#181818")
-    draw = ImageDraw.Draw(sheet)
-    for row, update in enumerate(selected):
-        matched = alignment[update]
-        y = row * (height + 24)
-        draw.text((8, y + 5), f"Native XFB {first + matched}", fill="white")
-        draw.text((width + 8, y + 5), f"Browser update {update}", fill="white")
-        for column, pixels in enumerate((native[matched], browser[update])):
-            redacted = np.where(visible[..., None], pixels, 24).astype(np.uint8)
-            sheet.paste(Image.fromarray(redacted), (column * width, y + 24))
-    sheet.save(output / "contact-sheet.png")
+        for index, selected in enumerate(mask):
+            if selected:
+                visible[index] = 1
+    visible_runs = mask_runs(visible)
+    for page in contact_sheets:
+        updates = page["browserUpdates"]
+        sheet = RgbImage.new((width * 2, (height + 24) * len(updates)), "#181818")
+        for row, update in enumerate(updates):
+            matched = alignment[update]
+            y = row * (height + 24)
+            sheet.draw_text((8, y + 5), f"Native XFB {first + matched}", "white")
+            sheet.draw_text((width + 8, y + 5), f"Browser update {update}", "white")
+            images = (
+                load_image(native_paths[matched], native_size, normalization),
+                load_image(browser_paths[update], size),
+            )
+            for column, pixels in enumerate(images):
+                sheet.paste(redacted_image(pixels, visible_runs), (column * width, y + 24))
+        sheet.save(output / page["file"])
+    (output / "comparison.json").write_text(format_json(report))
     return report
 
 

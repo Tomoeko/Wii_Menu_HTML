@@ -293,8 +293,8 @@ def main(argv=None):
         help="Choose validated native capture or built-in sequence synthesis",
     )
     args = parser.parse_args(argv)
-    # npm also invokes prepare automatically during npm install. No-argument
-    # install must succeed without private assets or a console key.
+    # An explicit no-argument preparation must succeed without private assets
+    # or a console key. npm install lifecycle scripts are disabled by .npmrc.
     if args.operation == "prepare" and not (
         args.wad or args.nand or args.channel_wad or args.rebuild
     ):

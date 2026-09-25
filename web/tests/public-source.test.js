@@ -17,9 +17,10 @@ async function fixture(t) {
     await writeFile(file, bytes);
   };
   for (const name of [
-    '.gitignore', 'AGENTS.md', 'README.md', 'LICENSE', 'package.json', 'config.json',
+    '.gitignore', '.npmrc', 'AGENTS.md', 'README.md', 'LICENSE', 'package.json', 'config.json',
     'defaults/channel-layout.json', 'defaults/message-board.json',
-    'web/index.html', 'web/src/main.js', 'tools/serve.mjs', 'tools/init-state.mjs',
+    'web/index.html', 'web/src/main.js', 'tools/serve.mjs', 'tools/start.mjs',
+    'tools/init-state.mjs',
     'tools/assets/prepare.py', 'tools/audit-privacy.mjs',
   ]) {
     await write(name, publicDefaultBytes(name) ?? 'authored source\n');
@@ -39,7 +40,7 @@ test('public inventory excludes private resources and uploaded examples without 
   }
   const result = await planPublicSource(directory);
   assert.deepEqual(result.findings, []);
-  assert.equal(result.files.length, 14);
+  assert.equal(result.files.length, 16);
   assert.equal(result.excluded.length, 9);
   const clean = await planPublicSource(directory, { requireClean: true });
   assert.equal(clean.findings.length, 8);

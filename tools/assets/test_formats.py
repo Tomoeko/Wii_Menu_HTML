@@ -30,6 +30,14 @@ def nw4r(kind, blocks):
     )
 
 
+def u8_archive(nodes, names, payload=b"abcxyz"):
+    root = 32
+    data_offset = 128
+    table = b"".join(struct.pack(">III", *node) for node in nodes)
+    header = struct.pack(">4I", 0x55AA382D, root, len(table) + len(names), data_offset)
+    return (header + bytes(16) + table + names).ljust(data_offset, b"\0") + payload
+
+
 class TextureTests(unittest.TestCase):
     def test_huffman_big_endian_decisions_from_little_endian_words(self):
         data = b"\x28\x04\0\0\x01\xc0AB" + (0x50000000).to_bytes(4, "little")
@@ -93,19 +101,40 @@ class ArchiveTests(unittest.TestCase):
 
     def test_u8_nested_directories_and_sibling(self):
         names = b"\0folder\0inner\0outer\0"
-        root = 32
-        table = b"".join(
-            struct.pack(">III", *entry)
-            for entry in [(0x1000000, 0, 4), (0x1000001, 0, 3), (8, 100, 3), (14, 103, 3)]
-        )
-        data = (
-            struct.pack(">4I", 0x55AA382D, root, len(table) + len(names), 100)
-            + bytes(16)
-            + table
-            + names
-        )
-        data = data.ljust(100, b"\0") + b"abcxyz"
+        data = u8_archive([
+            (0x1000000, 0, 4), (0x1000001, 0, 3), (8, 128, 3), (14, 131, 3),
+        ], names)
         self.assertEqual(u8_files(data), {"folder/inner": b"abc", "outer": b"xyz"})
+
+    def test_u8_rejects_malformed_table_and_directory_boundaries(self):
+        valid = u8_archive([
+            (0x1000000, 0, 3), (0x1000001, 0, 3), (8, 128, 3),
+        ], b"\0folder\0inner\0")
+        too_many_nodes = bytearray(valid)
+        struct.pack_into(">I", too_many_nodes, 40, 0xFFFFFFFF)
+        with self.assertRaisesRegex(ValueError, "archive table"):
+            u8_files(too_many_nodes)
+        escaping_directory = bytearray(valid)
+        struct.pack_into(">I", escaping_directory, 32 + 12 + 8, 4)
+        with self.assertRaisesRegex(ValueError, "directory boundary"):
+            u8_files(escaping_directory)
+
+    def test_u8_rejects_ambiguous_or_unsafe_output_names(self):
+        for name in (b"", b"..", b"C:", b"name.", b"bad\x1fname"):
+            with self.subTest(name=name):
+                data = u8_archive([(0x1000000, 0, 2), (1, 128, 3)], b"\0" + name + b"\0")
+                with self.assertRaisesRegex(ValueError, "entry name"):
+                    u8_files(data)
+        duplicate = u8_archive([
+            (0x1000000, 0, 3), (1, 128, 3), (6, 131, 3),
+        ], b"\0Icon\0icon\0")
+        with self.assertRaisesRegex(ValueError, "Duplicate U8 entry path"):
+            u8_files(duplicate)
+        normalized_duplicate = u8_archive([
+            (0x1000000, 0, 3), (1, 128, 3), (7, 131, 3),
+        ], b"\0caf\xc3\xa9\0cafe\xcc\x81\0")
+        with self.assertRaisesRegex(ValueError, "Duplicate U8 entry path"):
+            u8_files(normalized_duplicate)
 
     def test_ash_literal_tree(self):
         # A single leaf code 65 requires no body bits; output four As.

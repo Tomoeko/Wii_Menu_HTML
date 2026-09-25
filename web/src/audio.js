@@ -61,8 +61,20 @@ export function createAudio({
   }
 
   async function loadAsset(name, asset) {
-    if (!asset?.src || !context || destroyed) return null;
-    const url = baseUrl ? new URL(asset.src, baseUrl).href : asset.src;
+    if (typeof asset?.src !== 'string' || !asset.src || !context || destroyed) return null;
+    const base = baseUrl ?? globalThis.location?.href ?? 'http://local.invalid/';
+    let source;
+    try {
+      source = new URL(asset.src, base);
+    } catch {
+      onError(name, new Error('Audio resource URL is invalid.'));
+      return null;
+    }
+    if (source.origin !== new URL(base).origin) {
+      onError(name, new Error('Audio resources must remain on the local host.'));
+      return null;
+    }
+    const url = baseUrl || globalThis.location?.href ? source.href : asset.src;
     if (!cache.has(url)) {
       cache.set(
         url,

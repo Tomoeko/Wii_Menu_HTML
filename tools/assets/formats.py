@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import binascii
 import struct
+import unicodedata
 import zlib
 from pathlib import PurePosixPath
 
@@ -88,22 +89,53 @@ def bmg(data):
 
 
 def u8_files(data):
-    if data[:4] != b"U\xaa8-":
+    if len(data) < 32 or data[:4] != b"U\xaa8-":
         raise ValueError("Expected U8 archive")
-    (root,) = unpack(data, "I", 4)
-    (count,) = unpack(data, "I", root + 8)
+    root, header_size, data_offset = unpack(data, "III", 4)
+    if root < 32 or root + 12 > len(data):
+        raise ValueError("Invalid U8 root node")
+    root_kind, root_parent, count = unpack(data, "III", root)
+    if root_kind >> 24 != 1 or root_parent != 0 or count < 1:
+        raise ValueError("Invalid U8 root node")
     strings = root + count * 12
+    names_end = root + header_size
+    if strings > names_end or names_end > data_offset or data_offset > len(data):
+        raise ValueError("Invalid U8 archive table")
     stack = [(count, "")]
     result = {}
+    seen = set()
     for i in range(1, count):
         while stack[-1][0] <= i:
             stack.pop()
         kind_name, offset, size = unpack(data, "III", root + i * 12)
-        name = string(data, strings + (kind_name & 0xFFFFFF))
-        if name in (".", "..") or "/" in name or "\\" in name:
+        kind = kind_name >> 24
+        start = strings + (kind_name & 0xFFFFFF)
+        end = data.find(b"\0", start, names_end) if start < names_end else -1
+        if kind not in (0, 1) or end < 0 or end - start > 255:
+            raise ValueError("Invalid U8 entry")
+        try:
+            name = data[start:end].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError("Invalid U8 entry name") from error
+        if (
+            not name or name in (".", "..") or name.endswith((".", " "))
+            or any(ord(character) < 32 or ord(character) == 127
+                   or character in '/\\:*?"<>|' for character in name)
+            or name.split(".", 1)[0].upper() in {
+                "CON", "PRN", "AUX", "NUL",
+                *(f"COM{number}" for number in range(1, 10)),
+                *(f"LPT{number}" for number in range(1, 10)),
+            }
+        ):
             raise ValueError("Invalid U8 entry name")
         path = str(PurePosixPath(stack[-1][1]) / name)
-        if kind_name >> 24:
+        portable_path = unicodedata.normalize("NFC", path).casefold()
+        if portable_path in seen:
+            raise ValueError("Duplicate U8 entry path")
+        seen.add(portable_path)
+        if kind == 1:
+            if size <= i or size > stack[-1][0]:
+                raise ValueError("Invalid U8 directory boundary")
             stack.append((size, path))
         else:
             if offset + size > len(data):

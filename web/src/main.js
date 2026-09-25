@@ -63,9 +63,9 @@ import { mergeChannelCatalog, readCustomChannelCatalog } from './channel-catalog
 import { selectChannelCatalog } from './channel-selection.js';
 import { readDeletedChannelIds } from './channel-recovery.js';
 import {
-  createNativeDictionaryProvider,
+  createEmbeddedDictionaryProvider,
   loadEmbeddedDictionaries,
-} from './native-dictionary.js';
+} from './embedded-dictionary.js';
 import {
   commonArrowDefinitions,
   createArrowInteraction,
@@ -1569,9 +1569,7 @@ async function init() {
   const dictionaries = await loadEmbeddedDictionaries({
     manifestUrl: assets + 'keyboard-dictionary.json',
   });
-  const dictionaryProvider = createNativeDictionaryProvider({
-    fallbackDictionaries: dictionaries,
-  });
+  const dictionaryProvider = createEmbeddedDictionaryProvider(dictionaries);
   inspection?.setSource({
     preparation: manifest.preparation,
     resourceContent: manifest.source,

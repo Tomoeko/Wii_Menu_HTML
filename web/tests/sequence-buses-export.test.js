@@ -228,3 +228,17 @@ test('shared local resource reader rejects a wave path escaping the prepared ass
   await writeFile(path, JSON.stringify(definition));
   await assert.rejects(readLocalSequenceResources(path, assets), /escapes/);
 });
+
+test('shared local resource reader rejects a symlink to a wave outside prepared assets', async (t) => {
+  const directory = await temporary(t);
+  const assets = await preparedFixture(directory);
+  const outside = join(directory, 'outside.pcm');
+  await writeFile(outside, Buffer.alloc(4));
+  const alias = join(assets, 'audio/outside.pcm');
+  await symlink(outside, alias);
+  const path = join(assets, 'audio/cue-sequence.json');
+  const definition = JSON.parse(await readFile(path, 'utf8'));
+  definition.waves[0].src = '/assets/audio/outside.pcm';
+  await writeFile(path, JSON.stringify(definition));
+  await assert.rejects(readLocalSequenceResources(path, assets), /escapes/);
+});

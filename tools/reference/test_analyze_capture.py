@@ -5,8 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-import numpy as np
-from PIL import Image
+from raster import RgbImage, read_png
 
 from analyze_capture import BOXES, WIDE_BOXES, analyze, resolve_regions
 
@@ -60,7 +59,7 @@ class IconCaptureAnalysisTests(unittest.TestCase):
             regions = Path(directory) / "regions.json"
             regions.write_text(json.dumps(definition))
             for number in range(7, 128):
-                image = Image.new("RGB", (8, 6), (10, 20, 30))
+                image = RgbImage.new((8, 6), (10, 20, 30))
                 image.putpixel((0, 5), (number, 0, 0))  # Outside both measured rectangles.
                 image.putpixel((6, 1), (number, 20, 30))
                 image.save(capture / "Frames" / f"framedump_{number}.png")
@@ -75,26 +74,26 @@ class IconCaptureAnalysisTests(unittest.TestCase):
                 rows = list(csv.DictReader(file))
             self.assertEqual(len(rows), 242)
             for number in (7, 126, 127):
-                with Image.open(capture / "Frames" / f"framedump_{number}.png") as image:
-                    for slot, region in enumerate(definition["regions"], 1):
-                        record = next(
-                            r
-                            for r in report["atlas"]["files"]
-                            if r["slot"] == slot and r["firstFrame"] <= number <= r["lastFrame"]
-                        )
-                        width, height = record["cropWidth"], record["cropHeight"]
-                        offset = number - record["firstFrame"]
-                        left, top = offset % 12 * width, offset // 12 * height
-                        with Image.open(output / record["file"]) as atlas:
-                            actual = atlas.crop((left, top, left + width, top + height))
-                        expected = image.crop(region["box"])
-                        np.testing.assert_array_equal(np.asarray(actual), np.asarray(expected))
-                        row = next(
-                            r for r in rows if int(r["frame"]) == number and int(r["slot"]) == slot
-                        )
-                        self.assertEqual(
-                            row["crop_sha256"], hashlib.sha256(expected.tobytes()).hexdigest()
-                        )
+                image = read_png(capture / "Frames" / f"framedump_{number}.png")
+                for slot, region in enumerate(definition["regions"], 1):
+                    record = next(
+                        r
+                        for r in report["atlas"]["files"]
+                        if r["slot"] == slot and r["firstFrame"] <= number <= r["lastFrame"]
+                    )
+                    width, height = record["cropWidth"], record["cropHeight"]
+                    offset = number - record["firstFrame"]
+                    left, top = offset % 12 * width, offset // 12 * height
+                    atlas = read_png(output / record["file"])
+                    actual = atlas.crop((left, top, left + width, top + height))
+                    expected = image.crop(region["box"])
+                    self.assertEqual(actual.pixels, expected.pixels)
+                    row = next(
+                        r for r in rows if int(r["frame"]) == number and int(r["slot"]) == slot
+                    )
+                    self.assertEqual(
+                        row["crop_sha256"], hashlib.sha256(expected.pixels).hexdigest()
+                    )
 
 
 if __name__ == "__main__":

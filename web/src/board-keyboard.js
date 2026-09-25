@@ -196,6 +196,7 @@ export function createBoardKeyboard(
   let compositionBoundary = null;
   predict = predict?.createSession?.() || predict;
   const localPredictor = createLocalPredictor(value, dictionaries);
+  predict?.learn?.(value);
   const predictWords = predict || localPredictor.suggest;
   const motions = new Map();
   const paneBindings = new Map(KEYBOARD_LAYOUTS.map((key) =>
@@ -775,7 +776,9 @@ export function createBoardKeyboard(
 
   function update(next, { notify = true } = {}) {
     text = next;
-    localPredictor.learn(text.replace(/[\p{L}\p{M}]+$/u, ''));
+    const completeWords = text.replace(/[\p{L}\p{M}]+$/u, '');
+    localPredictor.learn(completeWords);
+    predict?.learn?.(completeWords);
     candidateCache = null;
     age = 0;
     caretColumn = null;

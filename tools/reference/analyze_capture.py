@@ -20,8 +20,10 @@ import json
 from pathlib import Path
 import shutil
 
-import numpy as np
-from PIL import Image, ImageDraw
+from raster import RgbImage, read_png
+
+
+RASTER_SHA256 = hashlib.sha256((Path(__file__).parent / "raster.py").read_bytes()).hexdigest()
 
 NAMES = [
     "Disc",
@@ -38,7 +40,7 @@ NAMES = [
     "Netflix",
 ]
 # Coordinates are capture pixels, not the menu's logical projection. Right and
-# bottom are exclusive, matching Pillow.crop and NumPy array slices.
+# bottom are exclusive, matching the first-party RGB crop operation.
 BOXES = [(x, y, x + 125, y + 94) for y in (40, 142, 242) for x in (55, 190, 325, 460)]
 WIDE_BOXES = [
     (left, top, right, bottom)
@@ -103,13 +105,12 @@ def analyze(
     if end < start:
         raise ValueError("End frame precedes start frame")
     capture, output = capture.resolve(), output.resolve()
-    with Image.open(frame_path(capture, start)) as first:
-        resolution = first.size
+    resolution = read_png(frame_path(capture, start)).size
     regions = resolve_regions(aspect, resolution, region_file)
     output.mkdir(parents=True, exist_ok=True)
     (output / "crops").mkdir(exist_ok=True)
     frames = range(start, end + 1)
-    sample_frames = sorted(set(int(n) for n in np.linspace(start, end, 9)))
+    sample_frames = sorted(set(int(start + (end - start) * index / 8) for index in range(9)))
     samples, previous, atlases = {}, None, None
     metrics = [[] for _ in regions]
     hashes = [set() for _ in regions]
@@ -129,21 +130,18 @@ def analyze(
         )
         for relative, number in enumerate(frames):
             path = frame_path(capture, number)
-            with Image.open(path) as source_image:
-                image = source_image.convert("RGB")
+            image = read_png(path)
             if image.size != resolution:
                 raise ValueError(f"Capture resolution changed to {image.size} in {path}")
-            pixels = np.asarray(image)
             source_records.append(
-                {"frame": number, "rgbSha256": hashlib.sha256(pixels.tobytes()).hexdigest()}
+                {"frame": number, "rgbSha256": hashlib.sha256(image.pixels).hexdigest()}
             )
             if number in sample_frames:
                 samples[number] = image.copy()
             atlas_index, atlas_offset = divmod(relative, ATLAS_LENGTH)
             if atlas_offset == 0:
                 atlases = [
-                    Image.new(
-                        "RGB",
+                    RgbImage.new(
                         (
                             (r["box"][2] - r["box"][0]) * ATLAS_COLUMNS,
                             (r["box"][3] - r["box"][1]) * ATLAS_ROWS,
@@ -153,19 +151,28 @@ def analyze(
                 ]
             for slot, region in enumerate(regions):
                 left, top, right, bottom = region["box"]
-                crop = pixels[top:bottom, left:right]
-                digest = hashlib.sha256(crop.tobytes()).hexdigest()
+                crop = image.crop((left, top, right, bottom))
+                digest = hashlib.sha256(crop.pixels).hexdigest()
                 hashes[slot].add(digest)
                 if previous is None:
                     values = (0.0, 0.0, 0)
                 else:
-                    delta = np.abs(
-                        crop.astype(np.int16) - previous[top:bottom, left:right].astype(np.int16)
-                    )
+                    earlier = previous.crop((left, top, right, bottom))
+                    absolute_sum = 0
+                    changed_pixels = 0
+                    maximum = 0
+                    for index in range(0, len(crop.pixels), 3):
+                        red = abs(crop.pixels[index] - earlier.pixels[index])
+                        green = abs(crop.pixels[index + 1] - earlier.pixels[index + 1])
+                        blue = abs(crop.pixels[index + 2] - earlier.pixels[index + 2])
+                        absolute_sum += red + green + blue
+                        maximum = max(maximum, red, green, blue)
+                        changed_pixels += max(red, green, blue) > 2
+                    pixel_count = crop.width * crop.height
                     values = (
-                        float(delta.mean()),
-                        float((delta.max(axis=2) > 2).mean()),
-                        int(delta.max()),
+                        absolute_sum / (pixel_count * 3),
+                        changed_pixels / pixel_count,
+                        maximum,
                     )
                 metrics[slot].append(values)
                 writer.writerow(
@@ -181,14 +188,14 @@ def analyze(
                 )
                 x = atlas_offset % ATLAS_COLUMNS * (right - left)
                 y = atlas_offset // ATLAS_COLUMNS * (bottom - top)
-                atlases[slot].paste(Image.fromarray(crop), (x, y))
-            previous = pixels
+                atlases[slot].paste(crop, (x, y))
+            previous = image
             if atlas_offset == ATLAS_LENGTH - 1 or number == end:
                 first_frame = start + atlas_index * ATLAS_LENGTH
                 for slot, atlas in enumerate(atlases):
                     box = regions[slot]["box"]
                     filename = f"crops/slot-{slot + 1:02d}-frames-{first_frame}-{number}.png"
-                    atlas.save(output / filename, compress_level=3)
+                    atlas.save(output / filename)
                     atlas_records.append(
                         {
                             "slot": slot + 1,
@@ -203,16 +210,16 @@ def analyze(
                 print(f"Analyzed {number}/{end}", flush=True)
     summary = []
     for slot, region in enumerate(regions):
-        values = np.asarray(metrics[slot][1:])
+        values = metrics[slot][1:]
         summary.append(
             {
                 "slot": slot + 1,
                 **region,
                 "distinctPixelCrops": len(hashes[slot]),
-                "changedTransitions": int((values[:, 2] > 0).sum()) if len(values) else 0,
+                "changedTransitions": sum(value[2] > 0 for value in values),
                 "totalTransitions": max(0, len(frames) - 1),
-                "meanFrameDelta": float(values[:, 0].mean()) if len(values) else 0,
-                "maxFrameDelta": float(values[:, 0].max()) if len(values) else 0,
+                "meanFrameDelta": sum(value[0] for value in values) / len(values) if values else 0,
+                "maxFrameDelta": max((value[0] for value in values), default=0),
             }
         )
     metadata = {
@@ -228,6 +235,10 @@ def analyze(
         "sampleFrames": sample_frames,
         "duplicateXfbSkipping": duplicate_xfb_skipping,
         "frameSemantics": "Presented-XFB ordinals; not verified game ticks or wall-clock time.",
+        "rasterImplementation": {
+            "file": "tools/reference/raster.py",
+            "sha256": RASTER_SHA256,
+        },
         "reviewNotes": notes or [],
         "slots": summary,
         "atlas": {
@@ -242,45 +253,43 @@ def analyze(
     max_width = max(r["box"][2] - r["box"][0] for r in regions)
     max_height = max(r["box"][3] - r["box"][1] for r in regions)
     cell_width, row_height = max_width + 3, max_height + 24
-    sheet = Image.new(
-        "RGB", (175 + len(sample_frames) * cell_width, 30 + len(regions) * row_height), (25, 25, 25)
+    sheet = RgbImage.new(
+        (175 + len(sample_frames) * cell_width, 30 + len(regions) * row_height),
+        (25, 25, 25),
     )
-    draw = ImageDraw.Draw(sheet)
     for column, number in enumerate(sample_frames):
-        draw.text((180 + column * cell_width, 8), f"Frame {number}", fill="white")
+        sheet.draw_text((180 + column * cell_width, 8), f"Frame {number}", "white")
     for slot, region in enumerate(regions):
         top = 30 + slot * row_height
-        draw.text((8, top + 12), f"{slot + 1:02d} {region['name']}", fill="white")
-        draw.text((8, top + 29), f"{len(hashes[slot])} distinct crops", fill=(160, 160, 160))
+        sheet.draw_text((8, top + 12), f"{slot + 1:02d} {region['name']}", "white")
+        sheet.draw_text((8, top + 29), f"{len(hashes[slot])} distinct crops", (160, 160, 160))
         for column, number in enumerate(sample_frames):
             sheet.paste(samples[number].crop(region["box"]), (175 + column * cell_width, top))
     sheet.save(output / "icon-contact-sheet.png")
-    plot = Image.new("RGB", (1200, len(regions) * 94 + 40), "white")
-    draw = ImageDraw.Draw(plot)
-    draw.text(
+    plot = RgbImage.new((1200, len(regions) * 94 + 40), "white")
+    plot.draw_text(
         (12, 10),
-        "Mean absolute RGB difference from preceding captured image (0–255); rows scaled separately",
-        fill="black",
+        "Mean absolute RGB difference (0-255); rows scaled separately",
+        "black",
     )
     for slot, region in enumerate(regions):
-        values = np.asarray(metrics[slot])[:, 0]
-        top, maximum = 40 + slot * 94, max(float(values.max()), 0.001)
-        draw.text((10, top + 5), region["name"], fill="black")
-        draw.text((10, top + 21), f"max {maximum:.3f}", fill=(90, 90, 90))
+        values = [metric[0] for metric in metrics[slot]]
+        top, maximum = 40 + slot * 94, max(max(values), 0.001)
+        plot.draw_text((10, top + 5), region["name"], "black")
+        plot.draw_text((10, top + 21), f"max {maximum:.3f}", (90, 90, 90))
         points = [
             (170 + i / max(1, len(values) - 1) * 1015, top + 78 - value / maximum * 70)
             for i, value in enumerate(values)
         ]
         if len(points) > 1:
-            draw.line(points, fill=(0, 140, 190), width=1)
-        draw.line((170, top + 79, 1185, top + 79), fill=(190, 190, 190))
+            plot.draw_line(points, (0, 140, 190))
+        plot.draw_line((170, top + 79, 1185, top + 79), (190, 190, 190))
     plot.save(output / "icon-change-traces.png")
     annotated = samples[start].copy()
-    draw = ImageDraw.Draw(annotated)
     for slot, region in enumerate(regions):
         left, top, right, bottom = region["box"]
-        draw.rectangle((left, top, right - 1, bottom - 1), outline=(255, 0, 255), width=1)
-        draw.text((left + 4, top + 3), str(slot + 1), fill=(255, 0, 255))
+        annotated.draw_rectangle((left, top, right - 1, bottom - 1), (255, 0, 255))
+        annotated.draw_text((left + 4, top + 3), str(slot + 1), (255, 0, 255))
     annotated.save(output / "reviewed-regions.png")
     for label, number in (("first", start), ("last", end)):
         shutil.copyfile(frame_path(capture, number), output / f"{label}-analyzed-frame.png")

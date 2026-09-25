@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import { formatJson } from './format-json.mjs';
 /** Numeric browser/source pose audit. This tool does not produce screenshots. */
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, realpath, writeFile, mkdir } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { createGzip } from 'node:zlib';
 import { once } from 'node:events';
 import { finished } from 'node:stream/promises';
-import { resolve, join, dirname } from 'node:path';
+import { resolve, join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { channelClips, poseChannel } from '../web/src/channel-animation.js';
@@ -32,11 +32,27 @@ if (!Number.isInteger(options.frames) || options.frames < 1 || options.frames > 
 const json = async (path) => JSON.parse(await readFile(path, 'utf8'));
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 await mkdir(options.output, { recursive: true });
-const catalog = await json(join(options.assets, 'channels.json'));
-const manifest = await json(join(options.assets, 'manifest.json'));
+const assets = await realpath(options.assets);
+async function assetFile(resource) {
+  if (typeof resource !== 'string' || !resource) {
+    throw new Error('Invalid trace resource path.');
+  }
+  const candidate = resolve(assets, resource);
+  if (!candidate.startsWith(assets + sep)) {
+    throw new Error('Trace resource escapes the assets directory.');
+  }
+  const path = await realpath(candidate);
+  if (!path.startsWith(assets + sep)) {
+    throw new Error('Trace resource escapes the assets directory.');
+  }
+  return path;
+}
+const catalog = await json(await assetFile('channels.json'));
+const manifest = await json(await assetFile('manifest.json'));
+if (!Array.isArray(catalog.channels)) throw new Error('Invalid channel trace catalog.');
 const fonts = {};
 for (const [name, value] of Object.entries(manifest.fonts || {}))
-  fonts[name] = await json(join(options.assets, value.url));
+  fonts[name] = await json(await assetFile(value.url));
 const measureText = (text, pane, layout) => {
   const font = fonts[layout.fonts[pane.font]],
     scale = font ? pane.fontSize[0] / font.width : 0;
@@ -98,7 +114,11 @@ const inventory = {
   channels: [],
 };
 for (const metadata of catalog.channels) {
+  if (!metadata || typeof metadata.id !== 'string' || !/^[0-9a-f]{16}$/i.test(metadata.id)) {
+    throw new Error('Invalid native channel ID in trace catalog.');
+  }
   const channel = { ...metadata },
+    layoutBytes = {},
     entry = {
       id: metadata.id,
       shortId: metadata.shortId,
@@ -108,9 +128,9 @@ for (const metadata of catalog.channels) {
     };
   for (const kind of ['icon', 'banner']) {
     if (!metadata[`${kind}Layout`]) continue;
-    const path = join(options.assets, metadata[`${kind}Layout`]),
-      bytes = await readFile(path);
-    channel[kind] = JSON.parse(bytes);
+    const path = await assetFile(metadata[`${kind}Layout`]);
+    layoutBytes[kind] = await readFile(path);
+    channel[kind] = JSON.parse(layoutBytes[kind]);
   }
   for (const kind of ['icon', 'banner']) {
     const layout = channel[kind];
@@ -134,7 +154,7 @@ for (const metadata of catalog.channels) {
     const resource = {
       source: layout.source,
       sourceSha256: layout.sourceSha256,
-      layoutSha256: hash(await readFile(join(options.assets, metadata[`${kind}Layout`]))),
+      layoutSha256: hash(layoutBytes[kind]),
       trace: filename,
       schedule: [...schedules.values()],
       animations: Object.entries(layout.animations).map(([name, a]) => ({

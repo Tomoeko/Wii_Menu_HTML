@@ -281,7 +281,7 @@ IPL's `0x8135563C` runs keyboard calculation before its pointer pass. Continuing
 hit handling increments the counter (`0x81445F64`) before event 2; fresh press
 resets it at `0x814465A4` before event 4.
 
-The checked-in probe executes unchanged callback, scalar and counter routines
+An earlier probe executed unchanged callback, scalar and counter routines
 with synthetic UI objects. Sixty-four input/gate cases cover both arrows,
 modulo boundaries, A/B combinations, focus/departure, moving-strip, window
 transition and disabled state. Two held sequences advance the original scalar
@@ -290,11 +290,8 @@ updates 0, 16, 32, 48, 64, 81 and 97. Layout lookup, window status, and animatio
 and page requests are explicit host callbacks; this does not execute the whole
 native menu, candidate geometry or a physical controller.
 
-```sh
-.local/dictionary-runtime/bin/python tools/dictionary/audit-candidate-input.py \
-  --state .local/prepare.json --assets web/public/assets \
-  --output artifacts/candidate-input-audit.json
-```
+The earlier execution probe is no longer included. A fresh native capture is
+still needed for aligned visual acceptance.
 
 The browser now retains the frame-15 input lock and uses a dedicated candidate
 hold controller with that counter condition. It preserves the arrow's focus
@@ -351,7 +348,7 @@ bounds. Arrow appearance, disappearance and focus use the original textbox
 BRLANs. Pointer-held arrows now use the verified repeat path described below;
 aligned native visual acceptance remains open.
 
-## Original dictionary execution
+## Original dictionary evidence and current implementation
 
 The supplied WAD includes both the language dictionaries and their executable
 algorithm. `0x81333318` loads these original USA archives:
@@ -368,55 +365,32 @@ table-specific; the exporter does not mistake format flags for byte lengths.
 Preparation validates these containers and exports user-owned raw dictionaries,
 metadata and decoded OEM words into ignored assets.
 
-The browser uses the exported OEM word lists by default. This data-only path
-requires no third-party package and keeps typing and suggestions available in
-static builds. It does not claim the original compressed-table ranking order.
+The browser uses the exported OEM word lists through its first-party predictor.
+Each editor owns isolated prediction state. This path keeps typing and
+suggestions available in static builds, with no install-time dependencies.
+It does not reproduce the original compressed-table ranking order.
 
-An optional local worker executes the original PowerPC instructions using
-Unicorn. It loads the user's validated DOL, installs the original dictionaries,
-and calls initialization `0x8147C7C4`, search order `0x8147A5F8`, OEM attachment
-`0x81484D2C`, and the original `WithZi` wrapper described below. The wrapper
-calls candidates `0x8147A530`; its engine context is `0x1B44` bytes. The
-Latin path includes `0x81465C0C` and the original compressed-table matching and
-ranking routines. The menu's single-phone-key wrapper reads the original
-52-byte key records at `0x81660AB8`, producing `>` plus that key's characters.
-No original instructions or word lists are embedded in authored source.
-
-The worker verifies the USA 4.3 executable SHA-256:
+Earlier analysis of the supplied USA 4.3 executable identified initialization
+`0x8147C7C4`, search order `0x8147A5F8`, OEM attachment `0x81484D2C`, and
+candidate lookup `0x8147A530`. The context is `0x1B44` bytes. The Latin path
+includes `0x81465C0C` and compressed-table matching and ranking routines. The
+single-phone-key wrapper reads the 52-byte key records at `0x81660AB8`. These
+findings were bounded to executable SHA-256
 `47b9c1bb0ba1890256fb368b1b3272e33ea2467feadf39d20ce469d6de6e6c43`.
-It supplies no guest operating system, host filesystem calls or network access.
-Each call has instruction and time limits. English, French and Spanish queries
-run through the same local process. Tests exercise the original ordering for
-QWERTY and telephone input and valid output in all three languages.
-
-Install the optional runtime locally:
-
-```sh
-python3 -m venv .local/dictionary-runtime
-.local/dictionary-runtime/bin/python -m pip install -r tools/dictionary/requirements.txt
-```
-
-`createDictionaryService()` in `tools/dictionary-service.mjs` owns the optional
-persistent worker. Its `query({text, language, digits, session, action, index,
-case})` returns `{engine, candidates}` plus `accepted` for selection commands.
-The browser tries the same-origin endpoint through
-`createNativeDictionaryProvider()` and falls back to the exported word lists if
-the worker is unavailable. Asynchronous results are generation-checked so stale
-responses cannot replace newer input. The worker restarts after a failure or
-timeout, keeps at most 32 outstanding requests, and rejects all pending work
-when closed. Old process callbacks cannot stop a replacement.
+The former optional emulation worker was removed with its third-party runtime;
+its old probes are historical evidence, not runnable checks in this repository.
 
 ## Remaining limits
 
 The [coverage inventory](keyboard-coverage.md) maps identified menu fields and
 reachable commands to their implemented owners and bounded remaining work.
 
-The optional native engine path requires the local server and Unicorn; the
-data-only word-list path also works without it. The verified executable profile
-is USA 4.3. Remaining menu-wrapper command variants, held candidate-arrow capture acceptance,
+Native Zi8 candidate ranking and acceptance are now an explicit fidelity gap.
+The verified executable profile is USA 4.3. Remaining menu-wrapper command variants, held candidate-arrow capture acceptance,
 telephone preview acceptance, Mii attachment and non-US key layouts remain
-incomplete or unmeasured. Editor sessions retain native engine RAM, but do not
-claim to reproduce a native learned-word store. The traced USA Latin lifecycle
+incomplete or unmeasured. Browser sessions retain first-party predictor state
+and do not reproduce native engine RAM or a native learned-word store. The
+traced USA Latin lifecycle
 and remaining same-scene acceptance are recorded in [dictionary-state.md](dictionary-state.md);
 durable learning is not presumed to exist without a native writer/loader.
 Physical held-pointer cadence and red-caret pixel geometry still need aligned
@@ -575,19 +549,15 @@ update candidates. There is no separate held-delete commit. Space similarly
 uses the existing command-2 dispatch at `0x814104A8`, so the browser repeats its
 ordinary Space insertion after ending the current composition.
 
-`tools/dictionary/audit-keytop-input.py` executes the unchanged original ASCII
+An earlier execution probe ran the unchanged original ASCII
 and telephone callbacks for 204 synthetic cases: source pane whitelist,
 29/30/35/36 and nine-update boundaries, fresh A/B, held A/B, and pressed-owner
-gating. It also runs the original button counter setter. Layout lookup,
+gating. It also ran the original button counter setter. Layout lookup,
 pressed-owner/counter lookup, animation requests and parent command dispatch
-are host callbacks; the probe does not execute the editor, complete UI loop,
+were host callbacks; the probe did not execute the editor, complete UI loop,
 physical controller or a native capture.
 
-```sh
-.local/dictionary-runtime/bin/python tools/dictionary/audit-keytop-input.py \
-  --state .local/prepare.json --assets web/public/assets \
-  --output artifacts/keytop-input-audit.json
-```
+The third-party emulator and this probe have been removed from the project.
 
 The browser's dedicated keytop predicate shares only the 16-bit hover clock
 with candidate arrows. `holdControl` creates the pressed owner with one
@@ -618,7 +588,7 @@ Base command 6 before the following character. Command-table entry
 the committed buffer and clears candidates. The input path restores case,
 inputs the new unit, requests sound 9 (`CHAR_DECIDE`), and refreshes. The
 ordinary below-boundary path requests sound 10 (`CHAR_INPUT`). This is the
-editor's boundary, distinct from the worker protocol's defensive 63-unit cap.
+editor's boundary, distinct from the larger wrapper buffer limit.
 
 The committed string is not necessarily the raw input prefix. WithZi virtual
 `+0xE0` (`0x81434188`) returns candidate `+0x98` in full. `WithZi::update`
@@ -627,7 +597,7 @@ reaches `0x81424350` and setter `0x8141EA80`. The boundary therefore preserves
 a selected completion's suffix before starting the next composition. No
 separator is added.
 
-The retained probe executes original Base input, active-buffer choice, commit,
+The earlier probe executed original Base input, active-buffer choice, commit,
 WithZi input/update/clear and count routines. Twelve cases cover English,
 French and Spanish with QWERTY and telephone input: 31→32 stays active;
 32→33 dispatches command 6, commits, clears and starts at one. A separate
@@ -635,11 +605,7 @@ synthetic candidate fixture selects a longer string and verifies that its
 entire suffix is committed. That fixture proves the dispatch contract; it
 does not assert that the injected long word exists in an original dictionary.
 
-```sh
-.local/dictionary-runtime/bin/python tools/dictionary/audit-composition-boundary.py \
-  --state .local/prepare.json --assets web/public/assets \
-  --output artifacts/composition-boundary-audit.json
-```
+The earlier execution probe has been removed with the optional emulator.
 
 Browser input below the boundary remains immediate. At the boundary only,
 typing waits for the matching prediction request, commits its selected full
@@ -655,9 +621,8 @@ External disposal invalidates the owner and its pending work immediately.
 Field-limit rejection retains the active text and emits the existing error cue,
 while still processing subsequent editing or close commands. This is an async
 host adaptation to the native synchronous query, not an additional native state.
-If an optional provider fails, the browser retains already typed literal text and continues input;
-it does not create a substitute dictionary result. The subsequent query
-retains the provider's explicit failure/recovery path.
+If a predictor call fails, the browser retains already typed literal text and
+continues input without inventing a dictionary result.
 
 Resource regressions cover both input layouts, 31/32/33 and repeated segments,
 selected ghost completion, retained text after the caret, pending/stale
@@ -702,7 +667,7 @@ and dispatches command `0x0C`. Its Base table entry only refreshes; inspected
 ASCII (`0x81413B00`/`0x8141079C`), phone (`0x814199B0`) and prediction
 (`0x81428420`) command observers do not enable the flag for command `0x0C`.
 
-`tools/dictionary/audit-text-point.py` executes the unchanged Base dispatcher,
+An earlier execution probe ran the unchanged Base dispatcher,
 buffer reset, caret methods and flag methods for 24 literal-pointer cases,
 covering Base dispatch, `LayoutByNW4R::onCommand` (`0x81426C80`) and the
 Memo/Letter editing dispatcher (`0x8144133C`). With
@@ -712,15 +677,11 @@ then hold moves to index 4, repeated hold at 4 does not repeat the cursor cue,
 and release moves to 5 and dispatches `0x0D`. That diagnostic state remains
 active after Base release; it is not evidence of a reachable scene lifecycle.
 
-```sh
-.local/dictionary-runtime/bin/python tools/dictionary/audit-text-point.py \
-  --state .local/prepare.json --assets web/public/assets \
-  --output artifacts/text-point-audit.json
-```
+The third-party emulator and this probe have been removed from the project.
 
 The probe's layout hit test, origin, field bounds/timer, sound and refresh
-callbacks are synthetic, and the Base observer list is empty. Its layout cases
-execute the original IPL delegate: menu creation `0x81354F94` passes the callback
+callbacks were synthetic, and the Base observer list was empty. Its layout cases
+executed the original IPL delegate: menu creation `0x81354F94` passes the callback
 to manager constructor `0x81437558`, which stores it at manager `+0x30`; Memo
 construction `0x8143C910` passes that through `0x81425560`/`0x81436034` to field
 `+0x22C`. Vtable `0x81638E3C` supplies no-op `0x81335CBC` and command callback
@@ -746,11 +707,11 @@ Fresh pointer input has a separate composition branch at `0x8141DE0C`.
 While WithZi owns input, the first press requests sound 9 and command 6, accepts
 the full selected completion and clears composition. It does not evaluate the
 clicked position. A later fresh press places the literal caret and requests
-cursor sound 5. Eighteen additional original-code probe cases cover both Latin
+cursor sound 5. Eighteen additional original-code probe cases covered both Latin
 keyboard layouts and three clicked positions through all three dispatchers.
-They inject the synthetic selected candidate `hello` at index 1 and verify
+They injected the synthetic selected candidate `hello` at index 1 and verified
 `abYZ` at caret 2 becomes `abhelloYZ` at caret 7 regardless of the first point;
-the second press then uses that point. These bring the probe to 42 cases.
+the second press then used that point. These brought the probe to 42 cases.
 
 The browser applies this branch only to pointer-originated caret requests.
 Programmatic caret placement and ordinary literal clicks keep their existing
@@ -758,57 +719,35 @@ behavior. A pending dictionary result retains subsequent typing, deletion,
 another click and normal closure in event order, using the same queue as the
 32-unit boundary. Resource regressions cover those pending paths, and Memo,
 Letter and prediction-enabled Settings owner tests verify the first/second-click
-distinction with original font metrics in both aspect ratios. The probe uses
+distinction with original font metrics in both aspect ratios. The probe used
 synthetic point measurement and candidate data; native scene timing and held
 selection activation remain outside its result.
 
-## Original WithZi editor sessions
+## Original WithZi editor analysis
 
-The worker now executes `WithZi::init` (`0x81433D00`), `inputChar`
-(`0x81433F40`), `backSpace` (`0x81434088`), `update` (`0x814344C4`),
-`getPredicted` (`0x81434140`) and `clearCandidates` (`0x81433D8C`). Each editor
-owns an ordered request stream. Prefix changes replay the differing suffix
-through the native input/backspace functions. Native case modes are applied
-through the verified wrapper field at `+0xA0`. Telephone keys use the original
-private input codes and original key-record pointer at `+0xA4`; the one-key
-candidate substitution now executes original instructions instead of a host
-reimplementation.
-
-The host allocates fields verified in the constructor at `0x8141BD18`, retains
-the original vtable at `0x8165F678`, and uses the already initialized language
-context. It deliberately does not call the OS-backed Kana initialization;
-only the verified USA Latin languages are supported. Language changes start
-from that language's initialized OEM context. The service snapshots the
-wrapper, its buffers, the `0x1B44`-byte engine context and the wrapper globals
-at `0x810C65F0` through `0x810C826F`. It retains at most sixteen editor sessions
-in RAM; closure releases them and least-recently-used eviction bounds abandoned
-editors. No session memory or typed input is written to a persistent store.
+Earlier original-code analysis covered `WithZi::init` (`0x81433D00`),
+`inputChar` (`0x81433F40`), `backSpace` (`0x81434088`), `update`
+(`0x814344C4`), `getPredicted` (`0x81434140`) and `clearCandidates`
+(`0x81433D8C`). The original wrapper has a case-mode field at `+0xA0` and a
+telephone key-record pointer at `+0xA4`. The browser's first-party word-list
+predictor implements supported text entry and suggestions without executing
+those instructions. Candidate order and case behavior therefore need fresh
+native/browser comparison before an equivalence claim.
 
 Candidate layout event `0x101` at `0x8142AD78` sends Base command `0x15`.
 The command table at `0x8165CA8C` resolves that command to `0x8141E010`, which
 calls `getPredicted`, inserts the returned UTF-16 string, then clears candidates.
 `Decolated::inputString` at `0x81432F50` iterates exactly that string. This Latin
 path adds no trailing space and has no special branch for the one-key `>`
-candidate. The browser now inserts candidates verbatim, and the worker replays
-selection through the original getter and clear operation. Executing the
-original wrapper produces `>` for selection zero after telephone key 6.
+candidate. The browser inserts candidates verbatim. An earlier bounded
+original-code run produced `>` for selection zero after telephone key 6; the
+prepared word-list path does not claim to reproduce this candidate order.
 
-Replay the checked-in synthetic editor sequence locally:
-
-```sh
-node tools/dictionary/replay.mjs tools/dictionary/fixtures/latin-session.json artifacts/zi8-session-replay.json
-```
-
-The report records the verified executable hash, commands and complete results.
-Tests cover correction, interleaved English/French editors, literal selection,
-telephone sequences, native case modes, Spanish language changes, closure,
-eviction and reopened editors. An isolated browser smoke confirmed the `he`
-strip, selection followed by literal `hellox`, one-key `>` acceptance, and
-fresh suggestions after closure/reopening. It exposed a separate pointer-order
-bug: the underlying Memo text pane consumed candidate presses. Pointer routing
-now gives the last-drawn enabled control precedence over text selection; the
-resource/renderer regression verifies `hello` followed by `x` and caret index 6.
-These checks do not establish full native UI timing or all wrapper modes.
+An isolated browser check exposed a pointer-order bug: the underlying Memo
+text pane consumed candidate presses. Pointer routing now gives the last-drawn
+enabled control precedence over text selection; the resource/renderer
+regression verifies `hello` followed by `x` and caret index 6. These checks do
+not establish full native UI timing or all wrapper modes.
 
 `WithZi::confirm` at `0x8143412C` branches to `update`; it is not evidence for
 a persistent learned-word store. `setCurrentWord` (`0x81434ED4`) appends to the
@@ -816,12 +755,12 @@ a persistent learned-word store. `setCurrentWord` (`0x81434ED4`) appends to the
 buffer and additional flags for specific modes. The command-0x15 path invokes
 that context update only for native input type 8, outside this Latin harness.
 `Zi8SetHighlightedWordW` (`0x81465260`) also mutates engine context, including
-the string at offset `0x187A`. The editor sessions preserve that RAM, but
-neither it nor the local fallback's word map establishes a durable native
-learning format. The follow-up [state and persistence audit](dictionary-state.md) identifies an
+the string at offset `0x187A`. The browser does not retain that RAM, and its
+predictor state establishes no durable native learning format. The follow-up
+[state and persistence audit](dictionary-state.md) identifies an
 eight-byte saved preference record and confirms bounded Latin query writes stay
 in working memory. It establishes no durable learned-word format to implement;
-additional-region executables remain rejected until independently mapped.
+other region executables remain outside this analysis until independently mapped.
 
 
 ## Memo reader arrow ownership

@@ -62,16 +62,9 @@ npm run prepare -- --rebuild --background-source builtin
 
 ## Dictionary
 
-The prepared WAD exports local word lists. They provide dictionary suggestions
-without third-party packages. An optional Unicorn runtime can execute the
-original Zi8 code for closer ordering:
-
-```sh
-python3 -m venv .local/dictionary-runtime
-.local/dictionary-runtime/bin/python -m pip install -r tools/dictionary/requirements.txt
-```
-
-The runtime is local and optional. Text entry and word suggestions still work without it.
+The prepared WAD exports local word lists. The first-party browser predictor
+uses them for suggestions without installing packages. Its suggestion order is
+not verified equivalent to the original Zi8 engine.
 
 ## Checks
 
@@ -79,8 +72,13 @@ The runtime is local and optional. Text entry and word suggestions still work wi
 npm run check
 npm test
 npm run test:assets
+npm run test:reference
 npm run audit:privacy
 ```
+
+The [dependency and supply chain audit](docs/security-and-dependencies.md)
+records the install policy, third-party dependency inventory and current
+dictionary fidelity limit.
 
 ## Layout
 

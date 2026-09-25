@@ -27,7 +27,6 @@ async function fixture(t) {
     'tools/serve.mjs',
     'tools/configuration.mjs',
     'tools/graphics-settings.mjs',
-    'tools/dictionary-service.mjs',
     'tools/local-state.mjs',
     'tools/storage-state.mjs',
     'tools/remote-state.mjs',
@@ -73,7 +72,11 @@ async function fixture(t) {
     'web/index.html': '<!doctype html><title>Test menu</title>',
     'web/public/assets/settings/fixture.html':
       '<!doctype html><title>Original engine fixture</title>',
+    'web/public/assets/settings-raw/fixture.html':
+      '<!doctype html><title>Unmodified original engine fixture</title>',
     'web/public/assets/settings/fixture.js': 'setTimeout("void 0", 0);',
+    'web/public/assets/settings/fixture.svg':
+      '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="1"></svg>',
     'web/public/assets/fonts/fixture.ttf': 'synthetic font header fixture',
     'web/public/assets/guide.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="1"></svg>',
     '.local/private.json': 'PRIVATE_TEST_MARKER',
@@ -308,10 +311,12 @@ test('Settings resource policy permits original sandbox behavior without weakeni
   const { request } = await fixture(t);
   const main = await request('/');
   const settings = await request('/assets/settings/fixture.html');
+  const rawSettings = await request('/assets/settings-raw/fixture.html');
   const script = await request('/assets/settings/fixture.js');
+  const settingsSvg = await request('/assets/settings/fixture.svg');
   const font = await request('/assets/fonts/fixture.ttf');
   const guide = await request('/assets/guide.svg');
-  for (const response of [main, settings, script, font, guide]) {
+  for (const response of [main, settings, rawSettings, script, settingsSvg, font, guide]) {
     assert.equal(response.status, 200);
     assert.equal(response.headers['cross-origin-resource-policy'], undefined);
     assert.equal(response.headers['x-content-type-options'], 'nosniff');
@@ -320,54 +325,34 @@ test('Settings resource policy permits original sandbox behavior without weakeni
     assert.match(response.headers['content-security-policy'], /connect-src 'self'/);
   }
   assert.ok(!main.headers['content-security-policy'].includes("'unsafe-eval'"));
+  assert.match(main.headers['content-security-policy'], /script-src 'self';/);
+  assert.ok(!main.headers['content-security-policy'].includes('sandbox allow-scripts'));
+  assert.match(settings.headers['content-security-policy'], /sandbox allow-scripts/);
+  assert.match(rawSettings.headers['content-security-policy'], /sandbox allow-scripts/);
   assert.match(
     settings.headers['content-security-policy'],
     /script-src 'self' 'unsafe-inline' 'unsafe-eval'/,
   );
   assert.match(script.headers['content-security-policy'], /'unsafe-eval'/);
+  assert.match(rawSettings.headers['content-security-policy'], /script-src 'self' 'unsafe-inline'/);
+  assert.doesNotMatch(rawSettings.headers['content-security-policy'], /'unsafe-eval'/);
+  assert.match(guide.headers['content-security-policy'], /script-src 'none'/);
+  assert.match(guide.headers['content-security-policy'], /(?:^|; )sandbox(?:;|$)/);
+  assert.match(settingsSvg.headers['content-security-policy'], /script-src 'none';/);
   assert.equal(script.headers['content-type'], 'text/javascript');
   assert.equal(font.headers['content-type'], 'font/ttf');
   assert.equal(font.headers['access-control-allow-origin'], '*');
   assert.equal(guide.headers['content-type'], 'image/svg+xml');
   assert.equal(main.headers['access-control-allow-origin'], undefined);
-});
-
-test('dictionary endpoint validates input and origin without starting the native worker', async (t) => {
-  const { port, request } = await fixture(t);
-  const headers = {
-    Origin: 'http://127.0.0.1:' + port,
-    'Content-Type': 'application/json',
-  };
-  for (const body of [
-    '{invalid JSON',
-    JSON.stringify({ text: 'x'.repeat(64) }),
-    JSON.stringify({ text: 'word', language: 'unsupported' }),
-    JSON.stringify({ text: 12 }),
-    JSON.stringify({ digits: '0' }),
-  ]) {
-    const response = await request('/api/dictionary', { method: 'POST', headers, body });
-    assert.equal(response.status, 503);
-    assert.equal(response.headers['cache-control'], 'no-store');
-    assert.deepEqual(JSON.parse(response.text), {
-      error:
-        'Original dictionary is unavailable. Check local preparation and runtime dependencies.',
-    });
-    assert.ok(!response.text.includes('wii-server-test-'));
-  }
-  for (const origin of ['https://remote.example', 'null', undefined]) {
-    const response = await request('/api/dictionary', {
-      method: 'POST',
-      headers: origin ? { Origin: origin } : {},
-      body: JSON.stringify({ text: 'word' }),
-    });
-    assert.equal(response.status, 404);
-  }
-  const oversized = await request('/api/dictionary', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ text: 'x'.repeat(2049) }),
+  const opaqueRead = await request('/api/graphics', { headers: { Origin: 'null' } });
+  assert.equal(opaqueRead.status, 200);
+  assert.equal(opaqueRead.headers['access-control-allow-origin'], undefined);
+  const opaqueWrite = await request('/api/graphics', {
+    method: 'PUT',
+    headers: { Origin: 'null', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resolutionScale: 2 }),
   });
-  assert.equal(oversized.status, 404);
+  assert.equal(opaqueWrite.status, 403);
 });
 
 test('comparison exports keep bounded sequence metadata beside their PNG', async (t) => {

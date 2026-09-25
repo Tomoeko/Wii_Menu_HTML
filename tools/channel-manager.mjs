@@ -397,7 +397,8 @@ async function readRequest(req, limit) {
       'Channel upload exceeds the request limit.',
     );
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const body = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+    return JSON.parse(body);
   } catch {
     invalid('Request body is not valid JSON.');
   }

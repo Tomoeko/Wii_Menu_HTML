@@ -14,65 +14,78 @@ import hashlib
 import json
 from pathlib import Path
 
-import numpy as np
-from PIL import Image
+from raster import RgbImage, read_png
+
+
+def white_face_extent(image: RgbImage) -> list[list[int]]:
+    # The outer white page is visible throughout this range. Its envelope
+    # avoids counting interior text, icons and divider rules.
+    extents = []
+    for y in range(75, 320):
+        columns = [x for x in range(220, 626)
+                   if min(image.getpixel((x, y))) >= 250]
+        if not columns:
+            raise ValueError("The expected white book face is absent.")
+        extents.append([columns[0], columns[-1]])
+    return extents
 
 
 def compare(native_path: Path, browser_path: Path, page: int) -> dict:
     """Compare unchanged pixels; these bounds apply only to the named poses."""
-    native_image = Image.open(native_path).convert("RGB")
-    browser_image = Image.open(browser_path).convert("RGB")
+    native_image = read_png(native_path)
+    browser_image = read_png(browser_path)
     if native_image.size != (836, 456) or browser_image.size != native_image.size:
         raise ValueError("Both images must be aligned 836×456 settled book poses.")
     if page not in (0, 1):
         raise ValueError("Only the cover and page-one regions have been established.")
-    native = np.asarray(native_image)
-    browser = np.asarray(browser_image)
     right = 223 if page == 0 else 221
     x0, y0, x1, y1 = (203, 75, right, 320)
-    reference = native[y0:y1, x0:x1]
-    candidate = browser[y0:y1, x0:x1]
-    difference = np.abs(reference.astype(float) - candidate)
-
-    def body_extent(pixels):
-        # The outer white page is visible throughout this range. Taking its
-        # envelope avoids counting interior text, icons and divider rules.
-        body = (pixels[75:320, 220:626].min(axis=2) >= 250)
-        extents = []
-        for row in body:
-            columns = np.flatnonzero(row)
-            if not len(columns):
-                raise ValueError("The expected white book face is absent.")
-            extents.append([int(columns[0] + 220), int(columns[-1] + 220)])
-        return np.asarray(extents)
-
-    native_body = body_extent(native)
-    browser_body = body_extent(browser)
+    difference_sum = 0
+    maximum_difference = 0
+    equal_pixels = 0
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            reference = native_image.getpixel((x, y))
+            candidate = browser_image.getpixel((x, y))
+            differences = [abs(left - right) for left, right in zip(reference, candidate)]
+            difference_sum += sum(differences)
+            maximum_difference = max(maximum_difference, *differences)
+            equal_pixels += reference == candidate
+    pixel_count = (x1 - x0) * (y1 - y0)
+    native_body = white_face_extent(native_image)
+    browser_body = white_face_extent(browser_image)
+    endpoint_difference = sum(abs(left - right)
+                              for native_row, browser_row in zip(native_body, browser_body)
+                              for left, right in zip(native_row, browser_row))
     return {
         "pose": "cover" if page == 0 else "page-one",
         "nativeFrame": native_path.name,
         "browserFrame": browser_path.name,
         "nativeSha256": hashlib.sha256(native_path.read_bytes()).hexdigest(),
         "browserSha256": hashlib.sha256(browser_path.read_bytes()).hexdigest(),
+        "rasterSha256": hashlib.sha256((Path(__file__).parent / "raster.py").read_bytes()).hexdigest(),
         "comparisonSize": [836, 456],
         "normalization": "None; both input PNGs are compared without resampling.",
         "leftStack": {
             "rectangle": [x0, y0, x1, y1],
-            "meanAbsoluteRgbDifference": float(difference.mean()),
-            "maximumAbsoluteComponentDifference": int(difference.max()),
-            "equalPixelFraction": float((reference == candidate).all(axis=2).mean()),
+            "meanAbsoluteRgbDifference": difference_sum / (pixel_count * 3),
+            "maximumAbsoluteComponentDifference": maximum_difference,
+            "equalPixelFraction": equal_pixels / pixel_count,
             "sampleRow": 100,
-            "nativeRedValues": native[100, x0:x1, 0].tolist(),
-            "browserRedValues": browser[100, x0:x1, 0].tolist(),
+            "nativeRedValues": [native_image.getpixel((x, 100))[0] for x in range(x0, x1)],
+            "browserRedValues": [browser_image.getpixel((x, 100))[0] for x in range(x0, x1)],
         },
         "whiteFaceEnvelope": {
             "rows": [75, 320],
             "searchColumns": [220, 626],
             "minimumRgbThreshold": 250,
-            "nativeRange": [native_body.min(axis=0).tolist(), native_body.max(axis=0).tolist()],
-            "browserRange": [browser_body.min(axis=0).tolist(), browser_body.max(axis=0).tolist()],
-            "matchingRowFraction": float((native_body == browser_body).all(axis=1).mean()),
-            "meanAbsoluteEndpointDifference": float(np.abs(native_body - browser_body).mean()),
+            "nativeRange": [[min(row[index] for row in native_body) for index in (0, 1)],
+                            [max(row[index] for row in native_body) for index in (0, 1)]],
+            "browserRange": [[min(row[index] for row in browser_body) for index in (0, 1)],
+                             [max(row[index] for row in browser_body) for index in (0, 1)]],
+            "matchingRowFraction": sum(left == right for left, right in zip(
+                native_body, browser_body)) / len(native_body),
+            "meanAbsoluteEndpointDifference": endpoint_difference / (len(native_body) * 2),
         },
         "limits": [
             "The native cursor, background, footer and console-number text are excluded.",

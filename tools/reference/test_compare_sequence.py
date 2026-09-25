@@ -1,11 +1,12 @@
 import hashlib
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-import numpy as np
-from PIL import Image
+from raster import RgbImage, read_png
 
 from compare_sequence import (
     compare, monotonic_alignment, presentation_normalization, read_sequence, region_mask,
@@ -14,18 +15,18 @@ from compare_sequence import (
 
 class SequenceComparisonTests(unittest.TestCase):
     def test_alignment_allows_repeated_and_skipped_native_presentations(self):
-        costs = np.array([[0, 9, 9, 9], [1, 9, 9, 9], [9, 9, 0, 9], [9, 9, 1, 0]])
+        costs = [[0, 9, 9, 9], [1, 9, 9, 9], [9, 9, 0, 9], [9, 9, 1, 0]]
         self.assertEqual(monotonic_alignment(costs), [0, 0, 2, 3])
         # The locally cheapest first sample would prevent the better global path.
-        costs = np.array([[1, 9, 0], [0, 9, 100], [9, 0, 100]])
+        costs = [[1, 9, 0], [0, 9, 100], [9, 0, 100]]
         self.assertEqual(monotonic_alignment(costs), [0, 0, 1])
         with self.assertRaises(ValueError):
-            monotonic_alignment(np.array([[np.nan]]))
+            monotonic_alignment([[math.nan]])
 
     def test_regions_reject_invalid_bounds_and_remove_excluded_pixels(self):
         mask = region_mask((4, 3), [[0, 0, 4, 3]], [[1, 1, 3, 3]])
-        self.assertEqual(int(mask.sum()), 8)
-        self.assertFalse(mask[1, 1])
+        self.assertEqual(sum(mask), 8)
+        self.assertFalse(mask[1 * 4 + 1])
         for rectangle in ([0, 0, 5, 3], [1, 0, 1, 3], [0, 0, 4.0, 3]):
             with self.assertRaises(ValueError):
                 region_mask((4, 3), [rectangle])
@@ -36,8 +37,8 @@ class SequenceComparisonTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             sidecar = root / 'final.json'
-            Image.new('RGB', (4, 3)).save(root / 'first.png')
-            Image.new('RGB', (4, 3)).save(root / 'final.png')
+            RgbImage.new((4, 3)).save(root / 'first.png')
+            RgbImage.new((4, 3)).save(root / 'final.png')
             def write(frames, complete=True):
                 sidecar.write_text(json.dumps({'comparison': {
                     'total': len(frames),
@@ -66,11 +67,11 @@ class SequenceComparisonTests(unittest.TestCase):
             native = root / 'native'
             native.mkdir()
             for index, value in enumerate((10, 20, 30)):
-                image = Image.new('RGB', (4, 3), (value, value, value))
+                image = RgbImage.new((4, 3), (value, value, value))
                 image.putpixel((1, 1), (255, 0, 0))
                 image.save(native / f'framedump_{index + 7}.png')
             for name, value in (('first.png', 10), ('final.png', 30)):
-                Image.new('RGB', (4, 3), (value, value, value)).save(root / name)
+                RgbImage.new((4, 3), (value, value, value)).save(root / name)
             sidecar = root / 'final.json'
             sidecar.write_text(json.dumps({'width': 4, 'height': 3, 'comparison': {
                 'total': 2,
@@ -104,7 +105,45 @@ class SequenceComparisonTests(unittest.TestCase):
             self.assertEqual([pair['nativeOrdinal'] for pair in report['pairs']], [7, 9])
             self.assertEqual(report['pairs'][0]['regions']['public']['meanAbsoluteRgbDifference'], 0)
             self.assertNotIn(str(root), json.dumps(report))
-            with Image.open(root / 'output/contact-sheet.png') as sheet:
+            sheet = read_png(root / 'output/contact-sheet.png')
+            self.assertEqual(sheet.getpixel((1, 25)), (24, 24, 24))
+
+    def test_long_manifest_splits_redacted_contact_sheets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            native = root / 'native'
+            native.mkdir()
+            image = RgbImage.new((4, 3), (10, 10, 10))
+            image.putpixel((1, 1), (255, 0, 0))
+            image.save(native / 'framedump_7.png')
+            image.save(root / 'browser.png')
+            sidecar = root / 'browser.json'
+            sidecar.write_text(json.dumps({
+                'width': 4,
+                'height': 3,
+                'comparison': {
+                    'total': 21,
+                    'sequenceManifest': {
+                        'complete': True,
+                        'frames': [{'frame': number, 'path': 'browser.png'}
+                                   for number in range(21)],
+                    },
+                },
+            }))
+            configuration = {
+                'size': [4, 3],
+                'alignmentRegions': [[0, 0, 4, 3]],
+                'measurementRegions': {'public': [[0, 0, 4, 3]]},
+                'exclusions': [[1, 1, 2, 2]],
+            }
+            # The production limit would fit many tiny rows; lower it to
+            # exercise the same page boundary without a large test artifact.
+            with patch('compare_sequence.MAX_PIXELS', 1000):
+                report = compare(sidecar, root, native, 7, 7, configuration, root / 'output')
+            self.assertEqual([page['browserUpdates'] for page in report['contactSheets']],
+                             [[0, 4, 8, 12], [16, 20]])
+            for page in report['contactSheets']:
+                sheet = read_png(root / 'output' / page['file'])
                 self.assertEqual(sheet.getpixel((1, 25)), (24, 24, 24))
 
     def test_horizontal_mapping_requires_recorded_geometry_and_an_explicit_filter(self):
@@ -116,8 +155,7 @@ class SequenceComparisonTests(unittest.TestCase):
         self.assertEqual(result['comparisonSize'], [640, 456])
         self.assertEqual(result['scale'], [640 / 836, 1])
         self.assertEqual(result['resample'], 'lanczos')
-        self.assertIn('pillowVersion', result)
-        self.assertIn('numpyVersion', result)
+        self.assertIn('rasterSha256', result)
         for mapping in (
             None, [], {}, {'resample': 'lanczos'}, {'sourceSize': [836, 456]},
             {'sourceSize': [836, 480], 'resample': 'lanczos'},
@@ -142,8 +180,8 @@ class SequenceComparisonTests(unittest.TestCase):
             native.mkdir()
             source_path = native / 'framedump_7.png'
             browser_path = root / 'final.png'
-            source = Image.new('RGB', (8, 3))
-            browser = Image.new('RGB', (4, 3))
+            source = RgbImage.new((8, 3))
+            browser = RgbImage.new((4, 3))
             for y in range(3):
                 for x in range(8):
                     source.putpixel((x, y), (x * 30, y * 40, 0))
@@ -177,10 +215,10 @@ class SequenceComparisonTests(unittest.TestCase):
             self.assertEqual(report['browserFrames'][0]['sha256'], hashlib.sha256(original[browser_path]).hexdigest())
             for path, content in original.items():
                 self.assertEqual(path.read_bytes(), content)
-            with Image.open(root / 'normalized/contact-sheet.png') as sheet:
-                self.assertEqual(sheet.size, (8, 27))
-                self.assertEqual(sheet.getpixel((3, 26)), (210, 80, 0))
-                self.assertEqual(sheet.getpixel((7, 26)), (210, 80, 0))
+            sheet = read_png(root / 'normalized/contact-sheet.png')
+            self.assertEqual(sheet.size, (8, 27))
+            self.assertEqual(sheet.getpixel((3, 26)), (210, 80, 0))
+            self.assertEqual(sheet.getpixel((7, 26)), (210, 80, 0))
             configuration['nativePresentation']['resample'] = 'lanczos'
             report = compare(sidecar, root, native, 7, 7, configuration, root / 'lanczos')
             self.assertEqual(report['nativePresentationNormalization']['resample'], 'lanczos')
@@ -189,7 +227,7 @@ class SequenceComparisonTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Unexpected image dimensions'):
                 compare(sidecar, root, native, 7, 7, configuration, root / 'wrong-source')
             configuration['nativePresentation']['sourceSize'] = [8, 3]
-            Image.new('RGB', (8, 3)).save(browser_path)
+            RgbImage.new((8, 3)).save(browser_path)
             with self.assertRaisesRegex(ValueError, 'Unexpected image dimensions'):
                 compare(sidecar, root, native, 7, 7, configuration, root / 'wrong-browser')
 
