@@ -791,6 +791,68 @@ test(
   },
 );
 
+test('Memo editor arrows wait for keyboard entry and fade through its exit',
+  { skip: !available }, () => {
+    const create = createBoardCreate(layouts, {
+      draft: 'one\ntwo\nthree\nfour\nfive\nsix',
+    });
+    const view = () => create.presentation();
+    const arrowAlpha = () => indexLayout(
+      view().layers.find((layer) => layer.prefix === 'scene-create-body:').layout,
+    ).panes.get('P_txtScrll_UP').alpha;
+    const editorArrowVisible = () => view().controls.some((control) =>
+      control.id === 'memo-scroll-up' && control.pane === 'B_txtScrll_UP');
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    assert.equal(create.activate('memo-edit'), true);
+    assert.equal(arrowAlpha(), 0);
+    assert.equal(editorArrowVisible(), false);
+    create.advance(15);
+    assert.equal(arrowAlpha(), 0);
+    assert.equal(editorArrowVisible(), false);
+    create.advance(15);
+    assert.equal(arrowAlpha(), 0);
+    create.advance(1);
+    assert.equal(editorArrowVisible(), true);
+    create.advance(11);
+    const settledAlpha = arrowAlpha();
+    assert.ok(settledAlpha > 0);
+    assert.equal(create.back(), true);
+    assert.equal(editorArrowVisible(), false);
+    create.advance(15);
+    assert.ok(arrowAlpha() > 0 && arrowAlpha() < settledAlpha);
+    create.advance(15);
+    assert.equal(arrowAlpha(), 0);
+    assert.equal(editorArrowVisible(), false);
+  });
+
+test('Memo display arrows use their authored Lost clip when leaving compose',
+  { skip: !available }, () => {
+    const create = createBoardCreate(layouts, {
+      draft: 'one\ntwo\nthree\nfour\nfive\nsix',
+    });
+    const view = () => create.presentation();
+    const arrow = () => indexLayout(
+      view().layers.find((layer) => layer.prefix === 'scene-create-body:').layout,
+    ).panes.get('N_ArwL_End');
+    create.advance(39);
+    create.activate('memo');
+    create.advance(27);
+    create.advance(11);
+    assert.ok(view().controls.some((control) => control.id === 'memo-scroll-down'));
+    assert.equal(arrow().translation[0], 0);
+    assert.equal(arrow().alpha, 255);
+    assert.equal(create.back(), true);
+    assert.ok(!view().controls.some((control) => control.id === 'memo-scroll-down'));
+    create.advance(5);
+    assert.ok(arrow().translation[0] < 0 && arrow().translation[0] > -200);
+    assert.equal(arrow().alpha, 0);
+    create.advance(5);
+    assert.equal(arrow().translation[0], -200);
+    assert.equal(arrow().alpha, 0);
+  });
+
 test('held Memo editor arrows repeat on native sixty/twenty cadence and stop on departure',
   { skip: !available }, () => {
     const sounds = [];

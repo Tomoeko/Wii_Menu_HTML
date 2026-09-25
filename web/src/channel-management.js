@@ -143,6 +143,7 @@ export function createStorageScene(
   let detailAge = 0;
   let backCaption = 315;
   const backCaptionChanges = [];
+  let backFade = null;
   let balloonSlot = 0;
   const storageChannels = Object.fromEntries(
     Object.entries({ wii: channels, sd: sdChannels }).map(([tab, records]) => [
@@ -278,6 +279,17 @@ export function createStorageScene(
       backCaptionChanges.shift();
     }
   };
+  const startBackFade = (show) => {
+    if (kind !== 'channels') return;
+    backFade = { clip: clip('back', show ? 'AlphIn' : 'AlphOut', 'G_FocusBtnA'), frame: 0 };
+  };
+  const advanceBackFade = (frames) => {
+    if (!backFade) return;
+    backFade.frame = Math.min(backFade.clip.animation.frames, backFade.frame + frames);
+    if (backFade.frame < backFade.clip.animation.frames) return;
+    commit([backFade.clip], backFade.clip.animation.frames - 1);
+    backFade = null;
+  };
   const start = (name, clips, done, {
     frames,
     initialFrame = 0,
@@ -351,6 +363,7 @@ export function createStorageScene(
     detailAge = 0;
     backCaption = 315;
     backCaptionChanges.length = 0;
+    backFade = null;
     page = 'grid';
     boxShown = false;
     focus = null;
@@ -467,6 +480,7 @@ export function createStorageScene(
       () => {
         start('dialog-out', [clip('dialog', 'DialogOut', 'G_InOut')], () => {
           page = 'detail';
+          startBackFade(true);
           if (result) onAction(detailRecord?.id ?? 'dummy-save', { operation: action, changed: false });
           // The demonstration keeps its fixture intact, so the original reverse
           // SelectOut restores the three operation buttons after either answer.
@@ -495,6 +509,7 @@ export function createStorageScene(
         const logicalStep = Math.min(remaining, (phase.frames - phase.frame) / rate);
         const step = logicalStep * rate;
         advanceBackCaption(step);
+        advanceBackFade(logicalStep);
         phase.frame += step;
         remaining -= logicalStep;
         if (phase.frame < phase.frames) break;
@@ -505,6 +520,7 @@ export function createStorageScene(
         if (!remaining) break;
       }
       advanceBackCaption(remaining);
+      advanceBackFade(remaining);
     },
     hover(id) {
       if (id === `storage-${selectedTab}`) id = null;
@@ -585,7 +601,7 @@ export function createStorageScene(
         const selectedSlot = slotIndex(id);
         detailRecord = recordAt(selectedSlot);
         detailAge = 0;
-        onSound('WIPL_SE_BT_PUSH');
+        onSound(kind === 'channels' ? 'WIPL_SE_DECIDE' : 'WIPL_SE_BT_PUSH');
         const anchor = sourceAnchorMatrices(working('base'), [
           `N_Data_b_${String(selectedSlot).padStart(2, '0')}`,
         ], {
@@ -620,12 +636,13 @@ export function createStorageScene(
         start('detail-in', [clip('detail', 'SeenIn', 'G_Mask')], () => {});
         return true;
       }
-      onSound('WIPL_SE_BT_PUSH');
+      onSound(kind === 'channels' ? 'WIPL_SE_DECIDE' : 'WIPL_SE_BT_PUSH');
       action = id.slice(8);
       const stem = { move: 'Move', copy: 'Copy', erase: 'Del' }[action];
       start('operation-select', [clip('detail', `${stem}Flash`, `G_${stem}Flash`)], () => {
         start('detail-buttons-out', [clip('detail', 'SelectOut', 'G_Select')], () => {
           page = 'dialog';
+          startBackFade(false);
           bases.dialog = poseLayout(layouts[DIALOG]);
           start('dialog-in', [clip('dialog', 'DialogIn', 'G_InOut')], () => {});
         });
@@ -658,12 +675,19 @@ export function createStorageScene(
             page = 'grid';
             action = null;
           }, timing);
-        } else
-          start(
-            'data-out',
-            [clip('base', 'DataOut', 'G_DataAll'), clip('box', 'SaveDataOut', 'G_Data')],
-            onBack,
-          );
+        } else {
+          const exitClips = [
+            clip('base', 'DataOut', 'G_DataAll'),
+            clip('box', 'SaveDataOut', 'G_Data'),
+          ];
+          if (kind === 'channels') {
+            exitClips.push(
+              clip('base', 'Lost', 'G_ArwL_End'),
+              clip('base', 'Lost', 'G_ArwR_End'),
+            );
+          }
+          start('data-out', exitClips, onBack);
+        }
       });
       return true;
     },
@@ -881,8 +905,9 @@ export function createStorageScene(
           : captionChange.frame - textFrame;
         back = poseLayout(back, [sample(animation, frame)]);
       }
+      if (backFade) back = poseLayout(back, [sample(backFade.clip, backFade.frame)]);
       putText(back, { T_Button_00: strings[backCaption] ?? 'Back' });
-      if (page === 'dialog') visible(back, 'N_Button', false);
+      if (page === 'dialog' && kind !== 'channels') visible(back, 'N_Button', false);
       layers.unshift({ layout: back, prefix: 'storage-back:' });
       if (page === 'dialog') {
         const dialog = putText(working('dialog'), {

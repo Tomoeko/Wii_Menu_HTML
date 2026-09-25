@@ -10,9 +10,11 @@ surface has been aligned against a native motion capture.
 `arrow-interaction.js` lists the persistent control IDs below. DOM pointer
 enter/leave and per-frame reconciliation both resolve against the current
 source-rendered hit rectangles. An overlapping sibling's DOM event cannot
-override an arrow that still contains the pointer. There is no extra hover
-padding, debounce interval or synthetic pointer departure after activation.
-Keyboard focus deliberately goes directly to the focused control instead.
+override an arrow that still contains the pointer. A held arrow keeps focus
+within four logical pixels of its moving hit rectangle; acquiring focus still
+requires the pointer inside the source rectangle. There is no debounce interval
+or synthetic pointer departure after activation. Keyboard focus deliberately
+goes directly to the focused control instead.
 
 Visible disabled controls still occlude text selection, but cannot activate or
 start held repeat. Disabled arrows retain their source hit rectangle during an
@@ -97,6 +99,42 @@ on every update of the current page transition, cue count, disabled activation,
 departure during page-out and both moving and stationary arrivals at page
 limits. This establishes the focus-lifetime correction. Exact grid-motion and
 press-clip alignment still require their own native/browser comparison.
+
+## Arrow exit during scene changes
+
+The ChannelEdit WAD has an independent 11-frame `Lost` clip. Its
+`G_ArwL_End` and `G_ArwR_End` tracks translate the two arrow parents from
+zero to -200 and +200 respectively. `DataOut/G_DataAll` fades the grid and
+tabs without binding those arrow branches. Channels now plays both `Lost`
+groups alongside the existing 26-frame grid exit after the Back press. The
+4:3 and 16:9 renderer regression checks both arrow hit rectangles at updates
+0, 5, 10 and 11 of the exit.
+
+Home grid channel entry already uses `my_IplTop_e`'s independent
+`G_ArwL_End`/`G_ArwR_End` interval 10100–10110. The grid and shared footer
+remain in the 28-frame channel zoom draw pass. A renderer regression checks
+outward movement at updates 0, 5 and 10 and the retained endpoint before
+preview handoff. The separate arrow loop can shift that held geometry by
+about two logical pixels. These source and renderer checks establish browser
+behavior; an aligned native capture is still needed for pixel parity.
+
+Returning from a channel preview uses the same common Button layout at its
+full-screen projection. The menu state changes to grid as soon as Back starts,
+so the preview arrow overlay derives availability from the departing selected
+channel and the slot array. It plays `G_ArwL_End` and `G_ArwR_End` at
+10100–10110 and draws after the black ChannelTitle outside rectangles, without
+the zoom camera. The grid footer arrows remain at their hidden endpoint until
+the return finishes. Renderer checks compare preview-arrow dimensions with the
+actual settled Home footer in 4:3 and 16:9 and confirm both arrows leave the
+screen by exit update five. Single-channel and cross-page return fixtures
+check the availability boundary. Native pixel alignment remains open.
+
+Returning from Create Message or Calendar reuses the Board mask-out clock to
+sample the common arrow entrance at 10150–10160. The child footer retires its
+arrows before the Board footer takes over, so the new footer starts with both
+arrows outside and brings them inward over ten updates. A renderer regression
+checks their positions and unchanged hit-pane sizes at updates zero, five and
+ten in both TV aspects.
 
 ## Letter composer fixes
 

@@ -299,6 +299,9 @@ export function createFooterController(source, balloonSource, measure, options =
       });
     },
     balloons: (anchors) => balloons.poses(anchors),
+    dismissBalloon() {
+      balloons.target(null);
+    },
     clear() {
       api.hover(null);
       balloons.clear();

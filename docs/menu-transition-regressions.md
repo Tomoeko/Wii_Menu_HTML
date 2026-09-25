@@ -106,6 +106,15 @@ supplemental evidence but remains unpaired to a populated native Board. These
 widescreen, best-fit pose comparisons do not establish elapsed-time equality,
 physical-input onset, cold/warm readiness equivalence or 4:3 acceptance.
 
+When Board Back starts from a date other than today, the browser now plays one
+`my_IplTop_c` page slide inside the existing 40-update footer exit: frames
+0–20 for a backward return or 30–50 for a forward return. The incoming label
+is today's date even when it is several days away. Posted Memo cards inherit
+the same page translation, and the Home underlay takes today's cards at the
+handoff. Rendered tests cover both directions, five-day and month-boundary
+jumps, unchanged same-day returns, and Memo movement. A newly aligned native
+return sequence is still needed to judge visual parity.
+
 The later Mii entry `1789984370936-300301b1` and return
 `1789984459760-fb4ee436` each retain 91 browser poses and the exact loaded source
 archive. Entry uses native ordinals 6126–6162 from the aborted first session;

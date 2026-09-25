@@ -101,6 +101,7 @@ export function createBoardCreate(
     age = 0,
     phase = null,
     page = 'selector',
+    memoLeaving = false,
     focus = null,
     focusAge = 0,
     focusClips = [];
@@ -188,7 +189,7 @@ export function createBoardCreate(
   const controls = (addressState) => {
     if (letter) return letter.controls();
     if (recipientPicker) return recipientPicker.controls();
-    if (keyboard) return [...keyboard.controls(), ...memoArrows.controls()];
+    if (keyboard) return [...keyboard.controls(), ...(!phase ? memoArrows.controls() : [])];
     if (networkDialog)
       return [
         { id: 'network-quit', pane: 'B_BtnA', prefix: 'create-network:', label: text(37, 'Quit') },
@@ -331,6 +332,7 @@ export function createBoardCreate(
       recipientPicker = null;
       phase = null;
       page = 'closed';
+      memoLeaving = false;
       editing = false;
       networkDialog = false;
       focus = null;
@@ -378,6 +380,7 @@ export function createBoardCreate(
       age = 0;
       bases = Object.fromEntries(CREATE_LAYOUTS.map((key) => [key, poseLayout(layouts[key])]));
       page = 'selector';
+      memoLeaving = false;
       editing = false;
       networkDialog = false;
       letter = null;
@@ -422,7 +425,10 @@ export function createBoardCreate(
           Boolean(keyboard && !phase),
         );
         memoScroll.advance(frames);
-        memoArrows.update(memoScroll.snapshot(), Boolean(keyboard));
+        const openingKeyboard = Boolean(keyboard && phase && keyboardProgress === 0);
+        memoArrows.update(openingKeyboard || memoLeaving
+          ? { previous: false, next: false }
+          : memoScroll.snapshot(), Boolean(keyboard));
       }
       if (!Number.isFinite(frames) || frames < 0)
         throw new RangeError('Frames must be nonnegative');
@@ -560,6 +566,7 @@ export function createBoardCreate(
                 editing = false;
                 keyboard = null;
                 keyboardProgress = 0;
+                memoArrows.update(memoScroll.snapshot(), false);
               },
               30,
             );
@@ -577,6 +584,8 @@ export function createBoardCreate(
       }
       if (id === 'submit' && page === 'memo') {
         editing = false;
+        memoLeaving = true;
+        memoArrows.update({ previous: false, next: false }, false);
         start([footer(3000, 3020, 'G_Cmn_R')], () => {
           onSound('WIPL_SE_DECIDE');
           start([clip('sofkeybd/my_Memo_a', 'my_Memo_a_SendOut'), footer(3413, 3426)], () => {
@@ -608,6 +617,7 @@ export function createBoardCreate(
         return true;
       }
       page = id;
+      memoLeaving = false;
       if (id === 'address')
         address = createBoardAddress(layouts, {
           messages,
@@ -731,11 +741,16 @@ export function createBoardCreate(
         );
       } else {
         const choice = CHOICES.find((choice) => choice.id === page);
+        if (page === 'memo') {
+          memoLeaving = true;
+          memoArrows.update({ previous: false, next: false }, false);
+        }
         start([footer(3000, 3020, 'G_CalExit')], () => {
           start(
             [...bodyClip('MailOut'), footer(3413, 3426), footer(3113, 3126, 'G_SeenChange', 13)],
             () => {
               page = 'selector';
+              memoLeaving = false;
               address = null;
               start([select(`${choice.stem}Out`, 'G_AdressInOut')], () => {});
             },
@@ -811,6 +826,14 @@ export function createBoardCreate(
           const arrowPose = poseLayout(body, memoArrows.clips());
           body.root = arrowPose.root;
           body.materials = arrowPose.materials;
+          let editorOpacity = 0;
+          if (keyboard && keyboardProgress === 1)
+            editorOpacity = phase ? Math.max(0, 1 - phase.frame / 30) : 1;
+          const arrowPanes = indexLayout(body).panes;
+          for (const name of ['P_txtScrll_UP', 'P_txtScrll_DOWN']) {
+            const pane = arrowPanes.get(name);
+            if (pane) pane.alpha = Math.round(pane.alpha * editorOpacity);
+          }
           const progress = phase && editing
             ? keyboardProgress === 0
               ? Math.min(1, phase.frame / 30)

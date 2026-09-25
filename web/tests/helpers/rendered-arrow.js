@@ -2,9 +2,9 @@ import { Renderer } from '../../src/renderer.js';
 import { createDisplay } from '../../src/display.js';
 
 /** Sample effective arrow visibility through the actual renderer hierarchy. */
-export function renderedArrow(layout, side = 'R') {
+export function renderedArrow(layout, side = 'R', display = createDisplay()) {
   const renderer = Object.create(Renderer.prototype);
-  renderer.display = createDisplay();
+  renderer.display = display;
   renderer.bounds = new Map();
   const drawn = new Map();
   renderer.window = () => {};

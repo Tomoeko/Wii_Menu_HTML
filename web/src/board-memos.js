@@ -322,15 +322,20 @@ export function createBoardMemos(
     const selection = incoming?.snapshot();
     const cardPhase = selection?.readerPhase ?? phase;
     const cardFrame = selection?.readerFrame ?? frame;
-    if (selected?.id === record.id)
-      clips.push(
-        clip(
-          card,
-          ['close', 'erase-close', 'erase-wait'].includes(cardPhase) ? 'ExitLetter' : 'SelectLetter',
+    if (selected?.id === record.id) {
+      if (cardPhase === 'close' && cardFrame >= duration(card, 'ExitLetter')) {
+        // ExitLetter restores the card at its focused 1.1 scale. The common
+        // 26-frame reader close leaves time for its authored six-frame
+        // FocusOut before BoardObject releases the selected card.
+        clips.push(clip(card, 'FocusOut',
+          cardFrame - duration(card, 'ExitLetter')));
+      } else {
+        const exiting = ['close', 'erase-close', 'erase-wait'].includes(cardPhase);
+        clips.push(clip(card, exiting ? 'ExitLetter' : 'SelectLetter',
           ['open', 'close', 'erase-close', 'erase-wait'].includes(cardPhase)
-            ? cardFrame : duration(card, 'SelectLetter'),
-        ),
-      );
+            ? cardFrame : duration(card, 'SelectLetter')));
+      }
+    }
     if (!pinAnimations.has(record.id)) {
       // USA 4.3 BoardObject::stt_create, 0x81394A58–0x81394B0C:
       // choose the pin once when the card is created, only for past timestamps.

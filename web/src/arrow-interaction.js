@@ -36,10 +36,11 @@ const persistentControlIds = new Set([
   'settings-keyboard-key-symbols-prev',
   'settings-keyboard-key-symbols-next',
 ]);
-// G_ArwRoop moves the footer arrow hit panes by almost three logical pixels
-// while the pointer can stay still. One extra pixel covers CSS rounding at a
-// scaled viewport, so a held focus cannot leave and re-enter on that loop.
-const footerArrowExitMargin = 4;
+// Animated arrow hit panes can move by almost three logical pixels while the
+// pointer stays still. One extra pixel covers CSS rounding in scaled views.
+// Apply the tolerance to every shared arrow so its held focus does not cycle
+// through leave and re-entry as the pane moves underneath the pointer.
+const heldArrowExitMargin = 4;
 
 /** The application's hit regions use these explicit controller prefixes.
  * Text-scroll buttons also retain focus through pointer-capture release and
@@ -68,11 +69,12 @@ export function shouldActivateArrowPointerDown({ id, button = 0, disabled = fals
  */
 export function pointerRemainsInPersistentControl(controls, point, id) {
   if (!point || point.visible === false || !isPersistentArrowControl(id)) return false;
-  const margin = isArrowId(id) ? footerArrowExitMargin : 0;
   return controls.some((control) => {
     const rect = control.id === id && control.rect;
-    return rect && point.x >= rect.x - margin && point.x <= rect.x + rect.w + margin &&
-      point.y >= rect.y - margin && point.y <= rect.y + rect.h + margin;
+    return rect && point.x >= rect.x - heldArrowExitMargin &&
+      point.x <= rect.x + rect.w + heldArrowExitMargin &&
+      point.y >= rect.y - heldArrowExitMargin &&
+      point.y <= rect.y + rect.h + heldArrowExitMargin;
   });
 }
 

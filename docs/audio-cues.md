@@ -637,8 +637,15 @@ of the browser's prepared waveform.
 Message Board now emits these cues from its scene controller after accepting
 the action. Locked actions and arrows at the supported date limit are silent.
 The host must not add a generic confirm/cancel sound to these actions, including
-the equivalent physical-keyboard paths. The channel preview's **Wii Menu**
-button has its own `WIPL_SE_BT_PUSH` call in handler `0x813BAC50`, followed by
+the equivalent physical-keyboard paths.
+
+Calendar date tiles already emit `WIPL_SE_DATE_SELECT` from their controller.
+The host previously layered its generic `confirm` on the same click, making
+that action louder. Date tiles now use only their own cue; Calendar Back and
+month arrows retain their host-owned fallback cues.
+
+The channel preview's **Wii Menu** button has its own `WIPL_SE_BT_PUSH` call
+in handler `0x813BAC50`, followed by
 `WIPL_SE_CH_UNSELECT` at `0x813B7784` when the reverse zoom begins. The button
 handler directly invokes that zoom path when resources are ready; accepted
 browser button presses preserve both cues, while repeated locked presses add

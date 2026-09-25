@@ -11,6 +11,8 @@ import {
 } from '../src/board-memos.js';
 import { indexLayout, poseLayout } from '../src/animation.js';
 import { createDisplay } from '../src/display.js';
+import { resolvePointerHover } from '../src/arrow-interaction.js';
+import { Renderer } from '../src/renderer.js';
 import { renderedArrow } from './helpers/rendered-arrow.js';
 
 const manifestUrl = new URL('../public/assets/manifest.json', import.meta.url);
@@ -249,6 +251,30 @@ test(
     assert.equal(JSON.stringify(layouts), before);
   },
 );
+
+test('Memo reader exit eases a focused card back to its neutral Board scale', sourceTest, () => {
+  const board = createBoardMemos(layouts, {
+    date, now: date, memos: [record('posted')],
+  });
+  const scale = () => pane(layer(board.presentation(), 'memo-card-posted:'), 'N_Letter').scale[0];
+  board.advance(11);
+  board.hover('memo-open-posted');
+  board.advance(7);
+  near(scale(), 1.1);
+  assert.equal(board.activate('memo-open-posted'), true);
+  board.advance(26);
+  assert.equal(board.back(), true);
+  board.advance(20);
+  board.advance(17);
+  near(scale(), 1.1);
+  board.advance(3);
+  assert.ok(scale() < 1.1 && scale() > 1, 'FocusOut runs after ExitLetter');
+  board.advance(3);
+  near(scale(), 1);
+  board.advance(3);
+  near(scale(), 1);
+  assert.equal(board.snapshot().reading, false);
+});
 
 test('posting to the current day runs only the arriving card paste animation', sourceTest, () => {
   const board = createBoardMemos(layouts, { date, memos: [record('old')] });
@@ -776,6 +802,62 @@ test('reader arrow targeting and held movement sound follow their native trigger
     assert.deepEqual(sounds.at(-1), { symbol: 'WIPL_SE_MESSAGE_SCROLL', options: { loop: false } });
     board.advance(20);
     assert.equal(sounds.length, 3, 'idle cannot replay the movement sound');
+  });
+
+test('reader arrow held-edge hover makes one targeting cue until genuine departure',
+  sourceTest, () => {
+    for (const aspect of ['4:3', '16:9']) {
+      const display = createDisplay(aspect);
+      const sounds = [];
+      const board = createBoardMemos(layouts, {
+        date, memos: [record('long')], measureTextLines: () => 40, display,
+        onSound: (symbol) => sounds.push(symbol),
+      });
+      const renderer = Object.create(Renderer.prototype);
+      renderer.display = display;
+      renderer.bounds = new Map();
+      renderer.quad = () => {};
+      renderer.window = () => {};
+      const control = () => {
+        renderer.bounds.clear();
+        renderer.draw(layer(board.presentation(), 'memo-reader:'));
+        return { id: 'scene-memo-down', rect: renderer.rect('B_ArwL') };
+      };
+      board.advance(11);
+      board.activate('memo-open-long');
+      board.advance(26);
+      board.advance(8);
+      const first = control().rect;
+      const inside = { x: first.x + first.w / 2, y: first.y + 20, visible: true };
+      let held = resolvePointerHover([control()], inside);
+      assert.equal(held, 'scene-memo-down');
+      board.hover(held.slice(6));
+      assert.equal(sounds.filter((symbol) => symbol === 'WIPL_SE_BT_TARGETTING').length, 1);
+      const edge = { x: first.x - 2, y: inside.y, visible: true };
+      assert.equal(resolvePointerHover([control()], edge), null,
+        'a pointer outside the pane cannot acquire an unheld arrow');
+      for (let frame = 0; frame < 18; frame++) {
+        if (frame === 4) assert.equal(board.activate('memo-down'), true);
+        const target = resolvePointerHover([control()], edge, 'scene-memo-back', held);
+        assert.equal(target, held, `${aspect} frame ${frame}: retain the reader arrow`);
+        board.hover(target?.slice(6) || null);
+        held = target;
+        board.advance(1);
+      }
+      assert.ok(first.x - control().rect.x > 5, 'the WAD focus moved the hit pane');
+      assert.equal(sounds.filter((symbol) => symbol === 'WIPL_SE_BT_TARGETTING').length, 1);
+      const away = { x: display.width / 2, y: 20, visible: true };
+      held = resolvePointerHover([control()], away, null, held);
+      assert.equal(held, null);
+      board.hover(null);
+      const reentry = control().rect;
+      const reentryPoint = { x: reentry.x + reentry.w / 2, y: reentry.y + reentry.h / 2,
+        visible: true };
+      held = resolvePointerHover([control()], reentryPoint, null, held);
+      assert.equal(held, 'scene-memo-down');
+      board.hover(held.slice(6));
+      assert.equal(sounds.filter((symbol) => symbol === 'WIPL_SE_BT_TARGETTING').length, 2);
+    }
   });
 
 test('short reader movement reaches its clamped endpoint smoothly and releases audio before curve end',

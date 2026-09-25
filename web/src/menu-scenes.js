@@ -108,6 +108,8 @@ const labels = (layout, values) => {
     if (pane.type === 'txt1') pane.text = values[pane.name] ?? '';
   return layout;
 };
+const dayNumber = (date) =>
+  date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
 
 /** Original menu scene navigation with local storage and Message Board models.
  * Retained poses preserve hierarchy headings and footer continuity. */
@@ -289,6 +291,7 @@ export function createMenuScenes(
     boardChild = null;
     memoBoard.revealPendingMemos();
     boardMask = 'out';
+    // The mask clock also poses the Board arrows' original inward return.
     maskAge = 0;
     focus = null;
     focusAnimations.reset();
@@ -686,13 +689,37 @@ export function createMenuScenes(
       if (memoBoard.snapshot().draggingMemo) return memoBoard.cancelPointer();
       if (phase || scene === 'closed') return false;
       if (scene === 'board') {
-        memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
+        const selectedDate = boardDate || currentDate;
+        const selectedDay = dayNumber(selectedDate);
+        const today = dayNumber(currentDate);
+        let returnDirection = null;
+        if (selectedDay > today) returnDirection = 'prev';
+        else if (selectedDay < today) returnDirection = 'next';
+        boardScroll = returnDirection ? {
+          from: new Date(selectedDate.getTime()),
+          to: new Date(currentDate.getTime()),
+          direction: returnDirection,
+          returning: true,
+        } : null;
         onSound('WIPL_SE_DECIDE');
         neutralBoardFocus();
         boardTransition = 'exit';
-        start([make('my_IplTop_e', 'my_IplTop_e', 'G_SeenChange', 6000, 6040)], () => {
+        const dateFrame = returnDirection === 'next' ? 30 : 0;
+        const dateClip = boardScroll
+          ? [make('my_IplTop_c', 'my_IplTop_c', undefined, dateFrame, dateFrame + 20)]
+          : [];
+        start([
+          ...dateClip,
+          make('my_IplTop_e', 'my_IplTop_e', 'G_SeenChange', 6000, 6040),
+        ], () => {
+          // The Board slides its selected day's cards away. The Home underlay
+          // resumes with today's records when the grid takes ownership.
+          memoBoard.setDate(currentDate);
+          memoReturnLayers = memoBoard.presentation({ settled: true }).cardLayers;
           scene = 'closed';
           boardTransition = null;
+          boardScroll = null;
+          boardDate = null;
           onNavigate('grid');
         });
         return true;
@@ -818,8 +845,12 @@ export function createMenuScenes(
             ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
           return `${weekday} ${date.getMonth() + 1}/${date.getDate()}`;
         };
-        const adjacent = (offset) =>
-          new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset, 12);
+        const adjacent = (offset) => {
+          if (boardScroll?.returning &&
+              offset === (boardScroll.direction === 'prev' ? -1 : 1))
+            return boardScroll.to;
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset, 12);
+        };
         const boardLayout = working('my_IplTop_c');
         layers = [
           {
@@ -869,15 +900,14 @@ export function createMenuScenes(
               const hidden = boardArrowAtLimit(id, boardScroll?.to);
               const exiting = boardTransition === 'exit';
               const offset = exiting || hidden ? 10100 : 10150;
-              const frame = exiting
-                ? phase?.frame || 0
-                : boardTransition === 'enter'
-                  ? hidden
-                    ? 10
-                    : Math.max(0, (phase?.frame || 0) - 30)
-                  : boardScroll && boardArrowAtLimit(id, boardScroll.from) !== hidden
-                    ? phase?.frame || 0
-                    : 10;
+              let frame = 10;
+              if (exiting) frame = phase?.frame || 0;
+              else if (boardTransition === 'enter')
+                frame = hidden ? 10 : Math.max(0, (phase?.frame || 0) - 30);
+              else if (boardScroll && boardArrowAtLimit(id, boardScroll.from) !== hidden)
+                frame = phase?.frame || 0;
+              else if (boardMask === 'out')
+                frame = maskAge;
               return at(
                 make('my_IplTop_e', 'my_IplTop_e', `G_Arw${side}_End`, offset, offset + 10),
                 frame,

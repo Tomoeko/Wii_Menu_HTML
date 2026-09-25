@@ -496,6 +496,66 @@ test('Channels Back replaces the thumbnail with the first calculated SeenOut cov
   assert.equal(JSON.stringify(layouts), pristine);
 });
 
+test('Channels icons and operation buttons use the Options confirm cue and fade Back for dialogs', {
+  skip: !available,
+}, () => {
+  const confirmCue = manifest.audio.confirm.sourceSymbol;
+  const hoverCue = manifest.audio.buttonHover.sourceSymbol;
+  const button = layouts.it_Button_a;
+  const backAlpha = (scene) => indexLayout(scene.presentation().layers.find(
+    ({ prefix }) => prefix === 'storage-back:',
+  ).layout).panes.get('N_Button_00').alpha;
+  const sourceAlpha = (name, frame) => indexLayout(poseLayout(button, [{
+    animation: button.animations[`it_Button_a_${name}`],
+    group: 'G_FocusBtnA',
+    frame: Math.min(frame, 10),
+    loop: false,
+  }])).panes.get('N_Button_00').alpha;
+  for (const aspect of ['4:3', '16:9']) {
+    for (const operation of ['move', 'copy', 'erase']) {
+      const sounds = [];
+      const scene = createStorageScene(layouts, {
+        kind: 'channels', display: createDisplay(aspect),
+        channels: [{ id: 'confirm-channel', title: 'Confirm channel',
+          icon: { ...layouts.it_ObjChannelEdit_b, animations: {} } }],
+        onSound: (symbol) => sounds.push(symbol),
+      });
+      scene.advance(100);
+      assert.equal(scene.hover('storage-channel-0'), true);
+      assert.equal(scene.activate('storage-channel-0'), true);
+      assert.deepEqual(sounds, [hoverCue, confirmCue], `${aspect} icon`);
+      scene.advance(100);
+      assert.equal(scene.hover(`storage-${operation}`), true);
+      assert.equal(scene.activate(`storage-${operation}`), true);
+      assert.deepEqual(sounds.slice(-2), [hoverCue, confirmCue], `${aspect} ${operation}`);
+
+      const detail = layouts.mn_ChannelDetail_a.animations;
+      scene.advance(detail[`mn_ChannelDetail_a_${{
+        move: 'Move', copy: 'Copy', erase: 'Del',
+      }[operation]}Flash`].frames + detail.mn_ChannelDetail_a_SelectOut.frames);
+      assert.equal(scene.snapshot().phase, 'dialog-in');
+      for (let frame = 0; frame <= 11; frame += 1) {
+        assert.equal(backAlpha(scene), sourceAlpha('AlphOut', frame),
+          `${aspect} ${operation} Back exit ${frame}`);
+        scene.advance(1);
+      }
+      scene.advance(layouts.my_DialogWindow_b.animations.my_DialogWindow_b_DialogIn.frames - 11);
+      assert.equal(scene.snapshot().page, 'dialog');
+      assert.equal(backAlpha(scene), 0);
+      assert.equal(scene.activate('storage-no'), true);
+      const dialog = layouts.my_DialogWindow_b.animations;
+      scene.advance(dialog.my_DialogWindow_b_SelectBtn_Ac.frames
+        + dialog.my_DialogWindow_b_DialogOut.frames);
+      assert.equal(scene.snapshot().phase, 'detail-buttons-in');
+      for (let frame = 0; frame <= 11; frame += 1) {
+        assert.equal(backAlpha(scene), sourceAlpha('AlphIn', frame),
+          `${aspect} ${operation} Back return ${frame}`);
+        scene.advance(1);
+      }
+    }
+  }
+});
+
 test('grid icons survive detail and operation transitions but obey their own box entry and exit', {
   skip: !available,
 }, () => {
@@ -955,6 +1015,57 @@ test('GameCube tabs and save blocks enter together and wait for the longer block
   assert.equal(scene.snapshot().phase, 'back-select');
   scene.advance(layouts.it_Button_a.animations.it_Button_a_BtnFlash.frames);
   assert.equal(scene.snapshot().phase, 'data-out', 'exit retains its existing shared timing');
+});
+
+test('Channels page arrows travel outward on Wii Menu exit using the Lost clip', {
+  skip: !available,
+}, () => {
+  const icon = { ...layouts.it_ObjChannelEdit_b, animations: {} };
+  const channels = Array.from({ length: 31 }, (_, index) => ({
+    id: `exit-arrow-${index}`,
+    title: `Exit arrow ${index}`,
+    icon,
+  }));
+  for (const aspect of ['4:3', '16:9']) {
+    const display = createDisplay(aspect);
+    const scene = createStorageScene(layouts, { kind: 'channels', display, channels });
+    scene.advance(100);
+    assert.equal(scene.activate('storage-next'), true);
+    scene.advance(100);
+
+    const arrowX = () => {
+      const arrows = scene.presentation().layers.find(
+        ({ prefix }) => prefix === 'storage-arrows:',
+      );
+      const renderer = Object.create(Renderer.prototype);
+      renderer.display = display;
+      renderer.bounds = new Map();
+      renderer.quad = () => {};
+      renderer.window = () => {};
+      renderer.draw(arrows.layout);
+      return {
+        left: renderer.rect('B_ArwL').x,
+        right: renderer.rect('B_ArwR').x,
+      };
+    };
+    const settled = arrowX();
+    assert.equal(scene.activate('back'), true);
+    scene.advance(layouts.it_Button_a.animations.it_Button_a_BtnFlash.frames);
+    assert.equal(scene.snapshot().phase, 'data-out');
+    assert.deepEqual(arrowX(), settled, `${aspect} starts from the settled pose`);
+
+    scene.advance(5);
+    const middle = arrowX();
+    assert.ok(middle.left < settled.left && middle.right > settled.right,
+      `${aspect} both arrows move outward before the scene exits`);
+    scene.advance(5);
+    const ended = arrowX();
+    assert.ok(Math.abs(ended.left - (settled.left - 200)) < 0.001);
+    assert.ok(Math.abs(ended.right - (settled.right + 200)) < 0.001);
+    scene.advance(1);
+    assert.deepEqual(arrowX(), ended, `${aspect} holds the Lost endpoint`);
+    assert.equal(scene.snapshot().phase, 'data-out', 'the grid fade continues after arrow exit');
+  }
 });
 
 test('remembered SD and Slot B tabs restore both the record source and authored selection pose',

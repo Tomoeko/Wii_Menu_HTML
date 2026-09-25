@@ -13,6 +13,9 @@ import {
   previewStartButtonClip,
   activatePreviewReturn,
   createPreviewButtonHover,
+  previewArrowAvailability,
+  posePreviewArrows,
+  PREVIEW_ARROW_EXIT_UPDATES,
 } from './preview-transition.js';
 import { createChannelFocus } from './channel-focus.js';
 import { createChannelBalloon } from './channel-balloon.js';
@@ -42,6 +45,7 @@ import { dragAudioParameters } from './drag-audio.js';
 import { createHealthScreen } from './health-screen.js';
 import { channelZoom, drawChannelZoom, sourceAnchorMatrices } from './channel-zoom.js';
 import { createMenuScenes, MENU_SCENE_LAYOUTS } from './menu-scenes.js';
+import { activateSceneControl } from './menu-scene-actions.js';
 import { menuEntranceSample } from './native-fader.js';
 import { createSceneFader } from './scene-fader.js';
 import { createHomeUnderlayCache, homeUnderlayEligible } from './home-underlay-cache.js';
@@ -271,7 +275,17 @@ function action(id, label, rect, run, disabled = false) {
     h: Math.min(display.height, rect.y + rect.h) - y,
   };
   if (clipped.w <= 0 || clipped.h <= 0) return;
-  interactive.push({ id, label, rect: clipped, run, disabled });
+  interactive.push({
+    id,
+    label,
+    rect: clipped,
+    run: () => {
+      footer?.dismissBalloon();
+      balloon?.target(null);
+      return run();
+    },
+    disabled,
+  });
 }
 function nativeAction(id, label, pane, run, disabled = false) {
   action(id, label, renderer.rect(pane), run, disabled);
@@ -619,13 +633,29 @@ function drawGrid(
       if (anchor) renderer.draw(item.layout, { matrix: anchor.matrix, layoutMode: 'embedded' });
     }
   }
+  if (dragState) {
+    renderer.draw(drag.shadePose(), {
+      matrix: translation(
+        dragState.point.x - display.halfWidth,
+        display.halfHeight - dragState.point.y,
+      ),
+    });
+  }
   // Button::setCamera retains ChannelSelect's global ortho transform. Native
   // captures show its buttons moving with the grid beneath ChannelTitle's fade.
+  // The carried channel stays below the arrow panes; the pointer draws last.
   if (footer) drawFooter({ ...state, locked: state.locked || Boolean(dragState) }, matrix);
   if (zoom) {
     drawChannelZoom(renderer, layout, zoom, zoomCapture, (rect, alpha) => {
       box(rect.x, rect.y, rect.w, rect.h, [0, 0, 0, Math.round(alpha * 255)]);
     });
+  }
+  if (transition?.kind === 'back') {
+    const exitFrame = transition.progress * 28;
+    if (exitFrame <= PREVIEW_ARROW_EXIT_UPDATES) {
+      renderer.clip(null);
+      drawPreviewArrows(state, { exitFrame });
+    }
   }
   if (!state.locked && !dragState)
     for (const item of balloon.poses(state.channels)) {
@@ -634,13 +664,6 @@ function drawGrid(
           textPane(pane, m, alpha, { T_Balloon: item.title }, item.layout),
       });
     }
-  if (dragState)
-    renderer.draw(drag.shadePose(), {
-      matrix: translation(
-        dragState.point.x - display.halfWidth,
-        display.halfHeight - dragState.point.y,
-      ),
-    });
 }
 
 function drawPreview(state, { capture = false, initial = false } = {}) {
@@ -712,37 +735,33 @@ function drawPreview(state, { capture = false, initial = false } = {}) {
     },
     state.locked || !startEnabled,
   );
-  const arrows = layouts.my_IplTop_e,
-    arrowClips = [
-      clip(arrows, 'my_IplTop_e', 0),
-      clip(arrows, 'my_IplTop_e', 10000 + (((sceneNow - startedAt) * 0.06) % 55), 'G_ArwRoop'),
-    ];
-  const exclude = new Set(
-    [...indexLayout(arrows).panes.keys()].filter(
-      (name) => /^N_Btn[RL]_a/.test(name) || name === 'N_Dust',
-    ),
-  );
-  for (const [direction, id, suffix] of [
-    [-1, 'prev', 'L'],
-    [1, 'next', 'R'],
-  ]) {
-    if (menu.previewNeighbor(direction) === null) exclude.add('N_Arw' + suffix);
-    arrowClips.push(
-      clip(
-        arrows,
-        'my_IplTop_e',
-        10150 + Math.min(10, (sceneNow - previewArrowsStartedAt) * 0.06),
-        'G_Arw' + suffix + '_End',
-      ),
-    );
-  }
-  arrowClips.push(...previewArrows.clips());
-  renderer.draw(poseLayout(arrows, arrowClips), { exclude });
+  drawPreviewArrows(state);
+}
+
+function drawPreviewArrows(state, { exitFrame = null } = {}) {
+  const returning = exitFrame !== null;
+  const available = returning
+    ? previewArrowAvailability(state.channels, state.transition.from.selectedIndex)
+    : {
+        prev: menu.previewNeighbor(-1) !== null,
+        next: menu.previewNeighbor(1) !== null,
+      };
+  const { layout, exclude } = posePreviewArrows(layouts.my_IplTop_e, {
+    phase: returning ? 'exit' : 'enter',
+    frame: returning ? exitFrame : (sceneNow - previewArrowsStartedAt) * 0.06,
+    loopFrame: (sceneNow - startedAt) * 0.06,
+    available,
+    focusClips: previewArrows.clips(),
+  });
+  // This draw uses the common Button layout's full-screen projection. During
+  // return it follows the black ChannelTitle border, outside the zoom camera.
+  renderer.draw(layout, { exclude });
+  if (returning) return;
   for (const [direction, id, suffix] of [
     [-1, 'prev', 'L'],
     [1, 'next', 'R'],
   ])
-    if (menu.previewNeighbor(direction) !== null)
+    if (available[id])
       nativeAction(
         id,
         direction < 0 ? 'Previous channel' : 'Next channel',
@@ -816,14 +835,7 @@ function drawSettings() {
       control.label,
       control.prefix + control.pane,
       () => {
-        const sceneState = scenes.snapshot();
-        const ownsSound =
-          (sceneState.scene === 'board' && !sceneState.boardChild) ||
-          sceneState.boardChild === 'create' ||
-          sceneState.storagePage ||
-          control.id.startsWith('memo-');
-        if (scenes.activate(control.id) && !ownsSound)
-          void audio.play(control.id === 'back' ? 'cancel' : 'confirm');
+        activateSceneControl(scenes, control.id, (sound) => void audio.play(sound));
       },
       control.disabled,
     );
@@ -1974,6 +1986,9 @@ async function init() {
       pendingZoomCapture = true;
     if (state.transition?.kind === 'preview' && state.transition.elapsed === 0) {
       previewArrows.press(state.transition.direction < 0 ? 'prev' : 'next');
+    } else if (state.transition?.kind === 'back') {
+      if (state.transition.elapsed === 0) previewArrows.hover(null);
+      previewButtonHover?.reset();
     } else if (state.screen !== 'preview') {
       previewArrows.reset();
       previewButtonHover?.reset();

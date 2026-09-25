@@ -1,9 +1,49 @@
 // ChannelTitle::startChangeChannel/calcNormalChangeWait/calcNormalChangeNext.
 // Each original ChangeIn/ChangeOut BRLAN has 11 frames. IPL's forward
 // Animator stops at GetFrameSize()-1, so preloaded resources need 10+10 ticks.
+import { indexLayout, poseLayout } from './animation.js';
+
 export const PREVIEW_CHANGE = Object.freeze({ inFrames: 10, outFrames: 10 });
 export const PREVIEW_CHANGE_DURATION =
   ((PREVIEW_CHANGE.inFrames + PREVIEW_CHANGE.outFrames) * 1000) / 60;
+export const PREVIEW_ARROW_EXIT_UPDATES = 10;
+
+/** The preview may already have changed menu.screen to grid when Back starts. */
+export function previewArrowAvailability(channels, selectedIndex) {
+  const hasNeighbor = channels.some((channel, index) =>
+    index !== selectedIndex && channel && channel.disabled !== true);
+  return { prev: hasNeighbor, next: hasNeighbor };
+}
+
+/** ChannelTitle reuses the full-size common Button arrows. Their End groups
+ * move independently of the zoom camera and hold the WAD's source geometry.
+ */
+export function posePreviewArrows(source, {
+  phase = 'enter',
+  frame = PREVIEW_ARROW_EXIT_UPDATES,
+  loopFrame = 0,
+  available = { prev: true, next: true },
+  focusClips = [],
+} = {}) {
+  if (!['enter', 'exit'].includes(phase)) throw new RangeError('Invalid preview arrow phase.');
+  const animation = source.animations.my_IplTop_e;
+  const endFrame = (phase === 'exit' ? 10100 : 10150) +
+    Math.min(PREVIEW_ARROW_EXIT_UPDATES, Math.max(0, frame));
+  const clips = [
+    { animation, frame: 0, loop: false },
+    { animation, frame: 10000 + (loopFrame % 55), group: 'G_ArwRoop', loop: false },
+    { animation, frame: endFrame, group: 'G_ArwL_End', loop: false },
+    { animation, frame: endFrame, group: 'G_ArwR_End', loop: false },
+    ...focusClips,
+  ];
+  const exclude = new Set(
+    [...indexLayout(source).panes.keys()].filter((name) =>
+      /^N_Btn[RL]_a/.test(name) || name === 'N_Dust'),
+  );
+  if (!available.prev) exclude.add('N_ArwL');
+  if (!available.next) exclude.add('N_ArwR');
+  return { layout: poseLayout(source, clips), exclude };
+}
 
 /** USA4.3 button handler 0x813BAC50 requests BT_PUSH before entering the
  * reverse-zoom path, which requests CH_UNSELECT at 0x813B7784. */

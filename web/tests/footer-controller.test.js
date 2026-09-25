@@ -11,6 +11,7 @@ import {
   shouldActivateArrowPointerDown,
 } from '../src/arrow-interaction.js';
 import { Renderer } from '../src/renderer.js';
+import { menuFooterState } from '../src/menu-footer-state.js';
 const read = (name) => {
   const path = new URL(`../public/assets/layouts/${name}.json`, import.meta.url);
   return fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : null;
@@ -86,6 +87,23 @@ test('footer tooltips cancel before appearance and apply native widescreen margi
     0,
   ]);
   assert.deepEqual(balloonSource.root.translation, [0, 0, 0]);
+});
+test('activating Calendar rolls its bubble away without restarting button hover', sourceTest, () => {
+  const footer = createFooterController(source, balloonSource, measure);
+  const anchors = { calendar: { x: 0, y: -170 } };
+  footer.hover('calendar');
+  footer.advance(23);
+  assert.equal(footer.balloons(anchors).length, 1);
+
+  footer.dismissBalloon();
+  assert.equal(footer.hovered, 'calendar');
+  footer.advance(3);
+  assert.equal(footer.balloons(anchors).length, 1);
+  footer.advance(3);
+  assert.equal(footer.balloons(anchors).length, 0);
+  footer.hover('calendar');
+  footer.advance(20);
+  assert.equal(footer.balloons(anchors).length, 0);
 });
 test('Message Board hover retains native six-frame endpoint then eight-frame rollout', sourceTest, () => {
   const footer = createFooterController(source, balloonSource, measure);
@@ -296,6 +314,37 @@ test('a held arrow keeps its bubble while a page click temporarily disables its 
     'scene-next'), false);
 });
 
+test('all shared arrows retain a held bubble through animated hit-pane movement', () => {
+  const ids = [
+    'next',
+    'sd-menu-next',
+    'scene-storage-prev',
+    'scene-address-next',
+    'scene-next',
+    'scene-memo-down',
+    'scene-memo-scroll-up',
+    'scene-incoming-scroll-down',
+    'scene-letter-scroll-up',
+    'settings-keyboard-key-symbols-next',
+  ];
+  for (const id of ids) {
+    const controls = [{ id, disabled: true, rect: { x: 100, y: 100, w: 20, h: 20 } }];
+    for (const point of [
+      { x: 123, y: 110, visible: true },
+      { x: 110, y: 123, visible: true },
+    ]) {
+      assert.equal(resolvePointerHover(controls, point), null,
+        `${id} cannot acquire focus outside a disabled pane`);
+      assert.equal(resolvePointerHover(controls, point, 'neighbor', id), id,
+        `${id} retains its held focus while the pane moves`);
+    }
+    assert.equal(resolvePointerHover(controls, { x: 125, y: 110, visible: true }, null, id),
+      null, `${id} releases after the pointer leaves its tolerance`);
+    assert.equal(resolvePointerHover([], { x: 110, y: 110, visible: true }, null, id), null,
+      `${id} releases when its control is removed`);
+  }
+});
+
 test('channel dragging can acquire a disabled edge arrow and clears it after departure', () => {
   const controls = [
     {
@@ -338,6 +387,47 @@ test('arrow visibility plays the original endpoints without toggling pane visibi
   assert.deepEqual(footer.arrowClips().map((clip) => clip.frame), [10155, 10155]);
   footer.advance(100);
   assert.deepEqual(footer.arrowClips().map((clip) => clip.frame), [10160, 10160]);
+});
+
+test('entering a channel preview carries both Home arrows outward through the zoom', sourceTest, () => {
+  for (const aspect of ['4:3', '16:9']) {
+    const footer = createFooterController(source, balloonSource, measure);
+    const grid = { screen: 'grid', page: 1, transition: null };
+    footer.setArrows(menuFooterState(grid).arrows);
+    footer.advance(20);
+
+    const arrowX = () => {
+      const renderer = Object.create(Renderer.prototype);
+      renderer.display = createDisplay(aspect);
+      renderer.bounds = new Map();
+      renderer.quad = () => {};
+      renderer.window = () => {};
+      renderer.draw(footer.pose());
+      return {
+        left: renderer.rect('B_ArwL').x,
+        right: renderer.rect('B_ArwR').x,
+      };
+    };
+    const settled = arrowX();
+    footer.setArrows(menuFooterState({
+      ...grid,
+      screen: 'preview',
+      transition: { kind: 'select' },
+    }).arrows);
+    assert.deepEqual(arrowX(), settled, `${aspect} keeps the first zoom pose`);
+    footer.advance(5);
+    const middle = arrowX();
+    assert.ok(middle.left < settled.left && middle.right > settled.right,
+      `${aspect} both arrows travel outward during channel entry`);
+    footer.advance(5);
+    const ended = arrowX();
+    assert.ok(ended.left < middle.left && ended.right > middle.right,
+      `${aspect} reaches the original ten-update exit endpoint`);
+    footer.advance(18);
+    const held = arrowX();
+    assert.ok(Math.abs(held.left - ended.left) < 3 && Math.abs(held.right - ended.right) < 3,
+      `${aspect} exit holds while the separate arrow loop continues`);
+  }
 });
 
 test('settings return restores both arrows without replaying their appearance clip', sourceTest, () => {

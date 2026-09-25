@@ -9,13 +9,31 @@ import {
   previewStartButtonClip,
   activatePreviewReturn,
   createPreviewButtonHover,
+  previewArrowAvailability,
+  posePreviewArrows,
 } from '../src/preview-transition.js';
 import { commonArrowDefinitions, createArrowInteraction } from '../src/arrow-interaction.js';
+import { createDisplay } from '../src/display.js';
+import { Renderer } from '../src/renderer.js';
+import { createFooterController } from '../src/footer-controller.js';
+import { menuFooterState } from '../src/menu-footer-state.js';
 
 const sourcePath = new URL('../public/assets/layouts/chanTtl/my_ChTop_a.json', import.meta.url);
 const source = fs.existsSync(sourcePath) ? JSON.parse(fs.readFileSync(sourcePath)) : null;
+const arrowSourcePath = new URL('../public/assets/layouts/cmnBtn/my_IplTop_e.json', import.meta.url);
+const arrowSource = fs.existsSync(arrowSourcePath)
+  ? JSON.parse(fs.readFileSync(arrowSourcePath)) : null;
+const balloonSourcePath = new URL(
+  '../public/assets/layouts/balloon/my_IplTopBalloon_a.json', import.meta.url,
+);
+const balloonSource = fs.existsSync(balloonSourcePath)
+  ? JSON.parse(fs.readFileSync(balloonSourcePath)) : null;
 const sourceTest = {
   skip: !source && 'Prepare a local menu WAD to test its original resources.',
+};
+const arrowSourceTest = {
+  skip: (!arrowSource || !balloonSource) &&
+    'Prepare a local menu WAD to test its original arrows.',
 };
 
 test('the preview Wii Menu button owns both its push cue and reverse zoom cue', () => {
@@ -179,3 +197,83 @@ test('shared preview arrows retain pointer focus through banner swaps and animat
   assert.equal(arrows.clips().find((clip) => clip.group === 'G_ArwL_Ac').frame, 10703);
   assert.equal(arrows.hovered, null);
 });
+
+test('preview return arrows keep Home size and leave beyond the channel frame in both aspects',
+  arrowSourceTest, () => {
+    for (const aspect of ['4:3', '16:9']) {
+      const display = createDisplay(aspect);
+      const renderRects = (layout, exclude = new Set()) => {
+        const renderer = Object.create(Renderer.prototype);
+        renderer.display = display;
+        renderer.bounds = new Map();
+        renderer.quad = () => {};
+        renderer.window = () => {};
+        renderer.draw(layout, { exclude });
+        return {
+          left: renderer.rect('B_ArwL'),
+          right: renderer.rect('B_ArwR'),
+          leftIcon: renderer.rect('ArwL'),
+          rightIcon: renderer.rect('ArwR'),
+        };
+      };
+      const rectangles = (phase, frame) => {
+        const { layout, exclude } = posePreviewArrows(arrowSource, {
+          phase, frame, loopFrame: 0,
+        });
+        return renderRects(layout, exclude);
+      };
+      const footer = createFooterController(arrowSource, balloonSource, () => 0);
+      footer.setArrows({ prev: true, next: true });
+      footer.advance(20);
+      const homeSize = renderRects(footer.pose());
+      const entered = rectangles('enter', 10);
+      const start = rectangles('exit', 0);
+      const middle = rectangles('exit', 5);
+      const end = rectangles('exit', 10);
+      for (const pose of [start, middle, end]) {
+        for (const side of ['left', 'right', 'leftIcon', 'rightIcon']) {
+          assert.ok(Math.abs(pose[side].w - homeSize[side].w) < 0.001,
+            `${aspect} ${side} width`);
+          assert.ok(Math.abs(pose[side].h - homeSize[side].h) < 0.001,
+            `${aspect} ${side} height`);
+        }
+      }
+      assert.ok(Math.abs(start.left.x - entered.left.x) < 0.001);
+      assert.ok(Math.abs(start.right.x - entered.right.x) < 0.001);
+      assert.ok(middle.left.x + middle.left.w < 0, `${aspect} left passes the black frame`);
+      assert.ok(middle.right.x > display.width, `${aspect} right passes the black frame`);
+      assert.ok(end.left.x < middle.left.x && end.right.x > middle.right.x,
+        `${aspect} both arrows continue to their source exit endpoints`);
+    }
+  });
+
+test('preview return retains cross-page arrow availability after screen changes to grid',
+  arrowSourceTest, () => {
+    const channels = Array(48).fill(null);
+    channels[0] = { id: 'first' };
+    channels[25] = { id: 'other-page' };
+    const menu = createMenuState({ channels });
+    for (let page = 0; page < 2; page++) {
+      assert.equal(menu.changePage(1), true);
+      menu.advance(DEFAULT_TIMING.page);
+    }
+    assert.equal(menu.selectChannel(25), true);
+    menu.advance(DEFAULT_TIMING.select);
+    assert.equal(menu.back(), true);
+    const state = menu.getState();
+    assert.equal(state.screen, 'grid');
+    assert.equal(menu.previewNeighbor(1), null);
+    assert.deepEqual(menuFooterState(state).arrows, { prev: false, next: false },
+      'zoomed grid arrows remain hidden beneath the preview exit overlay');
+    const available = previewArrowAvailability(state.channels, state.transition.from.selectedIndex);
+    assert.deepEqual(available, { prev: true, next: true });
+    const visible = posePreviewArrows(arrowSource, { phase: 'exit', frame: 0, available });
+    assert.equal(visible.exclude.has('N_ArwL'), false);
+    assert.equal(visible.exclude.has('N_ArwR'), false);
+
+    const only = previewArrowAvailability([{ id: 'single' }], 0);
+    assert.deepEqual(only, { prev: false, next: false });
+    const hidden = posePreviewArrows(arrowSource, { phase: 'exit', frame: 0, available: only });
+    assert.equal(hidden.exclude.has('N_ArwL'), true);
+    assert.equal(hidden.exclude.has('N_ArwR'), true);
+  });

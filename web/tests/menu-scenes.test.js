@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createMenuScenes, MENU_SCENE_LAYOUTS } from '../src/menu-scenes.js';
+import { activateSceneControl } from '../src/menu-scene-actions.js';
 import { createFooterController } from '../src/footer-controller.js';
-import { indexLayout } from '../src/animation.js';
+import { createDisplay } from '../src/display.js';
+import { identity, indexLayout, multiply, paneMatrix } from '../src/animation.js';
 import { renderedArrow } from './helpers/rendered-arrow.js';
 import { deferredDictionary, flushDictionary } from './helpers/deferred-dictionary.js';
 import { defaultStorageFixture } from '../src/storage-state.js';
@@ -19,6 +21,18 @@ const layouts = available
       ]),
     )
   : {};
+
+function worldX(layout, paneName) {
+  let coordinate;
+  function visit(pane, parentMatrix) {
+    const matrix = multiply(parentMatrix, paneMatrix(pane));
+    if (pane.name === paneName) coordinate = matrix.length === 12 ? matrix[3] : matrix[4];
+    for (const child of pane.children || []) visit(child, matrix);
+  }
+  visit(layout.root, identity);
+  assert.ok(Number.isFinite(coordinate), `Missing pane ${paneName}`);
+  return coordinate;
+}
 
 test('Board retires the arrival timer at the grid boundary before hidden-footer updates',
   { skip: !available }, () => {
@@ -442,6 +456,84 @@ test(
     assert.deepEqual(actions, []);
   },
 );
+test('Create Message return brings Board arrows inward at their original size',
+  { skip: !available }, () => {
+    for (const aspect of ['4:3', '16:9']) {
+      const display = createDisplay(aspect);
+      const scenes = createMenuScenes(layouts, { display });
+      const arrows = () => {
+        const footer = scenes.presentation().layers.find(
+          (layer) => layer.prefix === 'scene-board-buttons:',
+        ).layout;
+        const panes = indexLayout(footer).panes;
+        return Object.fromEntries(['L', 'R'].map((side) => [side, {
+          offset: panes.get(side === 'L' ? 'N_ArwL_End' : 'N_ArwR__End').translation[0],
+          hit: renderedArrow(footer, side, display).hit,
+        }]));
+      };
+
+      scenes.open('board', new Date(2026, 8, 17, 12));
+      scenes.advance(40);
+      const settled = arrows();
+      assert.equal(scenes.activate('create'), true);
+      scenes.advance(39);
+      assert.equal(scenes.back(), true);
+      scenes.advance(46);
+      assert.equal(scenes.snapshot().boardChild, null);
+
+      const entering = arrows();
+      assert.equal(entering.L.offset, -200);
+      assert.equal(entering.R.offset, 200);
+      scenes.advance(5);
+      const midpoint = arrows();
+      assert.equal(midpoint.L.offset, -100);
+      assert.equal(midpoint.R.offset, 100);
+      scenes.advance(5);
+      const arrived = arrows();
+      assert.equal(arrived.L.offset, 0);
+      assert.equal(arrived.R.offset, 0);
+
+      for (const side of ['L', 'R']) {
+        assert.ok(Math.abs(midpoint[side].hit.x - entering[side].hit.x) > 0);
+        // The independent idle loop shifts arrow geometry slightly as its
+        // clock continues through the Create page.
+        assert.ok(Math.abs(arrived[side].hit.x - settled[side].hit.x) < 3);
+        for (const step of [entering, midpoint, arrived]) {
+          assert.ok(Math.abs(step[side].hit.w - settled[side].hit.w) < 1e-8);
+          assert.ok(Math.abs(step[side].hit.h - settled[side].hit.h) < 1e-8);
+        }
+      }
+    }
+  });
+test('Calendar date tiles play one date cue while other controls keep their host cue',
+  { skip: !available }, () => {
+    const sounds = [];
+    const scenes = createMenuScenes(layouts, {
+      onSound: (sound) => sounds.push(sound),
+    });
+    const playHostSound = (sound) => sounds.push(sound);
+
+    scenes.open('board', new Date(2026, 8, 17, 12));
+    scenes.advance(40);
+    assert.equal(activateSceneControl(scenes, 'calendar', playHostSound), true);
+    assert.deepEqual(sounds, ['WIPL_SE_DECIDE']);
+    scenes.advance(50);
+    sounds.length = 0;
+    assert.equal(activateSceneControl(scenes, 'date-3', playHostSound), true);
+    assert.deepEqual(sounds, ['WIPL_SE_DATE_SELECT']);
+
+    scenes.open('board', new Date(2026, 8, 17, 12));
+    scenes.advance(40);
+    assert.equal(activateSceneControl(scenes, 'calendar', playHostSound), true);
+    scenes.advance(50);
+    sounds.length = 0;
+    assert.equal(activateSceneControl(scenes, 'next', playHostSound), true);
+    assert.deepEqual(sounds, ['confirm']);
+    scenes.advance(30);
+    sounds.length = 0;
+    assert.equal(activateSceneControl(scenes, 'back', playHostSound), true);
+    assert.deepEqual(sounds, ['cancel']);
+  });
 test(
   'posted corner Memos remain under the Wii Menu at their saved position after Board return',
   { skip: !available },
@@ -562,6 +654,143 @@ test(
     assert.equal(indexLayout(board).panes.get('T_Day_b').text, 'Thu 9/17');
   },
 );
+test('Board date labels travel through the 20-frame page slide in both TV aspects',
+  { skip: !available }, () => {
+    const date = new Date(2026, 8, 17, 12);
+    for (const aspect of ['4:3', '16:9']) {
+      const display = createDisplay(aspect);
+      const scenes = createMenuScenes(layouts, { display });
+      const board = () => scenes.presentation({ date }).layers.find(
+        (layer) => layer.prefix === 'scene-board:',
+      ).layout;
+      const label = (name) => indexLayout(board()).panes.get(name).text;
+      const screenX = (name) => worldX(board(), name) * display.rootScaleX;
+      scenes.open('board');
+      scenes.advance(40);
+      const center = screenX('T_Day_b');
+      assert.equal(label('T_Day_b'), 'Thu 9/17');
+      assert.equal(scenes.activate('next'), true);
+      scenes.advance(10);
+      assert.equal(label('T_Day_b'), 'Thu 9/17');
+      assert.equal(label('T_Day_c'), 'Fri 9/18');
+      assert.ok(screenX('T_Day_b') < center - 100);
+      assert.ok(screenX('T_Day_c') > center + 100);
+      scenes.advance(9);
+      const incomingNext = screenX('T_Day_c');
+      scenes.advance(1);
+      assert.equal(label('T_Day_b'), 'Fri 9/18');
+      assert.ok(Math.abs(incomingNext - screenX('T_Day_b')) < display.rootScaleX);
+      assert.equal(scenes.activate('prev'), true);
+      scenes.advance(10);
+      assert.equal(label('T_Day_a'), 'Thu 9/17');
+      assert.equal(label('T_Day_b'), 'Fri 9/18');
+      assert.ok(screenX('T_Day_a') < center - 100);
+      assert.ok(screenX('T_Day_b') > center + 100);
+      scenes.advance(9);
+      const incomingPrevious = screenX('T_Day_a');
+      scenes.advance(1);
+      assert.equal(label('T_Day_b'), 'Thu 9/17');
+      assert.ok(Math.abs(incomingPrevious - screenX('T_Day_b')) < display.rootScaleX);
+    }
+  });
+
+test('Board return slides once toward today across several days in both TV aspects',
+  { skip: !available }, () => {
+    const today = new Date(2026, 9, 2, 12);
+    for (const aspect of ['4:3', '16:9']) {
+      for (const browseDirection of ['prev', 'next']) {
+        const display = createDisplay(aspect);
+        const navigation = [];
+        const scenes = createMenuScenes(layouts, {
+          display,
+          onNavigate: (destination) => navigation.push(destination),
+        });
+        const board = () => scenes.presentation().layers.find(
+          (layer) => layer.prefix === 'scene-board:',
+        ).layout;
+        const label = (name) => indexLayout(board()).panes.get(name).text;
+        const screenX = (name) => worldX(board(), name) * display.rootScaleX;
+
+        scenes.open('board', today);
+        scenes.advance(40);
+        const center = screenX('T_Day_b');
+        for (let day = 0; day < 5; day += 1) {
+          assert.equal(scenes.activate(browseDirection), true);
+          scenes.advance(20);
+          scenes.presentation();
+        }
+        assert.ok(label('T_Day_b').endsWith(
+          browseDirection === 'prev' ? '9/27' : '10/7',
+        ));
+
+        assert.equal(scenes.back(), true);
+        const incoming = browseDirection === 'next' ? 'T_Day_a' : 'T_Day_c';
+        assert.ok(label(incoming).endsWith('10/2'));
+        const initialDistance = Math.abs(screenX(incoming) - center);
+        scenes.advance(10);
+        assert.ok(Math.abs(screenX(incoming) - center) < initialDistance);
+        scenes.advance(10);
+        assert.ok(Math.abs(screenX(incoming) - center) < 2 * display.rootScaleX);
+        scenes.advance(19);
+        assert.equal(scenes.snapshot().scene, 'board');
+        assert.ok(Math.abs(screenX(incoming) - center) < 2 * display.rootScaleX);
+        scenes.advance(1);
+        assert.deepEqual(navigation, ['grid']);
+      }
+
+      const scenes = createMenuScenes(layouts, { display: createDisplay(aspect) });
+      scenes.open('board', today);
+      scenes.advance(40);
+      const board = () => scenes.presentation().layers.find(
+        (layer) => layer.prefix === 'scene-board:',
+      ).layout;
+      const before = worldX(board(), 'T_Day_b');
+      assert.equal(scenes.back(), true);
+      scenes.advance(20);
+      assert.equal(worldX(board(), 'T_Day_b'), before);
+    }
+  });
+
+test('Board return restores the current date Memo underlay after browsing another day',
+  { skip: !available }, () => {
+    const today = new Date(2026, 9, 2, 12);
+    const earlier = new Date(2026, 8, 27, 12);
+    const scenes = createMenuScenes(layouts, {
+      memos: [
+        { id: 'today', text: 'Current day', createdAt: today.toISOString(),
+          position: { x: 0, y: 0 } },
+        { id: 'earlier', text: 'Earlier day', createdAt: earlier.toISOString(),
+          position: { x: 0, y: 0 } },
+      ],
+    });
+    scenes.open('board', today);
+    scenes.advance(40);
+    for (let day = 0; day < 5; day += 1) {
+      assert.equal(scenes.activate('prev'), true);
+      scenes.advance(20);
+      scenes.presentation();
+    }
+    const cardX = () => scenes.presentation().layers.find(
+      (layer) => layer.prefix === 'memo-card-earlier:',
+    )?.layout.root.translation[0];
+    const pageX = () => indexLayout(scenes.presentation().layers.find(
+      (layer) => layer.prefix === 'scene-board:',
+    ).layout).panes.get('N_TopBack').translation[0];
+    const originalX = cardX();
+    assert.ok(Number.isFinite(originalX));
+    assert.equal(scenes.back(), true);
+    assert.equal(cardX(), originalX);
+    scenes.advance(10);
+    assert.ok(cardX() < originalX - 200);
+    assert.ok(Math.abs(cardX() - originalX - pageX()) < 1e-6);
+    scenes.advance(10);
+    assert.ok(cardX() < originalX - 500);
+    assert.ok(Math.abs(cardX() - originalX - pageX()) < 1e-6);
+    scenes.advance(20);
+    assert.deepEqual(scenes.memoReturnLayers().map((layer) => layer.prefix),
+      ['memo-card-today:']);
+  });
+
 test(
   'Options opaque bars draw before breadcrumb headings and preserve outgoing fade contents',
   { skip: !available },
