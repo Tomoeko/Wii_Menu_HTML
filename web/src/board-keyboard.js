@@ -1711,7 +1711,13 @@ export function createBoardKeyboard(
           layers.push({ ...layer(PREDICTION, textLayer), clip: textClip });
           selectedTextLayer = {
             ...layer(PREDICTION, selectedLayer),
-            clip: textClip,
+            // Focus can scale a long first word past the rounded window edge.
+            // Draw the full word above the window and keytop textures.
+            clip: {
+              ...textClip,
+              x: -1,
+              w: horizontalClip.x + horizontalClip.w + 1,
+            },
           };
         } else {
           layers.push(layer(PREDICTION, prediction));

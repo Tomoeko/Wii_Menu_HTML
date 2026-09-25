@@ -1709,8 +1709,18 @@ test('candidate hover redraws only the selected word and preserves all other vis
         const windowLeft = Math.min(...window.corners.map(([x]) => x)) + display.width / 2;
         assert.ok(focused.layers[1].clip.x <= windowLeft,
           'regular words can cover the rounded left window texture');
-        assert.equal(focused.layers.at(-1).clip.x, focused.layers[1].clip.x);
-        assert.equal(focused.layers.at(-1).clip.w, focused.layers[1].clip.w);
+        assert.equal(focused.layers.at(-1).clip.x, -1,
+          'the entire enlarged first glyph stays above the window edge');
+        assert.equal(focused.layers.at(-1).clip.w,
+          focused.layers[1].clip.x + focused.layers[1].clip.w + 1);
+        if (entry.index === 0) {
+          const word = renderer.bounds.get(`keyboard-prediction:${selectedName}`);
+          const wordLeft = Math.min(...word.corners.map(([x]) => x)) + display.width / 2;
+          assert.ok(wordLeft < windowLeft,
+            'the first focused word extends left of the window pane');
+          assert.ok(focused.layers.at(-1).clip.x < wordLeft,
+            'the selected pass retains that leftmost text');
+        }
         const allLayers = keyboard.presentation().layers;
         assert.ok(allLayers.findLastIndex(({ prefix }) => prefix === 'keyboard-prediction:') >
           allLayers.findIndex(({ prefix }) => prefix === 'keyboard-ascii:'),
