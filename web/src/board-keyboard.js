@@ -1683,9 +1683,17 @@ export function createBoardKeyboard(
       // the key layout so a focused top-row key can draw its native hover
       // expansion over the strip instead of disappearing underneath it.
       const layers = [layer(TOOLBAR, toolbar)];
+      let selectedTextLayer = null;
       if (predictionAllowed) {
         const textLayer = predictionTextLayer(prediction);
         const horizontalClip = candidateClip(prediction);
+        const windowLeft = projectedPaneRect(prediction, 'W_predictWindow').x;
+        const clipLeft = Math.max(0, windowLeft - 1);
+        const textClip = {
+          ...horizontalClip,
+          x: clipLeft,
+          w: horizontalClip.x + horizontalClip.w - clipLeft,
+        };
         const selectedName =
           !strip.scrolling && /^key-candidate-\d+$/.test(focused || '')
             ? `T_prdc_Text_${keyName(Number(focused.slice(14)) % 20)}`
@@ -1694,27 +1702,21 @@ export function createBoardKeyboard(
           const selectedLayer = predictionTextLayer(prediction, selectedName);
           setVisible(indexLayout(textLayer).panes, selectedName, false);
           layers.push(layer(PREDICTION, prediction));
-          layers.push({ ...layer(PREDICTION, textLayer), clip: horizontalClip });
-          layers.push({
+          layers.push({ ...layer(PREDICTION, textLayer), clip: textClip });
+          selectedTextLayer = {
             ...layer(PREDICTION, selectedLayer),
-            // Focus-IN scales the first glyph beyond the authored text-area
-            // edge for one or two frames. Keep a logical pixel of antialiasing
-            // coverage on the left so that first frame is not scissored.
-            clip: {
-              ...horizontalClip,
-              x: -1,
-              w: horizontalClip.x + horizontalClip.w + 1,
-            },
-          });
+            clip: textClip,
+          };
         } else {
           layers.push(layer(PREDICTION, prediction));
-          layers.push({ ...layer(PREDICTION, textLayer), clip: horizontalClip });
+          layers.push({ ...layer(PREDICTION, textLayer), clip: textClip });
         }
         for (const pane of predictionPanes.values()) {
           if (/^T_prdc_Text_/.test(pane.name)) pane.text = '';
         }
       }
       layers.push(layer(layoutMode === 'qwerty' ? ASCII : PHONE, keytop));
+      if (selectedTextLayer) layers.push(selectedTextLayer);
       if (showBackground) layers.unshift(layer(BACKGROUND, view(BACKGROUND)));
       if (showTextBox) {
         const arrowClips = [...fieldArrows].map(([direction, arrow]) => ({

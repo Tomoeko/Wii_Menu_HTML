@@ -1668,10 +1668,21 @@ test('candidate hover redraws only the selected word and preserves all other vis
         assert.equal(focused.layers.length, 3);
         assert.equal(focused.words.at(-1).text, entry.value, 'selected word is drawn last');
         assert.ok(focused.words.at(-1).scale[0] > 1, 'original focus animation remains bound');
-        assert.equal(focused.layers.at(-1).clip.x, -1,
-          'focused word keeps a one-pixel left antialiasing margin');
-        assert.equal(focused.layers.at(-1).clip.w,
-          focused.layers[1].clip.x + focused.layers[1].clip.w + 1);
+        const selectedName = `T_prdc_Text_${String(entry.index % 20).padStart(2, '0')}`;
+        const restingPane = indexLayout(resting.layers[1].layout).panes.get(selectedName);
+        const focusedPane = indexLayout(focused.layers.at(-1).layout).panes.get(selectedName);
+        assert.equal(focusedPane.translation[0], restingPane.translation[0],
+          'hover scales in place without moving the word right');
+        const window = renderer.bounds.get('keyboard-prediction:W_predictWindow');
+        const windowLeft = Math.min(...window.corners.map(([x]) => x)) + display.width / 2;
+        assert.ok(focused.layers[1].clip.x <= windowLeft,
+          'regular words can cover the rounded left window texture');
+        assert.equal(focused.layers.at(-1).clip.x, focused.layers[1].clip.x);
+        assert.equal(focused.layers.at(-1).clip.w, focused.layers[1].clip.w);
+        const allLayers = keyboard.presentation().layers;
+        assert.ok(allLayers.findLastIndex(({ prefix }) => prefix === 'keyboard-prediction:') >
+          allLayers.findIndex(({ prefix }) => prefix === 'keyboard-ascii:'),
+        'focused text draws after keytops instead of disappearing behind them');
       }
       keyboard.hover(null);
       keyboard.advance(20);
